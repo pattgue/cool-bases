@@ -1,0 +1,152 @@
+/* Textos de la interfaz en inglés y español. El idioma es el de Obsidian: si empieza por «es», español; si no, inglés.
+   {nombre} se sustituye por el valor que se pase. */
+import { getLanguage, moment } from "obsidian";
+
+const en = {
+  "edit": "✎ Edit card",
+  "p.title": "Edit card", "p.view": "View:", "p.undo": "Undo", "p.cancel": "Cancel", "p.done": "Done",
+  "p.styles": "Styles", "p.presets": "Presets", "p.myStyles": "My styles", "p.saveStyle": "Save style", "p.copyFrom": "Copy from another view",
+  "p.styleName": "Style name", "p.name": "Name", "p.save": "Save", "p.searching": "Looking for views…", "p.noViews": "No other Cool Bases views",
+  "p.discardQ": "Discard changes?", "p.keepEditing": "Keep editing", "p.discard": "Discard",
+  "p.pickColor": "Pick color", "p.colorCode": "Color code", "p.search": "Search", "p.searchFont": "Search typefaces",
+  "p.resetTo": "{what} from the card",
+  "p.addData": "Add data", "p.addDataBtn": "+ Add data", "p.addLink": "Add link", "p.addLinkBtn": "+ Add link", "p.addStateBtn": "+ Add state", "p.add": "Add",
+  "g.card": "Card", "g.data": "Data", "g.decorations": "Decorations",
+  "b.size": "Size", "b.colors": "Colors", "b.font": "Font", "b.image": "Image", "b.footer": "Footer", "b.rating": "Rating", "b.states": "States",
+  "b.lines": "Lines", "b.hover": "Hover", "b.css": "Custom CSS",
+  "c.width": "Width", "c.height": "Height", "c.format": "Format", "c.fillWidth": "Fill width", "c.padding": "Padding", "c.radius": "Corner radius", "c.gap": "Gap",
+  "c.background": "Background", "c.gradient": "Gradient", "c.secondColor": "Second color", "c.angle": "Angle", "c.text": "Text", "c.details": "Details",
+  "c.border": "Border", "c.other": "Other", "c.color": "Color",
+  "c.typeface": "Typeface", "c.weight": "Weight", "c.size": "Size", "c.align": "Alignment",
+  "c.source": "Source", "c.position": "Position", "c.fit": "Fit", "c.noImage": "No image", "c.noImageAria": "If the note has no image", "c.margin": "Margin", "c.effect": "Effect",
+  "c.intensity": "Intensity", "c.grain": "Grain", "c.brightness": "Brightness", "c.shade": "Gradient",
+  "c.bottomText": "Bottom text", "c.shape": "Shape",
+  "c.multi": "Multiple values", "c.numFormat": "Format", "c.decimals": "Decimals", "c.updatesWith": "Updates with", "c.short": "Short",
+  "c.tagStyle": "Style", "c.max": "Max", "c.separator": "Separator", "c.more": "If more", "c.shows": "Shows", "c.arrow": "Arrow",
+  "c.layout": "Layout", "c.sortBy": "Sort by", "c.direction": "Direction", "c.heading": "Heading",
+  "c.type": "Type", "c.link": "Link", "c.upper": "Uppercase", "c.fit1": "Fit", "c.spaceT": "Space above", "c.spaceB": "Space below",
+  "c.decorations": "Decorations", "c.advanced": "Advanced options", "c.before": "Text before", "c.after": "Text after", "c.hide": "Hide values",
+  "c.property": "Property", "c.space": "Space", "c.placement": "Placement", "c.mx": "Horizontal margin", "c.my": "Vertical margin",
+  "c.visible": "Visible", "c.textYes": "Text if yes", "c.textNo": "Text if no", "c.thickness": "Thickness", "c.roundness": "Radius", "c.frame": "Frame",
+  "c.topLine": "Top line", "c.links": "Links", "c.showEmpty": "Show empty", "c.outOf": "Out of", "c.byValue": "Color by value", "c.howMany": "How many",
+  "fmt.free": "Free",
+  "al.left": "Left", "al.center": "Center", "al.right": "Right",
+  "img.none": "No image",
+  "pos.top": "Top", "pos.bottom": "Bottom", "pos.left": "Left", "pos.right": "Right",
+  "fit.encajar": "Fill", "fit.original": "Original", "fit.enmarcada": "Framed", "fit.fondo": "Background",
+  "empty.nada": "None", "empty.iniciales": "Initials", "empty.hueco": "Blank", "empty.portada": "Cover",
+  "fx.color": "Color", "fx.bn": "B&W", "fx.duo": "Duotone", "fx.blur": "Blur", "fx.inv": "Invert",
+  "cv.auto": "Automatic", "cv.card": "From the card", "cv.shapeAuto": "Automatic", "cv.shapeNone": "None",
+  "o.none": "None", "link.note": "To the note", "link.prop": "Property",
+  "multi.inline": "Inline", "multi.lines": "One per line",
+  "smart.spotify": "Spotify · listeners", "smart.instagram": "Instagram · followers", "smart.manual": "Manual",
+  "tag.fill": "Filled", "tag.outline": "Outlined", "tag.text": "Text", "ph.more": "e.g. “ & co.”", "ph.fixed": "Website",
+  "show.value": "The value", "show.site": "Site name", "show.fixed": "Fixed text",
+  "sort.orig": "Original order",
+  "d.italic": "Italic", "d.underline": "Underline", "d.highlight": "Highlight", "d.strike": "Strikethrough", "d.sup": "Superscript",
+  "i.title": "Title", "i.line": "Line {n}", "i.state": "State", "i.move": "Move {what}", "i.remove": "Remove {what}", "i.moveState": "Move state {what}",
+  "i.moveRating": "Move rating", "i.moveLine": "Move line {n}", "i.removeLine": "Remove line {n}", "i.removeState": "Remove state {what}",
+  "j.rating": "the rating", "j.state": "the state", "j.join": "Join {what} to the previous line", "j.split": "Split {what} from the previous line", "sep.space": "space",
+  "pop.in": "In “{name}”:",
+  "place.entre": "Between data", "place.where": "Position on the card", "place.onImg": "Over the image",
+  "pt.tl": "Top left", "pt.tc": "Top center", "pt.tr": "Top right", "pt.ml": "Middle left", "pt.mc": "Center", "pt.mr": "Middle right",
+  "pt.bl": "Bottom left", "pt.bc": "Bottom center", "pt.br": "Bottom right",
+  "show.yes": "If yes", "show.no": "If no", "show.always": "Always",
+  "stf.text": "Text", "stf.pill": "Pill", "stf.tag": "Tag", "stf.check": "Checkbox", "stf.icon": "Icon", "stf.dot": "Dot",
+  "frame.fill": "Fill", "frame.border": "Border", "frame.both": "Fill and border",
+  "rate.stars": "Stars", "rate.score": "Score", "rate.faces": "Faces", "rate.bubble": "Bubble", "rate.square": "Square", "rate.filled": "Filled", "rate.outline": "Outline",
+  "lw.full": "Full", "lw.content": "To content",
+  "sum.noImage": "no image", "sum.link1": "1 link", "sum.links": "{n} links", "sum.state1": "1 state", "sum.states": "{n} states", "sum.cssLines": "{n} lines",
+  "toast.undone": "Change undone", "toast.removed": "“{what}” removed", "toast.applied": "Style “{name}” applied", "toast.saved": "Style “{name}” saved to My styles",
+  "w.300": "Light", "w.400": "Regular", "w.500": "Medium", "w.600": "Semibold", "w.700": "Bold", "w.800": "Extra bold", "w.900": "Black",
+  "preset.poster": "Poster", "preset.ficha": "Profile", "preset.portada": "Cover", "preset.lista": "List",
+  "type.texto": "Text", "type.numero": "Number", "type.smart": "Smart number", "type.etiquetas": "Tags", "type.enlace": "Link", "type.notas": "Linked notes",
+  "font.interface": "Interface", "font.text": "Obsidian text",
+  "st.yesDef": "Yes", "st.noDef": "No",
+  "q.open": "“", "q.close": "”",
+};
+
+/** @type {typeof en} */
+const es = {
+  "edit": "✎ Editar tarjeta",
+  "p.title": "Editar tarjeta", "p.view": "Vista:", "p.undo": "Deshacer", "p.cancel": "Cancelar", "p.done": "Listo",
+  "p.styles": "Estilos", "p.presets": "Predeterminados", "p.myStyles": "Mis estilos", "p.saveStyle": "Guardar estilo", "p.copyFrom": "Copiar de otra vista",
+  "p.styleName": "Nombre del estilo", "p.name": "Nombre", "p.save": "Guardar", "p.searching": "Buscando vistas…", "p.noViews": "No hay otras vistas Cool Bases",
+  "p.discardQ": "¿Descartar los cambios?", "p.keepEditing": "Seguir editando", "p.discard": "Descartar",
+  "p.pickColor": "Elegir color", "p.colorCode": "Código del color", "p.search": "Buscar", "p.searchFont": "Buscar tipografía",
+  "p.resetTo": "{what} de la tarjeta",
+  "p.addData": "Añadir dato", "p.addDataBtn": "+ Añadir dato", "p.addLink": "Añadir enlace", "p.addLinkBtn": "+ Añadir enlace", "p.addStateBtn": "+ Añadir estado", "p.add": "Añadir",
+  "g.card": "Tarjeta", "g.data": "Datos", "g.decorations": "Decoraciones",
+  "b.size": "Tamaño", "b.colors": "Colores", "b.font": "Fuente", "b.image": "Imagen", "b.footer": "Pie", "b.rating": "Valoración", "b.states": "Estados",
+  "b.lines": "Líneas", "b.hover": "Hover", "b.css": "CSS libre",
+  "c.width": "Ancho", "c.height": "Alto", "c.format": "Formato", "c.fillWidth": "Llenar el ancho", "c.padding": "Margen interior", "c.radius": "Redondeo esquinas", "c.gap": "Separación",
+  "c.background": "Fondo", "c.gradient": "Degradado", "c.secondColor": "Segundo color", "c.angle": "Ángulo", "c.text": "Texto", "c.details": "Detalles",
+  "c.border": "Borde", "c.other": "Otro", "c.color": "Color",
+  "c.typeface": "Tipografía", "c.weight": "Peso", "c.size": "Tamaño", "c.align": "Alineación",
+  "c.source": "Origen", "c.position": "Posición", "c.fit": "Ajuste", "c.noImage": "Sin imagen", "c.noImageAria": "Si la nota no tiene imagen", "c.margin": "Margen", "c.effect": "Efecto",
+  "c.intensity": "Intensidad", "c.grain": "Grano", "c.brightness": "Brillo", "c.shade": "Degradado",
+  "c.bottomText": "Texto de abajo", "c.shape": "Forma",
+  "c.multi": "Varios valores", "c.numFormat": "Formato", "c.decimals": "Decimales", "c.updatesWith": "Se actualiza con", "c.short": "Abreviado",
+  "c.tagStyle": "Estilo", "c.max": "Máximo", "c.separator": "Separador", "c.more": "Si hay más", "c.shows": "Qué se ve", "c.arrow": "Flechita",
+  "c.layout": "Disposición", "c.sortBy": "Ordenar por", "c.direction": "Dirección", "c.heading": "Encabezado",
+  "c.type": "Tipo", "c.link": "Enlace", "c.upper": "Mayúsculas", "c.fit1": "Ajustar", "c.spaceT": "Separación arriba", "c.spaceB": "Separación abajo",
+  "c.decorations": "Decoraciones", "c.advanced": "Opciones avanzadas", "c.before": "Texto antes", "c.after": "Texto después", "c.hide": "Ocultar valores",
+  "c.property": "Propiedad", "c.space": "Espacio", "c.placement": "Colocación", "c.mx": "Margen horizontal", "c.my": "Margen vertical",
+  "c.visible": "Se ve", "c.textYes": "Texto si sí", "c.textNo": "Texto si no", "c.thickness": "Grosor", "c.roundness": "Redondeo", "c.frame": "Marco",
+  "c.topLine": "Línea superior", "c.links": "Enlaces", "c.showEmpty": "Ver vacías", "c.outOf": "Sobre", "c.byValue": "Color según valor", "c.howMany": "Cuántas",
+  "fmt.free": "Libre",
+  "al.left": "Izquierda", "al.center": "Centro", "al.right": "Derecha",
+  "img.none": "Sin imagen",
+  "pos.top": "Arriba", "pos.bottom": "Abajo", "pos.left": "Izquierda", "pos.right": "Derecha",
+  "fit.encajar": "Encajar", "fit.original": "Original", "fit.enmarcada": "Enmarcada", "fit.fondo": "Fondo",
+  "empty.nada": "Nada", "empty.iniciales": "Iniciales", "empty.hueco": "Hueco", "empty.portada": "Portada",
+  "fx.color": "Color", "fx.bn": "B/N", "fx.duo": "Duotono", "fx.blur": "Desenfoque", "fx.inv": "Invertir",
+  "cv.auto": "Automáticos", "cv.card": "De la tarjeta", "cv.shapeAuto": "Automática", "cv.shapeNone": "Ninguna",
+  "o.none": "Ninguno", "link.note": "A la nota", "link.prop": "Propiedad",
+  "multi.inline": "En línea", "multi.lines": "Uno por línea",
+  "smart.spotify": "Spotify · oyentes", "smart.instagram": "Instagram · seguidores", "smart.manual": "A mano",
+  "tag.fill": "Rellena", "tag.outline": "Con borde", "tag.text": "Texto", "ph.more": "p. ej. « & co.»", "ph.fixed": "Web",
+  "show.value": "El valor", "show.site": "Nombre del sitio", "show.fixed": "Texto fijo",
+  "sort.orig": "Orden original",
+  "d.italic": "Cursiva", "d.underline": "Subrayado", "d.highlight": "Resaltado", "d.strike": "Tachado", "d.sup": "Superíndice",
+  "i.title": "Título", "i.line": "Línea {n}", "i.state": "Estado", "i.move": "Mover {what}", "i.remove": "Quitar {what}", "i.moveState": "Mover estado {what}",
+  "i.moveRating": "Mover valoración", "i.moveLine": "Mover línea {n}", "i.removeLine": "Quitar línea {n}", "i.removeState": "Quitar estado {what}",
+  "j.rating": "la valoración", "j.state": "el estado", "j.join": "Juntar {what} con la línea anterior", "j.split": "Separar {what} de la línea anterior", "sep.space": "espacio",
+  "pop.in": "En «{name}»:",
+  "place.entre": "Entre los datos", "place.where": "Posición en la tarjeta", "place.onImg": "Sobre la imagen",
+  "pt.tl": "Arriba izquierda", "pt.tc": "Arriba centro", "pt.tr": "Arriba derecha", "pt.ml": "Centro izquierda", "pt.mc": "Centro", "pt.mr": "Centro derecha",
+  "pt.bl": "Abajo izquierda", "pt.bc": "Abajo centro", "pt.br": "Abajo derecha",
+  "show.yes": "Si sí", "show.no": "Si no", "show.always": "Siempre",
+  "stf.text": "Texto", "stf.pill": "Pastilla", "stf.tag": "Etiqueta", "stf.check": "Casilla", "stf.icon": "Icono", "stf.dot": "Punto",
+  "frame.fill": "Relleno", "frame.border": "Borde", "frame.both": "Relleno y borde",
+  "rate.stars": "Estrellas", "rate.score": "Puntuación", "rate.faces": "Caras", "rate.bubble": "Burbuja", "rate.square": "Cuadrado", "rate.filled": "Rellenas", "rate.outline": "Contorno",
+  "lw.full": "Entera", "lw.content": "Al contenido",
+  "sum.noImage": "sin imagen", "sum.link1": "1 enlace", "sum.links": "{n} enlaces", "sum.state1": "1 estado", "sum.states": "{n} estados", "sum.cssLines": "{n} líneas",
+  "toast.undone": "Cambio deshecho", "toast.removed": "«{what}» quitado", "toast.applied": "Estilo «{name}» aplicado", "toast.saved": "Estilo «{name}» guardado en Mis estilos",
+  "w.300": "Fina", "w.400": "Normal", "w.500": "Media", "w.600": "Semi", "w.700": "Negrita", "w.800": "Extra", "w.900": "Black",
+  "preset.poster": "Póster", "preset.ficha": "Ficha", "preset.portada": "Portada", "preset.lista": "Lista",
+  "type.texto": "Texto", "type.numero": "Número", "type.smart": "Dato inteligente", "type.etiquetas": "Etiquetas", "type.enlace": "Enlace", "type.notas": "Notas enlazadas",
+  "font.interface": "Interfaz", "font.text": "Texto de Obsidian",
+  "st.yesDef": "Sí", "st.noDef": "No",
+  "q.open": "«", "q.close": "»",
+};
+
+const STR = { en, es };
+let lang = null;
+/** @returns {"en" | "es"} */
+export function locale() {
+  if (lang) return lang;
+  let l = "";
+  try { l = getLanguage(); } catch { /* Obsidian anterior a 1.8.7 */ }
+  if (!l) try { l = moment.locale(); } catch { /* sin moment */ }
+  return lang = /^es/i.test(String(l || "")) ? "es" : "en";
+}
+/** @param {string} key @param {Record<string, any>} [vars] */
+export function t(key, vars) {
+  const s = STR[locale()][key] ?? en[key] ?? key;
+  return vars ? s.replace(/\{(\w+)\}/g, (m, k) => vars[k] != null ? String(vars[k]) : m) : s;
+}
+export const numLocale = () => locale() === "es" ? "es-ES" : "en-US";
+export const decSep = () => locale() === "es" ? "," : ".";
+/* nombre que se enseña de una familia: las dos de Obsidian, traducidas */
+export const fontLabel = name => name === "Interfaz" ? t("font.interface") : name === "Texto de Obsidian" ? t("font.text") : name;

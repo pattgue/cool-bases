@@ -1,0 +1,16 @@
+# dependencias
+node_modules/
+
+# lo que genera «npm run build» (lo sube la Action a cada Release)
+/main.js
+/styles.css
+
+# arnés de pruebas
+test/node_modules/
+test/out/
+
+# sistema
+.DS_Store
+
+# el plugin instalado en el vault de ejemplo (para hacer las capturas)
+demo-vault/.obsidian/

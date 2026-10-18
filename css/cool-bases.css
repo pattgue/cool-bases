@@ -1,0 +1,83 @@
+/* como en el boceto: todo con box-sizing border-box (Obsidian no lo garantiza fuera de sus componentes) */
+.cb-view, .cb-view *, .cb-view *::before, .cb-view *::after,
+.cb-panel, .cb-panel *, .cb-panel *::before, .cb-panel *::after,
+.cb-fp, .cb-fp *, .cb-fp *::before, .cb-fp *::after { box-sizing: border-box; }
+/* ===== Cool Bases: lo propio del plugin (vista nueva, botón y montaje del panel) ===== */
+.cb-view { padding: var(--size-4-3); }
+.cb-view .cb-group {
+  display: inline-block; font-weight: 600; color: var(--text-muted); background: var(--background-modifier-hover);
+  border-radius: 6px; padding: 2px 10px; font-size: var(--font-ui-small); margin: var(--size-4-4) 0 var(--size-4-2);
+}
+.cb-view .cb-card { cursor: pointer; }
+.cb-view .cb-card:focus-visible { outline: none; }
+.cb-view .cb-card:focus-visible::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--cb-det); z-index: 6; pointer-events: none; }
+/* los enlaces, superíndices y etiquetas toman el estilo de su dato, no el del tema (los temas les ponen peso, tamaño,
+   fuente, color, subrayado, icono…). Con !important porque un tema puede ser más específico; el hover y el subrayado
+   que pida el dato van más abajo, más específicos aún. */
+.cb-view .cb-card a, .cb-view .cb-card a.internal-link, .cb-view .cb-card a.external-link, .cb-view .cb-card a.internal-link.is-unresolved,
+.cb-view .cb-card sup:not(.cb-sup), .cb-view .cb-card .tag {
+  font-weight: inherit !important; font-size: inherit !important; font-family: inherit !important; font-style: inherit !important;
+  letter-spacing: inherit !important; text-transform: inherit !important; line-height: inherit !important; color: inherit !important;
+  text-decoration: inherit !important; background-image: none !important; padding-inline-end: 0 !important; padding-right: 0 !important;
+  filter: none !important; opacity: 1 !important; text-shadow: inherit;
+}
+.cb-view .cb-card a { cursor: pointer; }
+/* el superíndice lleva su propio estilo en línea; lo que no fije, lo hereda (no lo pone el tema) */
+.cb-view .cb-card sup.cb-sup { font-weight: inherit; font-family: inherit; font-style: inherit; letter-spacing: inherit; text-transform: inherit;
+  color: inherit; text-decoration: inherit; line-height: 0; }
+.cb-view .cb-card a.cb-a.cb-u { text-decoration: underline !important; text-underline-offset: .16em; text-decoration-thickness: .07em; }
+.cb-view .cb-grid.hv-on .cb-card a.cb-a.hv:hover { color: var(--cb-hc) !important; }
+.cb-view .cb-grid.hv-on.hv-u .cb-card a.cb-a.hv:hover { text-decoration: underline !important; }
+.cb-view .cb-card .cb-copy { text-decoration: none !important; }
+.cb-view .cb-head { display: block; font-size: .72em; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .2em; }
+
+/* botón «Editar tarjeta», arriba a la derecha de la vista */
+.cb-editbar { display: flex; justify-content: flex-end; padding: var(--size-4-2) var(--size-4-3) 0; }
+.cb-editbar .cb-edit-btn { font-size: var(--font-ui-small); height: auto; padding: var(--size-2-2) var(--size-4-2); }
+.cb-editbar .cb-edit-btn[aria-expanded="true"] { background: var(--interactive-accent); color: var(--text-on-accent); }
+
+/* panel lateral montado sobre la vista */
+.cb-panel-host { position: relative; }
+.cb-editing { padding-right: min(400px, 50%) !important; }
+.cb-panel {
+  position: absolute; right: 0; bottom: 0; width: 400px; max-width: 100%; z-index: 30;
+  display: flex; flex-direction: column; min-height: 0;
+  background: var(--background-primary); border-left: 1px solid var(--background-modifier-border); box-shadow: -12px 0 32px rgba(0, 0, 0, .25);
+  font: 12.5px/1.4 var(--font-interface); color: var(--text-normal); text-align: left;
+  --cbp-acc-soft: color-mix(in srgb, var(--interactive-accent) 18%, transparent);
+}
+.cb-fp { font: 12.5px/1.4 var(--font-interface); color: var(--text-normal); --cbp-acc-soft: color-mix(in srgb, var(--interactive-accent) 18%, transparent); }
+.cb-panel [hidden], .cb-fp[hidden], .cb-fp [hidden] { display: none !important; }
+/* los botones y campos de Obsidian traen su estilo: aquí se parte de cero y manda el del panel */
+.cb-panel button, .cb-fp button { box-shadow: none; height: auto; min-height: 0; margin: 0; padding: 0; border: 0; background: transparent; font: inherit; color: inherit; cursor: pointer; }
+.cb-panel input, .cb-panel select, .cb-panel textarea, .cb-fp input, .cb-fp select { box-shadow: none; margin: 0; }
+.cb-panel input[type=range]::-webkit-slider-thumb { box-shadow: none; }
+.cb-panel h2, .cb-panel h3, .cb-panel h4, .cb-fp h5 { font-family: inherit; }
+.cb-panel .ph { padding: 14px 16px 12px; }
+body.cb-scrubbing, body.cb-scrubbing * { cursor: ew-resize !important; user-select: none; }
+.cb-toast-undo { margin-left: 8px; }
+
+/* la imagen generada (portada, iniciales, hueco) no lleva el efecto de las fotos (B/N, duotono…); el CSS libre sí le vale */
+.cb-view .cb-media img.cb-ph { filter: none; }
+
+/* «Ajustar»: una sola línea; el plugin encoge el texto hasta que cabe */
+.cb-view .cb-l.fit { white-space: nowrap; overflow-wrap: normal; overflow: hidden; }
+/* confirmación de «Cancelar» */
+.cb-fp .cbconfirm { padding: 12px; width: 230px; }
+.cb-fp .cbconfirm p { margin: 0; font-weight: 600; }
+/* «& co.» tras el máximo de una lista */
+.cb-view .cb-more { opacity: .65; white-space: nowrap; }
+/* Estados (Decoraciones): texto, pastilla, etiqueta, sello, icono o punto; los de un mismo punto, apilados */
+.cb-view .cb-st { display: inline-block; line-height: 1.1; white-space: nowrap; vertical-align: middle; }
+.cb-view .cb-st.f-text, .cb-view .cb-st.f-icon { line-height: 1.15; }
+.cb-view .cb-st.f-dot { width: .7em; height: .7em; border-radius: 50%; }
+/* casilla: se marca y desmarca desde la tarjeta */
+.cb-view .cb-st.f-check { display: inline-flex; align-items: center; gap: .45em; cursor: pointer; }
+.cb-view .cb-ck { display: inline-grid; place-items: center; flex: none; width: 1.05em; height: 1.05em; box-sizing: border-box; border-style: solid; border-color: currentColor; transition: box-shadow .12s; }
+.cb-view .cb-ck svg { width: .85em; height: .85em; color: var(--cb-bgc, #000); }
+.cb-view .cb-st.f-check:hover .cb-ck, .cb-view .cb-st.f-check:focus-visible .cb-ck { box-shadow: 0 0 0 .18em color-mix(in srgb, currentColor 22%, transparent); }
+.cb-view .cb-st.f-check:focus-visible { outline: none; }
+.cb-view .cb-stl { line-height: 1.15; padding-block: 1cqi; }
+.cb-view .cb-stg { display: flex; flex-direction: column; gap: 1.5cqi; pointer-events: none; }
+/* la casilla, aunque esté en una esquina, se puede pulsar */
+.cb-view .cb-stg .cb-st.f-check { pointer-events: auto; }

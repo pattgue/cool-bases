@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "description": "Cool Bases test harness: renders the demo vault without Obsidian (needs Playwright with Chromium: installed separately, or PW=/path/to/playwright).",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node build.mjs && node run.mjs"
+  },
+  "devDependencies": {
+    "js-yaml": "4.1.0"
+  }
+}

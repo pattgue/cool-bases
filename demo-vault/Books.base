@@ -1,0 +1,592 @@
+filters:
+  and:
+    - file.inFolder("Books")
+properties:
+  note.read:
+    displayName: read
+views:
+  - type: cool-bases
+    name: Shelf
+    order:
+      - genre
+      - file.name
+      - author
+      - rating
+      - year
+      - read
+    sort:
+      - property: year
+        direction: ASC
+    coolbases:
+      card:
+        w: 320
+        fill: true
+        fmt: libre
+        h: 150
+        pad: 5
+        radius: 4
+        gap: 14
+      col:
+        bg: '#181818'
+        grad: false
+        bg2: '#2b2b2b'
+        angle: 180
+        text: '#f0f0f0'
+        det: '#f2c94c'
+        bw: 0
+        bc: '#ffffff29'
+      font:
+        family: Georgia
+        weight: 400
+        size: 3.8
+        align: left
+      img:
+        src: auto
+        pos: left
+        fit: original
+        frame: 5
+        fx: color
+        amt:
+          bn: 100
+          duo: 100
+          blur: 35
+          inv: 100
+        duo1: '#141414'
+        duo2: '#e5332f'
+        grain: false
+        bright: 100
+        shade: false
+        shadeC: '#000000'
+        empty: portada
+        cvText: note.author
+        cvColors: auto
+        cvShape: auto
+        cvFont: Georgia
+      foot:
+        'on': false
+        bg: '#00000000'
+        lw: 1
+        lc: '#ffffff1f'
+        filled: false
+      rate:
+        'on': true
+        prop: note.rating
+        type: stars
+        place: entre
+        onImg: false
+        mx: 5
+        my: 5
+        color: det
+        size: 4
+        empty: true
+        over: 5
+        shape: bubble
+        byVal: true
+        fill: filled
+      states:
+        'on': true
+        list:
+          - id: s00ggae1
+            prop: note.read
+            show: always
+            'yes': Read
+            'no': To read
+            fmt: check
+            icon: ✓
+            frame: border
+            bw: 1.5
+            radius: 3
+            pad: 0.6
+            rot: -8
+            color: det
+            bg: '#00000000'
+            font: null
+            upper: false
+            size: 3
+            weight: 500
+            place: br
+            onImg: false
+            mx: 5
+            my: 5
+      lines:
+        'on': false
+        'n': 1
+        color: det
+        w: 2
+        width: full
+        pct: 30
+        mt: 1.6
+        mb: 1.6
+      hover:
+        'on': true
+        color: tx
+        bg: '#ffffff'
+        bgOp: 10
+        under: true
+      css: ''
+      v: 1
+      items:
+        - id: dw9gunuq
+          kind: dato
+          prop: note.genre
+          type: etiquetas
+          font: null
+          upper: true
+          color: det
+          size: 2.6
+          weight: 700
+          fit: false
+          spaceT: 0
+          spaceB: 0.8
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: false
+          link: none
+          hover: false
+          before: ''
+          after: ''
+          hide: ''
+          join: false
+          sep: ·
+          gap: 1
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: text
+            max: 2
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: value
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''
+        - id: df47vp1y
+          kind: title
+          prop: file.name
+          type: texto
+          font: null
+          upper: false
+          color: tx
+          size: 6.5
+          weight: 700
+          fit: false
+          spaceT: 0.4
+          spaceB: 0.4
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: false
+          link: none
+          hover: false
+          before: ''
+          after: ''
+          hide: ''
+          join: false
+          sep: ·
+          gap: 1
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: text
+            max: 3
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: value
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''
+        - id: dctfqnv5
+          kind: dato
+          prop: note.author
+          type: texto
+          font: null
+          upper: false
+          color: tx
+          size: 3.6
+          weight: null
+          fit: false
+          spaceT: 1
+          spaceB: 0.6
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: false
+          link: none
+          hover: false
+          before: ''
+          after: ''
+          hide: ''
+          join: false
+          sep: ·
+          gap: 1
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: text
+            max: 3
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: value
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''
+        - id: rating
+          kind: rating
+        - id: dm1j066i
+          kind: dato
+          prop: note.year
+          type: texto
+          font: null
+          upper: false
+          color: '#9a9a9a'
+          size: 3.2
+          weight: null
+          fit: false
+          spaceT: 0.6
+          spaceB: 0.6
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: false
+          link: none
+          hover: false
+          before: ''
+          after: ''
+          hide: ''
+          join: true
+          sep: ·
+          gap: 1.2
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: text
+            max: 3
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: value
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''
+        - id: is00ggae1
+          kind: state
+          sid: s00ggae1
+        - id: L5mlh7x9
+          kind: line
+      fitems: []
+  - type: cool-bases
+    name: Reading list
+    order:
+      - file.name
+      - year
+      - author
+      - read
+    sort:
+      - property: file.name
+        direction: ASC
+    coolbases:
+      card:
+        w: 300
+        fill: true
+        fmt: libre
+        h: 40
+        pad: 4.5
+        radius: 6
+        gap: 8
+      col:
+        bg: '#1f1f1f'
+        grad: false
+        bg2: '#2b2b2b'
+        angle: 180
+        text: '#e8e8e8'
+        det: '#9aa4ff'
+        bw: 1
+        bc: '#ffffff1a'
+      font:
+        family: Interfaz
+        weight: 400
+        size: 3.4
+        align: left
+      img:
+        src: none
+        pos: top
+        fit: encajar
+        frame: 5
+        fx: color
+        amt:
+          bn: 100
+          duo: 100
+          blur: 35
+          inv: 100
+        duo1: '#141414'
+        duo2: '#e5332f'
+        grain: false
+        bright: 100
+        shade: false
+        shadeC: '#000000'
+        empty: nada
+        cvText: null
+        cvColors: auto
+        cvShape: auto
+        cvFont: Georgia
+      foot:
+        'on': false
+        bg: '#00000000'
+        lw: 1
+        lc: '#ffffff1f'
+        filled: false
+      rate:
+        'on': false
+        prop: auto
+        type: stars
+        place: entre
+        onImg: false
+        mx: 5
+        my: 5
+        color: det
+        size: 4.4
+        empty: true
+        over: 5
+        shape: bubble
+        byVal: true
+        fill: filled
+      states:
+        'on': true
+        list:
+          - id: snnl7zaf
+            prop: note.read
+            show: always
+            'yes': ''
+            'no': ''
+            fmt: check
+            icon: ✓
+            frame: border
+            bw: 1.5
+            radius: 4
+            pad: 0.6
+            rot: -8
+            color: det
+            bg: '#00000000'
+            font: null
+            upper: true
+            size: 4
+            weight: 700
+            place: mr
+            onImg: false
+            mx: 5
+            my: 5
+      lines:
+        'on': false
+        'n': 1
+        color: det
+        w: 2
+        width: full
+        pct: 30
+        mt: 1.6
+        mb: 1.6
+      hover:
+        'on': true
+        color: tx
+        bg: '#ffffff'
+        bgOp: 10
+        under: true
+      css: ''
+      v: 1
+      items:
+        - id: dqu4q44b
+          kind: title
+          prop: file.name
+          type: texto
+          font: null
+          upper: false
+          color: tx
+          size: 5.2
+          weight: 600
+          fit: false
+          spaceT: 0.2
+          spaceB: 0.2
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: false
+          link: none
+          hover: false
+          before: ''
+          after: ''
+          hide: ''
+          join: false
+          sep: ·
+          gap: 1
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: text
+            max: 3
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: value
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''
+        - id: dc6egh2v
+          kind: dato
+          prop: note.year
+          type: texto
+          font: null
+          upper: false
+          color: det
+          size: null
+          weight: null
+          fit: false
+          spaceT: 0.6
+          spaceB: 0.6
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: true
+          link: none
+          hover: false
+          before: ''
+          after: ''
+          hide: ''
+          join: true
+          sep: ·
+          gap: 0.8
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: text
+            max: 3
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: value
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''
+        - id: dmjl6z8a
+          kind: dato
+          prop: note.author
+          type: texto
+          font: null
+          upper: false
+          color: '#9a9a9a'
+          size: 3.2
+          weight: null
+          fit: false
+          spaceT: 0.4
+          spaceB: 0.6
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: false
+          link: none
+          hover: false
+          before: ''
+          after: ''
+          hide: ''
+          join: false
+          sep: ·
+          gap: 1
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: text
+            max: 3
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: value
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''
+        - id: rating
+          kind: rating
+        - id: isnnl7zaf
+          kind: state
+          sid: snnl7zaf
+        - id: Lswemxqs
+          kind: line
+      fitems: []

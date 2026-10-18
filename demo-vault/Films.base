@@ -1,0 +1,708 @@
+filters:
+  and:
+    - file.inFolder("Films")
+views:
+  - type: cool-bases
+    name: Posters
+    order:
+      - file.name
+      - year
+      - director
+      - score
+      - watched
+    sort:
+      - property: year
+        direction: ASC
+    coolbases:
+      card:
+        w: 220
+        fill: true
+        fmt: 3/4
+        h: 320
+        pad: 6
+        radius: 4
+        gap: 12
+      col:
+        bg: '#111111'
+        grad: false
+        bg2: '#2b2b2b'
+        angle: 180
+        text: '#ffffff'
+        det: '#ffffff'
+        bw: 0
+        bc: '#ffffff29'
+      font:
+        family: Interfaz
+        weight: 500
+        size: 3.4
+        align: left
+      img:
+        src: auto
+        pos: top
+        fit: fondo
+        frame: 5
+        fx: color
+        amt:
+          bn: 100
+          duo: 100
+          blur: 35
+          inv: 100
+        duo1: '#141414'
+        duo2: '#e5332f'
+        grain: false
+        bright: 94
+        shade: true
+        shadeC: '#000000'
+        empty: portada
+        cvText: note.director
+        cvColors: auto
+        cvShape: auto
+        cvFont: Georgia
+      foot:
+        'on': false
+        bg: '#00000000'
+        lw: 1
+        lc: '#ffffff1f'
+        filled: false
+      rate:
+        'on': true
+        prop: note.score
+        type: score
+        place: tr
+        onImg: false
+        mx: 4
+        my: 4
+        color: det
+        size: 5
+        empty: true
+        over: 10
+        shape: bubble
+        byVal: true
+        fill: filled
+      states:
+        'on': true
+        list:
+          - id: sj1v73hg
+            prop: note.watched
+            show: 'yes'
+            'yes': Watched
+            'no': 'No'
+            fmt: pill
+            icon: ✓
+            frame: fill
+            bw: 1
+            radius: 3
+            pad: 0.7
+            rot: -8
+            color: tx
+            bg: '#ffffff2e'
+            font: null
+            upper: true
+            size: 2.6
+            weight: 700
+            place: tl
+            onImg: false
+            mx: 4
+            my: 4
+      lines:
+        'on': false
+        'n': 1
+        color: det
+        w: 2
+        width: full
+        pct: 30
+        mt: 1.6
+        mb: 1.6
+      hover:
+        'on': true
+        color: tx
+        bg: '#ffffff'
+        bgOp: 10
+        under: true
+      css: ''
+      v: 1
+      items:
+        - id: dbgxmdw6
+          kind: title
+          prop: file.name
+          type: texto
+          font: null
+          upper: false
+          color: tx
+          size: 12
+          weight: 800
+          fit: true
+          spaceT: 0.2
+          spaceB: 0.2
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: false
+          link: none
+          hover: false
+          before: ''
+          after: ''
+          hide: ''
+          join: false
+          sep: ·
+          gap: 1
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: text
+            max: 3
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: value
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''
+        - id: d8x6eno2
+          kind: dato
+          prop: note.year
+          type: texto
+          font: null
+          upper: false
+          color: tx
+          size: null
+          weight: 500
+          fit: false
+          spaceT: 0.6
+          spaceB: 0.6
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: true
+          link: none
+          hover: false
+          before: ''
+          after: ''
+          hide: ''
+          join: true
+          sep: ·
+          gap: 0.8
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: text
+            max: 3
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: value
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''
+        - id: dzk9mimc
+          kind: dato
+          prop: note.director
+          type: texto
+          font: null
+          upper: true
+          color: '#d0d0d0'
+          size: 2.8
+          weight: 600
+          fit: false
+          spaceT: 1
+          spaceB: 0.6
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: false
+          link: none
+          hover: false
+          before: ''
+          after: ''
+          hide: ''
+          join: false
+          sep: ·
+          gap: 1
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: text
+            max: 3
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: value
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''
+        - id: rating
+          kind: rating
+        - id: isj1v73hg
+          kind: state
+          sid: sj1v73hg
+        - id: Lug2qwjm
+          kind: line
+      fitems: []
+  - type: cool-bases
+    name: Cards
+    order:
+      - file.name
+      - director
+      - year
+      - country
+      - runtime
+      - genre
+      - score
+      - wikipedia
+    sort:
+      - property: year
+        direction: ASC
+    coolbases:
+      card:
+        w: 240
+        fill: true
+        fmt: libre
+        h: 380
+        pad: 6
+        radius: 6
+        gap: 14
+      col:
+        bg: '#f3f2ee'
+        grad: false
+        bg2: '#2b2b2b'
+        angle: 180
+        text: '#1a1a1a'
+        det: '#2b59c3'
+        bw: 1
+        bc: '#00000017'
+      font:
+        family: Helvetica Neue
+        weight: 400
+        size: 3.8
+        align: left
+      img:
+        src: auto
+        pos: top
+        fit: encajar
+        frame: 5
+        fx: color
+        amt:
+          bn: 100
+          duo: 100
+          blur: 35
+          inv: 100
+        duo1: '#141414'
+        duo2: '#e5332f'
+        grain: false
+        bright: 100
+        shade: false
+        shadeC: '#000000'
+        empty: portada
+        cvText: note.director
+        cvColors: auto
+        cvShape: auto
+        cvFont: Georgia
+      foot:
+        'on': true
+        bg: '#00000000'
+        lw: 1
+        lc: '#0000001a'
+        filled: true
+      rate:
+        'on': true
+        prop: note.score
+        type: score
+        place: br
+        onImg: true
+        mx: 4
+        my: 4
+        color: det
+        size: 4.2
+        empty: true
+        over: 10
+        shape: square
+        byVal: true
+        fill: filled
+      states:
+        'on': false
+        list: []
+      lines:
+        'on': false
+        'n': 1
+        color: det
+        w: 2
+        width: full
+        pct: 30
+        mt: 1.6
+        mb: 1.6
+      hover:
+        'on': true
+        color: tx
+        bg: '#2b59c3'
+        bgOp: 10
+        under: true
+      css: ''
+      v: 1
+      items:
+        - id: dbtgclsh
+          kind: title
+          prop: file.name
+          type: texto
+          font: null
+          upper: false
+          color: tx
+          size: 7.5
+          weight: 700
+          fit: false
+          spaceT: 0.4
+          spaceB: 0.4
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: false
+          link: none
+          hover: false
+          before: ''
+          after: ''
+          hide: ''
+          join: false
+          sep: ·
+          gap: 1
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: text
+            max: 3
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: value
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''
+        - id: d1ciauco
+          kind: dato
+          prop: note.director
+          type: texto
+          font: null
+          upper: false
+          color: det
+          size: 3.4
+          weight: 600
+          fit: false
+          spaceT: 0.6
+          spaceB: 0.6
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: false
+          link: none
+          hover: false
+          before: ''
+          after: ''
+          hide: ''
+          join: false
+          sep: ·
+          gap: 1
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: text
+            max: 3
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: value
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''
+        - id: dn84js81
+          kind: dato
+          prop: note.year
+          type: texto
+          font: null
+          upper: false
+          color: '#6b6b6b'
+          size: 3.2
+          weight: null
+          fit: false
+          spaceT: 0.3
+          spaceB: 0.6
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: false
+          link: none
+          hover: false
+          before: ''
+          after: ''
+          hide: ''
+          join: false
+          sep: ·
+          gap: 1
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: text
+            max: 3
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: value
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''
+        - id: dbigkmjv
+          kind: dato
+          prop: note.country
+          type: texto
+          font: null
+          upper: false
+          color: '#6b6b6b'
+          size: 3.2
+          weight: null
+          fit: false
+          spaceT: 0.3
+          spaceB: 0.6
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: false
+          link: none
+          hover: false
+          before: ''
+          after: ''
+          hide: ''
+          join: true
+          sep: ·
+          gap: 1
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: text
+            max: 3
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: value
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''
+        - id: dcl5sc05
+          kind: dato
+          prop: note.runtime
+          type: texto
+          font: null
+          upper: false
+          color: '#6b6b6b'
+          size: 3.2
+          weight: null
+          fit: false
+          spaceT: 0.3
+          spaceB: 0.6
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: false
+          link: none
+          hover: false
+          before: ''
+          after: ' min'
+          hide: ''
+          join: true
+          sep: ·
+          gap: 1
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: text
+            max: 3
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: value
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''
+        - id: decfysb4
+          kind: dato
+          prop: note.genre
+          type: etiquetas
+          font: null
+          upper: false
+          color: tx
+          size: 2.8
+          weight: null
+          fit: false
+          spaceT: 1.2
+          spaceB: 0.6
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: false
+          link: none
+          hover: false
+          before: ''
+          after: ''
+          hide: ''
+          join: false
+          sep: ·
+          gap: 1
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: outline
+            max: 3
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: value
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''
+        - id: rating
+          kind: rating
+        - id: Lkslahst
+          kind: line
+      fitems:
+        - id: da68aquf
+          kind: dato
+          prop: note.wikipedia
+          type: enlace
+          font: null
+          upper: false
+          color: det
+          size: 3.2
+          weight: null
+          fit: false
+          spaceT: 0.2
+          spaceB: 0.2
+          ital: false
+          under: false
+          hl: false
+          hlc: '#e5332f59'
+          strike: false
+          sup: false
+          link: self
+          hover: true
+          before: ''
+          after: ''
+          hide: ''
+          join: false
+          sep: ·
+          gap: 1
+          t:
+            multi: inline
+            nfmt: full
+            dec: 0
+            src: manual
+            short: true
+            tagStyle: text
+            max: 3
+            tsep: ' · '
+            'yes': Sí
+            'no': ''
+            stStyle: pill
+            show: site
+            fixed: ''
+            arrow: true
+            sort: orig
+            dir: desc
+            nlay: lines
+            head: ''
+            headColor: '#8a8a8a'
+            more: ''

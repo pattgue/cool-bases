@@ -1,0 +1,46 @@
+# Al subir una etiqueta x.y.z (sin «v»): comprueba que coincide con manifest.json, compila
+# y crea una Release con main.js, manifest.json y styles.css (lo que descarga Obsidian).
+name: Release
+
+on:
+  push:
+    tags:
+      - "[0-9]+.[0-9]+.[0-9]+"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Tag matches manifest.json
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          version="$(node -p "require('./manifest.json').version")"
+          if [ "$tag" != "$version" ]; then
+            echo "::error::The tag ($tag) does not match the version in manifest.json ($version)."
+            exit 1
+          fi
+          node -e "const v=require('./versions.json'); if(!v['$tag']){console.error('::error::versions.json has no entry for $tag'); process.exit(1)}"
+
+      - run: npm ci
+      - run: npm run check
+      - run: npm run lint
+      - run: npm run build
+
+      - name: Create release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --title "$GITHUB_REF_NAME" \
+            --generate-notes \
+            main.js manifest.json styles.css
