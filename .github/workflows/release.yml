@@ -1,5 +1,6 @@
 # Al subir una etiqueta x.y.z (sin «v»): comprueba que coincide con manifest.json, compila
-# y crea una Release con main.js, manifest.json y styles.css (lo que descarga Obsidian).
+# y crea una Release con main.js, manifest.json y styles.css (lo que descarga Obsidian),
+# con una atestación de procedencia de cada archivo (gh attestation verify <archivo> --repo pattgue/cool-bases).
 name: Release
 
 on:
@@ -9,6 +10,8 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   release:
@@ -35,6 +38,14 @@ jobs:
       - run: npm run check
       - run: npm run lint
       - run: npm run build
+
+      - name: Attest build provenance
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-path: |
+            main.js
+            manifest.json
+            styles.css
 
       - name: Create release
         env:

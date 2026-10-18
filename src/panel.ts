@@ -1,34 +1,44 @@
 /* Panel «Editar tarjeta». Edita una copia del modelo; las tarjetas de la vista cambian al momento.
    No se escribe nada en la vista hasta pulsar «Listo». Todo se construye con el DOM; los textos, en i18n.js. */
 import { Notice } from "obsidian";
-import { clone, clamp, fmt, merge, hex6, hexToHsva, hsvaToHex, fmtNum } from "./util.js";
+import { clone, clamp, fmt, merge, hex6, hexToHsva, hsvaToHex, fmtNum, str } from "./util";
 import { TYPES, FONTS, fontStack, fontName, WEIGHTS, SEPS, FMTS, ITEM_DEF, TITLE_KEYS, splitSpace, BASE_STYLE, STYLE_KEYS, PRESETS,
-  mkItem, syncStruct, getStyle, textish, ST_FMTS, ST_ICONS, mkState, framed } from "./model.js";
-import { itemContent, rateNode, rateProp, imgSrc, tokCol, plainSample, nodeText, stateNode, stateOf } from "./render.js";
-import { h, svg, append, setVars } from "./dom.js";
-import { t, fontLabel } from "./i18n.js";
+  mkItem, syncStruct, getStyle, textish, ST_FMTS, ST_ICONS, mkState, framed } from "./model";
+import { itemContent, rateNode, rateProp, imgSrc, tokCol, plainSample, nodeText, stateNode, stateOf } from "./render";
+import { h, svg, append, setVars } from "./dom";
+import type { AttrVal, Kid } from "./dom";
+import { t, fontLabel } from "./i18n";
+import type { Hsva } from "./util";
+import type { CoolBasesView } from "./view";
+import type { Item, Model, Rec, State, Style } from "./types";
 
 const chain = () => svg("svg", { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": 2, "stroke-linecap": "round", "stroke-linejoin": "round", "aria-hidden": "true" },
   svg("path", { d: "M10 13a5 5 0 0 0 7.07 0l3-3a5 5 0 0 0-7.07-7.07l-1.5 1.5" }), svg("path", { d: "M14 11a5 5 0 0 0-7.07 0l-3 3a5 5 0 0 0 7.07 7.07l1.5-1.5" }));
-const D = d => d ? true : null;
-const fid = p => "cbp-" + p.replace(/[^a-z0-9]/gi, "-");
-const quote = s => t("q.open") + s + t("q.close");
-let localFonts = null;            // familias instaladas (si el sistema deja listarlas)
+const D = (d: unknown) => d ? true : null;
+const fid = (p: string) => "cbp-" + p.replace(/[^a-z0-9]/gi, "-");
+const quote = (s: string) => t("q.open") + s + t("q.close");
+let localFonts: string[] | null = null;            // familias instaladas (si el sistema deja listarlas)
 
-/**
- * @param {any} view  la vista (CoolBasesView): model inicial, src/facts, render(model), guardar.
- * @param {any} host  dónde se monta el panel
- */
-export function createPanel(view, host) {
+/* opciones de un desplegable: [valor, texto, desactivada] o un grupo */
+type Opt = [string | number, string] | [string | number, string, boolean];
+type OptGroup = { group: string; items: Opt[] };
+type ListKey = "items" | "fitems";
+/* ventanita flotante abierta: menú, fuentes, color… (el color lleva su ruta y el color en HSVA) */
+interface Fp { kind: string; anchorId: string; path?: string; st?: Hsva }
+interface Ui { open: Set<string>; add: { prop: string; type: string } | null; addF: { prop: string } | null; fp: Fp | null }
+export interface Panel { readonly model: Model; destroy(): void; onData(): void; root: HTMLElement; undo(): void }
+
+/* view: la vista (model inicial, src/facts, render(model), guardar); host: dónde se monta el panel */
+export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   const plugin = view.plugin;
   let model = view.initialModel();
   const atOpen = JSON.stringify(model);                 // para saber si «Cancelar» descarta algo
-  const ui = { open: new Set(["tamano"]), add: null, addF: null, fp: null };
-  const hist = []; let lastPush = 0, lastPath = "";
+  const ui: Ui = { open: new Set(["tamano"]), add: null, addF: null, fp: null };
+  const hist: string[] = []; let lastPush = 0, lastPath = "";
   let src = view.source(), facts = view.factsFor(src);
 
   /* ---------- montaje ---------- */
-  const btn = (id, label, o) => h("button", { cls: "btn" + (o && o.primary ? " primary" : ""), attr: Object.assign({ type: "button", id }, o && o.attr || {}) }, label);
+  const btn = (id: string, label: Kid, o?: { primary?: boolean; attr?: Record<string, AttrVal> }) => h("button", { cls: "btn" + (o && o.primary ? " primary" : ""), attr: Object.assign({ type: "button", id }, o && o.attr || {}) }, label);
   const undoBtn = btn("cbp-undo", t("p.undo"), { attr: { disabled: true } });
   const cancelBtn = btn("cbp-cancel", t("p.cancel"), { attr: { "aria-haspopup": "dialog", "aria-expanded": "false" } });
   const doneBtn = btn("cbp-done", t("p.done"), { primary: true });
@@ -44,33 +54,34 @@ export function createPanel(view, host) {
   host.appendChild(root);
   const fp = document.body.createDiv({ cls: "cb-fp" });
   fp.hidden = true;
-  const $ = sel => /** @type {HTMLElement} */ (root.querySelector(sel) || fp.querySelector(sel));
-  const byId = id => $("#" + CSS.escape(id));
+  const $ = (sel: string) => (root.querySelector(sel) || fp.querySelector(sel)) as HTMLElement;
+  const byId = (id: string) => $("#" + CSS.escape(id));
 
   /* ---------- hechos de la vista ---------- */
   const S = () => model;
   const ents = () => src.recs;
   const propsOf = () => view.panelProps(facts);
-  const pname = p => view.propLabel(p);
+  const pname = (p: string) => view.propLabel(p);
   const imgProps = () => facts.imgProps();
   const urlProps = () => facts.urlProps();
-  const isUrlProp = p => facts.isUrlProp(p);
+  const isUrlProp = (p: string) => facts.isUrlProp(p);
   const rateProps = () => facts.rateProps();
-  const okType = (p, ty) => ty === "enlace" && !isUrlProp(p) ? "texto" : ty;
-  const netProp = name => { const p = "note." + name; return isUrlProp(p) ? p : null; };
-  const typeName = id => t("type." + id);
-  const wName = w => t("w." + w) + " " + w;
-  const weightOpts = () => WEIGHTS.map(w => [w, wName(w)]);
+  const okType = (p: string, ty: string) => ty === "enlace" && !isUrlProp(p) ? "texto" : ty;
+  const netProp = (name: string) => { const p = "note." + name; return isUrlProp(p) ? p : null; };
+  const typeName = (id: string) => t("type." + id);
+  const wName = (w: number) => t("w." + w) + " " + w;
+  const weightOpts = (): Opt[] => WEIGHTS.map((w): Opt => [w, wName(w)]);
 
   /* ---------- rutas e historial ---------- */
-  function walk(o, k) { return o == null ? o : (k.startsWith("#") ? o.find(x => x.id === k.slice(1)) : o[k]); }
-  function getP(path) { return path.split(".").reduce(walk, S()); }
-  function setP(path, val) { const ks = path.split("."); const last = ks.pop(); ks.reduce(walk, S())[last] = val; }
+  /* una ruta del modelo: «card.w», «items.#id.t.max» (# = el elemento de la lista con ese id) */
+  function walk(o: unknown, k: string): unknown { return o == null ? o : (k.startsWith("#") ? (o as { id: string }[]).find(x => x.id === k.slice(1)) : (o as Record<string, unknown>)[k]); }
+  function getP(path: string): unknown { return path.split(".").reduce(walk, S()); }
+  function setP(path: string, val: unknown) { const ks = path.split("."); const last = ks.pop()!; (ks.reduce(walk, S()) as Record<string, unknown>)[last] = val; }
   function snapshot() { hist.push(JSON.stringify(model)); if (hist.length > 100) hist.shift(); undoBtn.disabled = false; }
-  function pushFor(path) { const now = Date.now(); if (path !== lastPath || now - lastPush > 800) snapshot(); lastPush = now; lastPath = path; }
+  function pushFor(path: string) { const now = Date.now(); if (path !== lastPath || now - lastPush > 800) snapshot(); lastPush = now; lastPath = path; }
   function undo() {
     if (!hist.length) return;
-    model = JSON.parse(hist.pop());
+    model = JSON.parse(hist.pop()!) as Model;
     lastPath = ""; undoBtn.disabled = !hist.length; closeFp(); ui.add = null; ui.addF = null;
     renderPanel(); preview(); toast(t("toast.undone"));
   }
@@ -78,66 +89,66 @@ export function createPanel(view, host) {
   function preview() { window.cancelAnimationFrame(raf); raf = window.requestAnimationFrame(() => view.renderCool(model)); }
 
   /* ---------- controles ---------- */
-  function row(label, ctl, path, o) {
+  interface RowOpts { stk?: boolean; full?: boolean; dis?: boolean }
+  function row(label: Kid, ctl: Kid, path?: string | null, o?: RowOpts) {
     o = o || {};
     return h("div", "row" + (o.stk ? " stk" : "") + (o.full ? " full" : "") + (o.dis ? " dis" : ""),
       o.full ? null : path ? h("label", { attr: { for: fid(path) } }, label) : h("span", "lbl", label),
       h("div", "ctl", ctl));
   }
   /* celdas en una fila; `cols` es la clase de las columnas (ver styles: .cells.c-…) */
-  /** @param {any[]} list @param {string} cols */
-  function cells(list, cols) { return h("div", "cells " + cols, list.map(x => h("div", "cell" + (x[2] ? " dis" : ""), h("span", "cap", x[0]), h("div", "ctl", x[1])))); }
-  const outTxt = (v, unit, d) => [fmt(v, d), unit ? h("small", null, unit) : null];
-  function slider(path, min, max, step, unit, d, dis) {
-    const v = getP(path);
+  function cells(list: [Kid, Kid, unknown?][], cols: string) { return h("div", "cells " + cols, list.map(x => h("div", "cell" + (x[2] ? " dis" : ""), h("span", "cap", x[0]), h("div", "ctl", x[1])))); }
+  const outTxt = (v: unknown, unit: string | undefined, d?: number | null): Kid[] => [fmt(v, d), unit ? h("small", null, unit) : null];
+  function slider(path: string, min: number, max: number, step: number, unit: string, d?: number | null, dis?: unknown): Kid[] {
+    const v = getP(path) as number;
     return [h("input", { attr: { type: "range", id: fid(path), "data-p": path, "data-k": "num", min, max, step, value: v, "data-unit": unit || "", "data-d": d == null ? "" : d, disabled: D(dis) } }),
       h("output", { attr: { "data-out": path } }, outTxt(v, unit, d))];
   }
-  function seg(path, opts, label, dis, mini) {
+  function seg(path: string, opts: (Opt | [string | number, Kid])[], label: string, dis?: unknown, mini?: boolean) {
     const v = getP(path);
     return h("div", { cls: "seg" + (mini ? " mini" : ""), attr: { role: "group", "aria-label": label || "" } },
       opts.map(([val, l]) => h("button", { attr: { type: "button", id: fid(path + "=" + val), "data-p": path, "data-k": "seg", "data-v": String(val), "data-vt": typeof val, "aria-pressed": String(v === val), disabled: D(dis) } }, l)));
   }
-  function sw(path, label, dis) { return h("button", { cls: "sw", attr: { type: "button", role: "switch", id: fid(path), "data-p": path, "data-k": "bool", "aria-checked": String(!!getP(path)), "aria-label": label || "", disabled: D(dis) } }); }
-  function swl(path, label, dis, ml) { return h("span", "swl" + (ml ? " ml" : "") + (dis ? " dis" : ""), sw(path, label, dis), h("span", null, label)); }
-  function sel(path, opts, dis, shown) {
-    const v = shown !== undefined ? shown : getP(path), vs = v == null ? "" : String(v);
-    const o = (/** @type {any[]} */ [val, l, off]) => h("option", { attr: { value: String(val), selected: D(vs === String(val)), disabled: D(off) } }, l);
+  function sw(path: string, label: string, dis?: unknown) { return h("button", { cls: "sw", attr: { type: "button", role: "switch", id: fid(path), "data-p": path, "data-k": "bool", "aria-checked": String(!!getP(path)), "aria-label": label || "", disabled: D(dis) } }); }
+  function swl(path: string, label: string, dis?: unknown, ml?: boolean) { return h("span", "swl" + (ml ? " ml" : "") + (dis ? " dis" : ""), sw(path, label, dis), h("span", null, label)); }
+  function sel(path: string, opts: (Opt | OptGroup)[], dis?: unknown, shown?: unknown) {
+    const v = shown !== undefined ? shown : getP(path), vs = v == null ? "" : str(v);
+    const o = ([val, l, off]: Opt) => h("option", { attr: { value: String(val), selected: D(vs === String(val)), disabled: D(off) } }, l);
     const num = opts.some(x => Array.isArray(x) && typeof x[0] === "number");
     return h("select", { attr: { id: fid(path), "data-p": path, "data-k": "sel", "data-num": num ? "1" : null, disabled: D(dis) } },
       opts.map(x => Array.isArray(x) ? o(x) : h("optgroup", { attr: { label: x.group } }, x.items.map(o))));
   }
-  function txt(path, ph, dis) { return h("input", { attr: { type: "text", id: fid(path), "data-p": path, "data-k": "txt", value: getP(path) ?? "", placeholder: ph || "", spellcheck: "false", disabled: D(dis) } }); }
-  function swatch(path, dis, resolver) {
-    const v = resolver ? resolver(getP(path)) : getP(path);
+  function txt(path: string, ph: string, dis?: unknown) { return h("input", { attr: { type: "text", id: fid(path), "data-p": path, "data-k": "txt", value: (getP(path) as string | null) ?? "", placeholder: ph || "", spellcheck: "false", disabled: D(dis) } }); }
+  function swatch(path: string, dis?: unknown, resolver?: (v: unknown) => string) {
+    const v = resolver ? resolver(getP(path)) : getP(path) as string;
     return h("button", { cls: "swc", attr: { type: "button", id: fid(path) + "-sw", "data-p": path, "data-k": "pick", "aria-label": t("p.pickColor"), "aria-expanded": "false", disabled: D(dis) } },
       h("span", { cls: "fill", attr: { "data-fill": path }, css: { "--cbp-fill": v } }));
   }
-  function hexIn(path, dis) { return h("input", { cls: "hex", attr: { type: "text", id: fid(path), "data-p": path, "data-k": "hex", value: getP(path), spellcheck: "false", maxlength: 9, "aria-label": t("p.colorCode"), disabled: D(dis) } }); }
-  function color(path, dis) { return [swatch(path, dis), hexIn(path, dis)]; }
-  function tok(path, dis) {
+  function hexIn(path: string, dis?: unknown) { return h("input", { cls: "hex", attr: { type: "text", id: fid(path), "data-p": path, "data-k": "hex", value: getP(path) as string, spellcheck: "false", maxlength: 9, "aria-label": t("p.colorCode"), disabled: D(dis) } }); }
+  function color(path: string, dis?: unknown) { return [swatch(path, dis), hexIn(path, dis)]; }
+  function tok(path: string, dis?: unknown) {
     const v = getP(path), s = S(), own = v !== "tx" && v !== "det";
-    const b = (k, label, on) => h("button", { attr: { type: "button", id: fid(path + "=" + k), "data-p": path, "data-k": "tok", "data-v": k, "aria-pressed": String(on), disabled: D(dis) } }, label);
+    const b = (k: string, label: string, on: boolean) => h("button", { attr: { type: "button", id: fid(path + "=" + k), "data-p": path, "data-k": "tok", "data-v": k, "aria-pressed": String(on), disabled: D(dis) } }, label);
     return [h("div", { cls: "seg", attr: { role: "group", "aria-label": t("c.color") } }, b("tx", t("c.text"), v === "tx"), b("det", t("c.details"), v === "det"), b("own", t("c.other"), own)),
       swatch(path, dis, x => tokCol(x, s))];
   }
-  const ffSpan = (label, cls) => h("span", { cls: "cbp-ff" + (cls ? " " + cls : ""), css: { "--cbp-ff": fontStack(label) } }, fontLabel(fontName(label)));
-  function fontBtn(path, dis) {
-    const v = getP(path), label = v == null ? S().font.family : v;
+  const ffSpan = (label: string, cls?: string) => h("span", { cls: "cbp-ff" + (cls ? " " + cls : ""), css: { "--cbp-ff": fontStack(label) } }, fontLabel(fontName(label)));
+  function fontBtn(path: string, dis?: unknown) {
+    const v = getP(path) as string | null, label = v == null ? S().font.family : v;
     return h("button", { cls: "fontb", attr: { type: "button", id: fid(path), "data-p": path, "data-k": "font", "aria-haspopup": "listbox", "aria-expanded": "false", disabled: D(dis), title: fontStack(label) } },
       ffSpan(label), h("span", "caret cbp-none", "▼"));
   }
-  function scrub(path, min, max, step, unit, dis) {
-    const v = getP(path), shown = v == null ? S().font.size : v;
+  function scrub(path: string, min: number, max: number, step: number, unit: string, dis?: unknown) {
+    const v = getP(path) as number | null, shown = v == null ? S().font.size : v;
     return h("span", "numw", h("input", { cls: "num", attr: { type: "text", id: fid(path), "data-p": path, "data-k": "scrub", "data-min": min, "data-max": max, "data-step": step, "data-unit": unit,
       value: fmt(shown) + " " + unit, spellcheck: "false", inputmode: "decimal", disabled: D(dis) } }));
   }
   /* ↺ solo cuando el dato tiene un valor propio distinto del de la tarjeta */
-  function capR(label, path, cardVal) {
+  function capR(label: string, path: string, cardVal: unknown): Kid[] {
     const v = getP(path);
     return [label, v != null && v !== cardVal ? h("button", { cls: "rst", attr: { type: "button", "data-p": path, "data-k": "reset", "aria-label": t("p.resetTo", { what: label }) } }, "↺") : null];
   }
-  function block(key, title, content, o) {
+  function block(key: string, title: string, content: Kid, o?: { sw?: string; off?: boolean }) {
     o = o || {}; const open = ui.open.has(key);
     const body = h("div", "blk-b", content); body.hidden = !open;
     return h("div", { cls: "blk" + (o.off ? " off" : ""), attr: { "data-blk": key } },
@@ -148,7 +159,7 @@ export function createPanel(view, host) {
   const sepH = () => h("div", "sep-h");
 
   /* ---------- Tarjeta ---------- */
-  function tarjetaNode(s) {
+  function tarjetaNode(s: Model) {
     const c = s.card, col = s.col, im = s.img, sp = imgSrc(s, facts), noImg = !sp;
     const fondo = im.fit === "fondo";
     const sideOrig = !noImg && im.fit === "original" && (im.pos === "left" || im.pos === "right");
@@ -176,7 +187,7 @@ export function createPanel(view, host) {
         cells([[t("c.weight"), sel("font.weight", weightOpts())], [t("c.size"), slider("font.size", 2, 8, 0.1, "%")]], "c-1-13"),
         row(t("c.align"), seg("font.align", [["left", t("al.left")], ["center", t("al.center")], ["right", t("al.right")]], t("c.align")))]),
       block("imagen", t("b.image"), [
-        row(t("c.source"), sel("img.src", [...ip.map(p => [p, pname(p)]), ["none", t("img.none")]], false, sp || "none"), "img.src"),
+        row(t("c.source"), sel("img.src", [...ip.map((p): Opt => [p, pname(p)]), ["none", t("img.none")]], false, sp || "none"), "img.src"),
         row(t("c.position"), seg("img.pos", [["top", t("pos.top")], ["bottom", t("pos.bottom")], ["left", t("pos.left")], ["right", t("pos.right")]], t("c.position"), noImg || fondo), null, { dis: noImg || fondo }),
         row(t("c.fit"), seg("img.fit", [["encajar", t("fit.encajar")], ["original", t("fit.original")], ["enmarcada", t("fit.enmarcada")], ["fondo", t("fit.fondo")]], t("c.fit"), noImg), null, { stk: true, dis: noImg }),
         row(t("c.noImage"), seg("img.empty", [["nada", t("empty.nada")], ["iniciales", t("empty.iniciales")], ["hueco", t("empty.hueco")], ["portada", t("empty.portada")]], t("c.noImageAria"), noImg), null, { stk: true, dis: noImg }),
@@ -193,27 +204,26 @@ export function createPanel(view, host) {
 
   /* «Sin imagen: Portada» */
   const coverTextProps = () => propsOf().filter(p => !p.startsWith("rel:") && p !== "file.name" && !facts.isImage(p) && !facts.isUrlProp(p));
-  function coverCtl(s) {
+  function coverCtl(s: Model) {
     const tp = coverTextProps(), cur = s.img.cvText; if (cur && !tp.includes(cur)) tp.unshift(cur);
-    return [row(t("c.bottomText"), sel("img.cvText", [["", t("o.none")], ...tp.map(p => [p, pname(p)])], false, cur || ""), "img.cvText"),
+    return [row(t("c.bottomText"), sel("img.cvText", [["", t("o.none")], ...tp.map((p): Opt => [p, pname(p)])], false, cur || ""), "img.cvText"),
       row(t("b.colors"), seg("img.cvColors", [["auto", t("cv.auto")], ["card", t("cv.card")]], t("b.colors"))),
       row(t("c.shape"), seg("img.cvShape", [["auto", t("cv.shapeAuto")], ["none", t("cv.shapeNone")]], t("c.shape"))),
       row(t("c.typeface"), fontBtn("img.cvFont"), "img.cvFont")];
   }
 
   /* ---------- Datos ---------- */
-  function visibleItems(s) {
+  function visibleItems(s: Model) {
     return s.items.filter(it => textish(it) || (it.kind === "line" && s.lines.on) || (it.kind === "rating" && s.rate.on && s.rate.place === "entre") ||
       (it.kind === "state" && s.states.on && (stateOf(s, it.sid) || {}).place === "entre"));
   }
-  const sample = (s, it) => plainSample(s, it, src);
+  const sample = (s: Model, it: Item) => plainSample(s, it, src);
   function linkOpts() {
-    /** @type {any[]} */
-    const o = [["none", t("o.none")], ["note", t("link.note")]];
+    const o: (Opt | OptGroup)[] = [["none", t("o.none")], ["note", t("link.note")]];
     const u = urlProps(); if (u.length) o.push({ group: t("link.prop"), items: u.map(p => ["prop:" + p, pname(p)]) });
     return o;
   }
-  function typeCtl(s, it, p, inFoot) {
+  function typeCtl(s: Model, it: Item, p: string, inFoot: boolean): Kid {
     const tt = it.t, q = p + ".t.";
     switch (it.type) {
       case "texto": return row(t("c.multi"), seg(q + "multi", [["inline", t("multi.inline")], ["lines", t("multi.lines")]], t("c.multi")));
@@ -231,19 +241,19 @@ export function createPanel(view, host) {
         const sorts = facts.linkedNumeric(it.prop); if (tt.sort && tt.sort !== "orig" && !sorts.includes(tt.sort)) sorts.unshift(tt.sort);
         return [cells([[t("c.max"), slider(q + "max", 1, 30, 1, "", 0)], [t("c.layout"), seg(q + "nlay", [["lines", t("multi.lines")], ["inline", t("multi.inline")]], t("c.layout"))]], "c-1-125"),
           row(t("c.more"), txt(q + "more", t("ph.more")), q + "more"),
-          row(t("c.sortBy"), [sel(q + "sort", [["orig", t("sort.orig")], ...sorts.map(k => [k, k])]), seg(q + "dir", [["desc", "↓"], ["asc", "↑"]], t("c.direction"), tt.sort === "orig", true)], q + "sort"),
+          row(t("c.sortBy"), [sel(q + "sort", [["orig", t("sort.orig")], ...sorts.map((k): Opt => [k, k])]), seg(q + "dir", [["desc", "↓"], ["asc", "↑"]], t("c.direction"), tt.sort === "orig", true)], q + "sort"),
           row(t("c.heading"), [txt(q + "head", ""), swatch(q + "headColor", !tt.head)], q + "head")];
       }
     }
     return null;
   }
-  function itemCtl(s, it, p, ctx, idx, list) {
+  function itemCtl(s: Model, it: Item, p: string, ctx: ListKey, idx: number, list: Item[]): Kid[] {
     const isT = it.kind === "title", foot = ctx === "fitems";
     const prev = list[idx - 1];
     const supDis = isT || foot || !textish(prev);
     const allPlain = !isT && facts.allPlain(it.prop);
     const linkDis = foot || it.type === "enlace" || allPlain;
-    const chip = (k, label, dis) => h("button", { cls: "chip" + (dis ? " is-off" : ""), attr: { type: "button", id: fid(p + "." + k), "data-p": p + "." + k, "data-k": "bool", "aria-pressed": String(!!it[k]), disabled: D(dis) } }, label);
+    const chip = (k: "ital" | "under" | "hl" | "strike" | "sup", label: string, dis?: boolean) => h("button", { cls: "chip" + (dis ? " is-off" : ""), attr: { type: "button", id: fid(p + "." + k), "data-p": p + "." + k, "data-k": "bool", "aria-pressed": String(!!it[k]), disabled: D(dis) } }, label);
     const deco = [chip("ital", t("d.italic")), chip("under", t("d.underline")), h("span", "chipwrap", chip("hl", t("d.highlight")), swatch(p + ".hlc", !it.hl)), chip("strike", t("d.strike")), chip("sup", t("d.sup"), supDis)];
     const isRel = it.prop.startsWith("rel:");
     const typeRow = (!isT && !foot) ? row(t("c.type"), sel(p + ".type", TYPES.map(ty => [ty.id, typeName(ty.id), (ty.id === "enlace" && !isUrlProp(it.prop)) || (isRel && ty.id !== "notas")])), p + ".type") : null;
@@ -264,11 +274,11 @@ export function createPanel(view, host) {
       cells([[t("c.link"), linkCtl, linkDis], [t("b.hover"), sw(p + ".hover", t("b.hover"), hoverDis), hoverDis]], "c-1-a"),
       adv];
   }
-  const grip = (id, label) => h("button", { cls: "grip", attr: { type: "button", "data-grip": "", "data-id": id, "aria-label": label } }, "⋮⋮");
-  const miniCard = (it, ctx, cls, gripLabel, name, chipTxt, sumKids, extra) =>
+  const grip = (id: string, label: string) => h("button", { cls: "grip", attr: { type: "button", "data-grip": "", "data-id": id, "aria-label": label } }, "⋮⋮");
+  const miniCard = (it: Item, ctx: ListKey, cls: string, gripLabel: string, name: string, chipTxt: Kid, sumKids: Kid, extra: Kid) =>
     h("div", { cls: "sc mini" + cls, attr: { "data-id": it.id, "data-list": ctx } }, h("div", "sc-h", grip(it.id, gripLabel),
       h("div", "sc-main", h("span", "sc-name", h("span", "prop", name), chipTxt), sumKids), extra));
-  function itemCard(s, it, idx, list, ctx, cls) {
+  function itemCard(s: Model, it: Item, idx: number, list: Item[], ctx: ListKey, cls: string) {
     const p = ctx + ".#" + it.id;
     if (it.kind === "line") {
       const n = s.items.filter(x => x.kind === "line").indexOf(it) + 1, label = t("i.line", { n });
@@ -277,7 +287,7 @@ export function createPanel(view, host) {
         h("button", { cls: "ib del", attr: { type: "button", "data-act": "delline", "data-id": it.id, "aria-label": t("i.removeLine", { n }) } }, "✕"));
     }
     if (it.kind === "state") {
-      const st = stateOf(s, it.sid), smp = stateSample(s, st);
+      const st = stateOf(s, it.sid)!, smp = stateSample(s, st);
       return miniCard(it, ctx, cls, t("i.moveState", { what: pname(st.prop) }), t("i.state"), h("span", "tchip", pname(st.prop)), h("span", "sc-sum", smp), null);
     }
     if (it.kind === "rating") {
@@ -296,13 +306,13 @@ export function createPanel(view, host) {
         isT ? null : h("button", { cls: "ib del", attr: { type: "button", "data-act": "del", "data-list": ctx, "data-id": it.id, "aria-label": t("i.remove", { what: pname(it.prop) }) } }, "✕")),
       body);
   }
-  const sumText = smp => smp ? quote(smp.length > 52 ? smp.slice(0, 51) + "…" : smp) : "—";
+  const sumText = (smp: string | null) => smp ? quote(smp.length > 52 ? smp.slice(0, 51) + "…" : smp) : "—";
   /* se pueden juntar en una línea: datos, y la valoración y los estados colocados «entre los datos» */
-  const joinable = (s, it) => textish(it) || (it.kind === "rating" && s.rate.on && s.rate.place === "entre") ||
-    (it.kind === "state" && s.states.on && !!stateOf(s, it.sid) && stateOf(s, it.sid).place === "entre");
-  const jname = it => it.kind === "rating" ? t("j.rating") : it.kind === "state" ? t("j.state") : pname(it.prop);
-  function listNodes(s, list, ctx) {
-    const out = [];
+  const joinable = (s: Model, it: Item) => textish(it) || (it.kind === "rating" && s.rate.on && s.rate.place === "entre") ||
+    (it.kind === "state" && s.states.on && !!stateOf(s, it.sid) && stateOf(s, it.sid)!.place === "entre");
+  const jname = (it: Item) => it.kind === "rating" ? t("j.rating") : it.kind === "state" ? t("j.state") : pname(it.prop);
+  function listNodes(s: Model, list: Item[], ctx: ListKey) {
+    const out: HTMLElement[] = [];
     list.forEach((it, i) => {
       const prev = list[i - 1], next = list[i + 1];
       const joinedUp = i > 0 && ctx === "items" && joinable(s, prev) && joinable(s, it) && (it.join || it.sup);
@@ -312,7 +322,7 @@ export function createPanel(view, host) {
           const gp = "items.#" + it.id + ".gap";
           out.push(joinedUp
             ? h("div", "jn on", h("button", { cls: "chain", attr: { type: "button", "data-act": "join", "data-id": it.id, "aria-pressed": "true", "aria-label": t("j.split", { what: jname(it) }) } }, chain()),
-              h("span", "cap", t("c.separator")), seg("items.#" + it.id + ".sep", SEPS.map(x => [x, x === " " ? t("sep.space") : x]), t("c.separator"), it.sup, true),
+              h("span", "cap", t("c.separator")), seg("items.#" + it.id + ".sep", SEPS.map((x): Opt => [x, x === " " ? t("sep.space") : x]), t("c.separator"), it.sup, true),
               h("div", "jn-sp", h("label", { cls: "cap", attr: { for: fid(gp) } }, t("c.space")), slider(gp, 0, 8, 0.1, "%")))
             : h("div", "jn", h("button", { cls: "chain", attr: { type: "button", "data-act": "join", "data-id": it.id, "aria-pressed": "false", "aria-label": t("j.join", { what: jname(it) }) } }, chain())));
         } else out.push(h("div", "jn gap"));
@@ -321,14 +331,14 @@ export function createPanel(view, host) {
     });
     return out;
   }
-  function newItem(prop, type) {
+  function newItem(prop: string, type: string) {
     const it = mkItem(prop, type, {}, type === "smart" ? { src: /follow|seguid/i.test(prop) ? "instagram" : "spotify" } : {});
     if (type === "smart") { const n = netProp(it.t.src); if (n) it.link = "prop:" + n; }
     if (type === "notas") it.t.sort = facts.linkedNumeric(prop)[0] === "listeners" ? "listeners" : "orig";
     return it;
   }
-  const previewLine = (rec, smp) => h("div", "pop-prev", smp ? [t("pop.in", { name: rec.name }) + " ", h("b", null, smp)] : "—");
-  function addPopNode(s) {
+  const previewLine = (rec: Rec | undefined, smp: string | null) => h("div", "pop-prev", smp ? [t("pop.in", { name: rec!.name }) + " ", h("b", null, smp)] : "—");
+  function addPopNode(s: Model) {
     const pp = ui.add; if (!pp) return null;
     const tmp = newItem(pp.prop, pp.type);
     const smpRec = ents().find(x => itemContent(s, tmp, x, src) != null);
@@ -342,10 +352,10 @@ export function createPanel(view, host) {
       previewLine(smpRec, smp),
       h("div", "pop-act", h("button", { cls: "btn", attr: { type: "button", "data-pop": "cancel" } }, t("p.cancel")), h("button", { cls: "btn primary", attr: { type: "button", "data-pop": "ok" } }, t("p.add"))));
   }
-  const freeUrl = s => urlProps().filter(p => !s.fitems.some(x => x.prop === p));
-  const footItem = p => mkItem(p, "enlace", { size: 3.2, spaceT: 0.2, spaceB: 0.2, hover: true }, { show: /website|web$/.test(p) ? "value" : "site" });
-  function fillFoot(s) { urlProps().filter(p => !s.fitems.some(x => x.prop === p) && !s.items.some(x => x.prop === p)).forEach(p => s.fitems.push(footItem(p))); s.foot.filled = true; }
-  function addFootNode(s) {
+  const freeUrl = (s: Model) => urlProps().filter(p => !s.fitems.some(x => x.prop === p));
+  const footItem = (p: string) => mkItem(p, "enlace", { size: 3.2, spaceT: 0.2, spaceB: 0.2, hover: true }, { show: /website|web$/.test(p) ? "value" : "site" });
+  function fillFoot(s: Model) { urlProps().filter(p => !s.fitems.some(x => x.prop === p) && !s.items.some(x => x.prop === p)).forEach(p => s.fitems.push(footItem(p))); s.foot.filled = true; }
+  function addFootNode(s: Model) {
     const pp = ui.addF; if (!pp) return null;
     const tmp = footItem(pp.prop);
     const e = ents().find(x => itemContent(s, tmp, x, src) != null), smp = e ? sample(s, tmp) : null;
@@ -354,14 +364,14 @@ export function createPanel(view, host) {
       previewLine(e, smp),
       h("div", "pop-act", h("button", { cls: "btn", attr: { type: "button", "data-popf": "cancel" } }, t("p.cancel")), h("button", { cls: "btn primary", attr: { type: "button", "data-popf": "ok" } }, t("p.add"))));
   }
-  function datosNode(s) {
+  function datosNode(s: Model) {
     return h("section", "grp", h("div", "grp-h", h("h3", null, t("g.data"))), h("div", { cls: "lbox", attr: { "data-listbox": "items" } },
       h("div", { cls: "dlist", attr: { id: "dlist" } }, listNodes(s, visibleItems(s), "items")),
       h("div", "addwrap", h("button", { cls: "add", attr: { type: "button", id: "addBtn", "aria-expanded": String(!!ui.add) } }, t("p.addDataBtn")), addPopNode(s))));
   }
 
   /* ---------- Decoraciones ---------- */
-  function placeCtl(base, s) {
+  function placeCtl(base: string, s: Model) {
     const path = base + ".place", v = getP(path), pts = ["tl", "tc", "tr", "ml", "mc", "mr", "bl", "bc", "br"];
     const sp = imgSrc(s, facts), canImg = !!sp && s.img.fit !== "fondo";
     return [row(t("c.placement"), h("div", "place",
@@ -372,19 +382,19 @@ export function createPanel(view, host) {
   }
   /* ---------- Estados ---------- */
   const boolProps = () => facts.boolProps();
-  function stateSample(s, st) {
+  function stateSample(s: Model, st: State | undefined): string {
     if (!st) return "";
     const e = ents().find(x => stateNode(s, st, x)); if (!e) return "—";
     return st.fmt === "icon" ? st.icon : st.fmt === "dot" ? "●" : nodeText(stateNode(s, st, e));
   }
-  function stateCtl(s, st, p) {
+  function stateCtl(s: Model, st: State, p: string): Kid[] {
     const bp = boolProps().slice(); if (st.prop && !bp.includes(st.prop)) bp.unshift(st.prop);
     const fr = framed(st), noTxt = st.fmt === "icon" || st.fmt === "dot", pill = st.fmt === "pill";
-    return [row(t("c.property"), sel(p + ".prop", bp.length ? bp.map(x => [x, pname(x)]) : [["", "—"]], !bp.length), p + ".prop"),
+    return [row(t("c.property"), sel(p + ".prop", bp.length ? bp.map((x): Opt => [x, pname(x)]) : [["", "—"]], !bp.length), p + ".prop"),
       row(t("c.visible"), seg(p + ".show", [["yes", t("show.yes")], ["no", t("show.no")], ["always", t("show.always")]], t("c.visible"), st.fmt === "check")),
       cells([[t("c.textYes"), txt(p + ".yes", "", noTxt), noTxt], [t("c.textNo"), txt(p + ".no", "", noTxt), noTxt]], "c-1-1"),
-      row(t("c.format"), seg(p + ".fmt", ST_FMTS.map(f => [f, t("stf." + f)]), t("c.format")), null, { stk: true }),
-      st.fmt === "icon" ? row(t("stf.icon"), seg(p + ".icon", ST_ICONS.map(i => [i, i]), t("stf.icon"))) : null,
+      row(t("c.format"), seg(p + ".fmt", ST_FMTS.map((f): Opt => [f, t("stf." + f)]), t("c.format")), null, { stk: true }),
+      st.fmt === "icon" ? row(t("stf.icon"), seg(p + ".icon", ST_ICONS.map((i): Opt => [i, i]), t("stf.icon"))) : null,
       st.fmt === "check" ? cells([[t("c.thickness"), slider(p + ".bw", 1, 4, 0.5, "px")], [t("c.roundness"), slider(p + ".radius", 0, 20, 1, "px", 0)]], "c-1-1") : null,
       fr ? [row(t("c.frame"), seg(p + ".frame", [["fill", t("frame.fill")], ["border", t("frame.border")], ["both", t("frame.both")]], t("c.frame"))),
         cells([[t("c.thickness"), slider(p + ".bw", 0, 6, 0.5, "px", null, st.frame === "fill"), st.frame === "fill"], [t("c.roundness"), slider(p + ".radius", 0, 20, 1, "px", 0, pill), pill]], "c-1-1"),
@@ -396,7 +406,7 @@ export function createPanel(view, host) {
       cells([[capR(t("c.size"), p + ".size", s.font.size), scrub(p + ".size", 1, 24, 0.1, "%")], [capR(t("c.weight"), p + ".weight", s.font.weight), sel(p + ".weight", weightOpts(), false, st.weight == null ? s.font.weight : st.weight)]], "c-1-1"),
       sepH(), placeCtl(p, s)];
   }
-  function stateCard(s, st) {
+  function stateCard(s: Model, st: State) {
     const p = "states.list.#" + st.id, key = "st:" + st.id, open = ui.open.has(key), smp = stateSample(s, st);
     const body = h("div", "sc-b", open ? stateCtl(s, st, p) : null); body.hidden = !open;
     return h("div", { cls: "sc", attr: { "data-sid": st.id } }, h("div", "sc-h",
@@ -414,12 +424,12 @@ export function createPanel(view, host) {
     s.states.list.push(st); s.states.on = true; syncStruct(s);
     ui.open.add("estados"); ui.open.add("st:" + st.id);
     renderPanel(); preview();
-    const b = /** @type {HTMLElement} */ (pb.querySelector('[data-toggle="st:' + st.id + '"]')); if (b) { b.focus(); b.scrollIntoView({ block: "nearest" }); }
+    const b = pb.querySelector<HTMLElement>('[data-toggle="st:' + st.id + '"]'); if (b) { b.focus(); b.scrollIntoView({ block: "nearest" }); }
   }
-  function decoNode(s) {
+  function decoNode(s: Model) {
     const f = s.foot, r = s.rate, L = s.lines, hv = s.hover;
     const rpv = rateProp(s, facts), rp = rateProps().concat(rpv && !rateProps().includes(rpv) ? [rpv] : []);
-    const states = []; s.states.list.forEach((st, i) => { if (i) states.push(h("div", "jn gap")); states.push(stateCard(s, st)); });
+    const states: HTMLElement[] = []; s.states.list.forEach((st, i) => { if (i) states.push(h("div", "jn gap")); states.push(stateCard(s, st)); });
     return h("section", "grp", h("div", "grp-h", h("h3", null, t("g.decorations"))), h("div", "stack",
       block("pie", t("b.footer"), [
         cells([[t("c.background"), color("foot.bg")], [t("c.topLine"), [slider("foot.lw", 0, 6, 1, "px", 0), swatch("foot.lc", f.lw === 0)]]], "c-1-115"),
@@ -428,7 +438,7 @@ export function createPanel(view, host) {
           h("div", "addwrap", h("button", { cls: "add", attr: { type: "button", id: "addFBtn", "aria-expanded": String(!!ui.addF), disabled: D(!freeUrl(s).length) } }, t("p.addLinkBtn")), addFootNode(s)))],
         { sw: "foot.on", off: !f.on }),
       block("valoracion", t("b.rating"), [
-        row(t("c.property"), sel("rate.prop", rp.length ? rp.map(p => [p, pname(p)]) : [["auto", "—"]], !rp.length, rpv || "auto"), "rate.prop"),
+        row(t("c.property"), sel("rate.prop", rp.length ? rp.map((p): Opt => [p, pname(p)]) : [["auto", "—"]], !rp.length, rpv || "auto"), "rate.prop"),
         row(t("c.type"), seg("rate.type", [["stars", t("rate.stars")], ["score", t("rate.score")], ["faces", t("rate.faces")]], t("c.type"))),
         row(t("c.size"), slider("rate.size", 2, 12, 0.1, "%"), "rate.size"),
         row(t("c.color"), tok("rate.color", r.type !== "stars" && r.byVal), null, { dis: r.type !== "stars" && r.byVal }),
@@ -458,7 +468,7 @@ export function createPanel(view, host) {
         row(t("d.underline"), sw("hover.under", t("d.underline")), "hover.under")],
         { sw: "hover.on", off: !hv.on })));
   }
-  function cssNode(s) {
+  function cssNode(s: Model) {
     return h("section", "grp", h("div", "stack",
       block("css", t("b.css"), h("textarea", { attr: { id: "cbp-css", "data-p": "css", "data-k": "txt", spellcheck: "false", "aria-label": t("b.css") } }, s.css))));
   }
@@ -473,11 +483,11 @@ export function createPanel(view, host) {
     updateSums();
   }
   const FMT_L = Object.fromEntries(FMTS);
-  function setSum(key, kids) { const el = pb.querySelector('[data-sum="' + key + '"]'); if (el) { el.empty(); append(el, [kids]); } }
+  function setSum(key: string, kids: Kid) { const el = pb.querySelector('[data-sum="' + key + '"]'); if (el) { el.empty(); append(el, [kids]); } }
   function updateSums() {
     const s = S(), c = s.card, im = s.img, sp = imgSrc(s, facts);
     setSum("tamano", c.w + " px · " + (FMT_L[c.fmt] || t("fmt.free")));
-    setSum("colores", ["bg", "text", "det"].map(k => h("span", { cls: "dot", css: { "--cbp-dot": s.col[k] } })));
+    setSum("colores", (["bg", "text", "det"] as const).map(k => h("span", { cls: "dot", css: { "--cbp-dot": s.col[k] } })));
     setSum("fuente", fontLabel(fontName(s.font.family)) + " · " + s.font.weight);
     setSum("imagen", !sp ? t("sum.noImage") : pname(sp) + " · " + t("fit." + im.fit).toLowerCase() + (im.fit === "fondo" ? "" : " · " + t("pos." + im.pos).toLowerCase()));
     setSum("pie", t(s.fitems.length === 1 ? "sum.link1" : "sum.links", { n: s.fitems.length }));
@@ -486,20 +496,21 @@ export function createPanel(view, host) {
     s.states.list.forEach(st => { const x = stateSample(s, st); setSum("st:" + st.id, x ? quote(x) : "—"); });
     setSum("lineas", String(s.lines.n));
     setSum("css", s.css.trim() ? t("sum.cssLines", { n: s.css.trim().split("\n").length }) : "");
-    pb.querySelectorAll("[data-fill]").forEach(f => { setVars(/** @type {HTMLElement} */ (f), { "--cbp-fill": tokCol(getP(/** @type {HTMLElement} */ (f).dataset.fill), s) }); });
-    pb.querySelectorAll("input.hex").forEach(x => { const hx = /** @type {HTMLInputElement} */ (x); if (document.activeElement !== hx) hx.value = getP(hx.dataset.p); });
+    pb.querySelectorAll<HTMLElement>("[data-fill]").forEach(f => { setVars(f, { "--cbp-fill": tokCol(getP(f.dataset.fill!), s) }); });
+    pb.querySelectorAll<HTMLInputElement>("input.hex").forEach(hx => { if (document.activeElement !== hx) hx.value = getP(hx.dataset.p!) as string; });
     s.items.concat(s.fitems).forEach(it => { if (textish(it)) setSum("it:" + it.id, sumText(sample(s, it))); });
     undoBtn.disabled = !hist.length;
   }
-  function commit(path, val, re) { pushFor(path); const old = getP(path); setP(path, val); afterChange(path, old); preview(); re ? renderPanel() : updateSums(); }
-  function afterChange(path, old) {
+  function commit(path: string, val: unknown, re?: boolean) { pushFor(path); const old = getP(path); setP(path, val); afterChange(path, old); preview(); re ? renderPanel() : updateSums(); }
+  function afterChange(path: string, old?: unknown) {
     const s = S();
     /* portada: el texto de abajo empieza con el autor, el director o el año, si la vista los tiene */
     if (path === "img.empty" && s.img.empty === "portada" && s.img.cvText == null)
       s.img.cvText = ["author", "autor", "director", "creator", "artist", "year", "año"].map(n => "note." + n).find(p => coverTextProps().includes(p)) || "";
     /* estado: si el texto era el nombre de la propiedad (el que pone «+ Añadir estado»), sigue a la nueva */
     const ms = /^states\.list\.#([^.]+)\.prop$/.exec(path);
-    if (ms) { const st = stateOf(s, ms[1]), up = x => String(x || "").replace(/^(note|formula)\./, "").toUpperCase(); if (st && old != null && st.yes === up(old)) st.yes = up(st.prop); }
+    if (ms) { const st = stateOf(s, ms[1]), up = (x: string | null | undefined) =>
+ String(x || "").replace(/^(note|formula)\./, "").toUpperCase(); if (st && old != null && st.yes === up(old as string)) st.yes = up(st.prop); }
     if (path === "lines.n") syncStruct(s);
     if (path === "lines.on" && s.lines.on) ui.open.add("lineas");
     const m = /^items\.#([^.]+)\.(sup|t\.src|type)$/.exec(path);
@@ -516,57 +527,57 @@ export function createPanel(view, host) {
 
   /* ---------- eventos ---------- */
   pb.addEventListener("input", ev => {
-    const el = /** @type {HTMLInputElement} */ (ev.target), p = el.dataset.p; if (!p) return;
+    const el = (ev.target as HTMLInputElement), p = el.dataset.p; if (!p) return;
     switch (el.dataset.k) {
-      case "num": { const v = parseFloat(el.value); const o = pb.querySelector('[data-out="' + CSS.escape(p) + '"]'); if (o) { o.empty(); append(o, outTxt(v, el.dataset.unit, el.dataset.d === "" ? null : +el.dataset.d)); } commit(p, v); break; }
+      case "num": { const v = parseFloat(el.value); const o = pb.querySelector('[data-out="' + CSS.escape(p) + '"]'); if (o) { o.empty(); append(o, outTxt(v, el.dataset.unit, el.dataset.d === "" ? null : +el.dataset.d!)); } commit(p, v); break; }
       case "txt": commit(p, el.value); break;
       case "hex": { const v = el.value.trim(); if (/^#([0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)) commit(p, v.toLowerCase()); break; }
       case "int": { const v = parseInt(el.value, 10); if (v > 0) commit(p, v); break; }
     }
   });
   pb.addEventListener("change", ev => {
-    const el = /** @type {HTMLInputElement} */ (ev.target);
-    if (el.id === "popProp") { ui.add.prop = el.value; ui.add.type = okType(el.value, facts.guessType(el.value)); refreshPop(); return; }
-    if (el.id === "footProp") { ui.addF.prop = el.value; refreshPopF(); return; }
+    const el = (ev.target as HTMLInputElement);
+    if (el.id === "popProp") { ui.add!.prop = el.value; ui.add!.type = okType(el.value, facts.guessType(el.value)); refreshPop(); return; }
+    if (el.id === "footProp") { ui.addF!.prop = el.value; refreshPopF(); return; }
     const p = el.dataset.p; if (!p) return;
     const k = el.dataset.k;
     if (k === "sel") { const v = el.value === "" ? null : el.dataset.num && /^\d+$/.test(el.value) ? +el.value : el.value; commit(p, v, true); }
     if (k === "num" || k === "int") renderPanel();
-    if (k === "hex") el.value = getP(p);
+    if (k === "hex") el.value = getP(p) as string;
     if (k === "scrub") {
       const raw = el.value.replace(",", ".").trim(), n = parseFloat(raw);
-      commit(p, raw === "" || !isFinite(n) ? null : clamp(n, +el.dataset.min, +el.dataset.max), true);
+      commit(p, raw === "" || !isFinite(n) ? null : clamp(n, +el.dataset.min!, +el.dataset.max!), true);
     }
   });
   pb.addEventListener("keydown", ev => {
-    const el = /** @type {HTMLElement} */ (ev.target);
+    const el = (ev.target as HTMLElement);
     if (el.dataset && el.dataset.k === "scrub" && (ev.key === "ArrowUp" || ev.key === "ArrowDown")) {
-      ev.preventDefault(); const s = S(), st = +el.dataset.step * (ev.shiftKey ? 10 : 1);
-      const v = getP(el.dataset.p) ?? s.font.size; const n = clamp(+(v + (ev.key === "ArrowUp" ? st : -st)).toFixed(2), +el.dataset.min, +el.dataset.max);
-      commit(el.dataset.p, n); /** @type {HTMLInputElement} */ (el).value = fmt(n) + " " + el.dataset.unit;
+      ev.preventDefault(); const s = S(), st = +el.dataset.step! * (ev.shiftKey ? 10 : 1);
+      const v = (getP(el.dataset.p!) as number | null) ?? s.font.size; const n = clamp(+(v + (ev.key === "ArrowUp" ? st : -st)).toFixed(2), +el.dataset.min!, +el.dataset.max!);
+      commit(el.dataset.p!, n); (el as HTMLInputElement).value = fmt(n) + " " + el.dataset.unit;
     }
     if (el.dataset && el.dataset.k === "scrub" && ev.key === "Enter") el.blur();
-    if (el.matches && el.matches("[data-grip]") && (ev.key === "ArrowUp" || ev.key === "ArrowDown")) { ev.preventDefault(); moveItem(/** @type {HTMLElement} */ (el.closest(".sc")).dataset.list, el.dataset.id, ev.key === "ArrowUp" ? -1 : 1); }
+    if (el.matches && el.matches("[data-grip]") && (ev.key === "ArrowUp" || ev.key === "ArrowDown")) { ev.preventDefault(); moveItem((el.closest(".sc") as HTMLElement).dataset.list as ListKey, el.dataset.id!, ev.key === "ArrowUp" ? -1 : 1); }
   });
-  pb.addEventListener("toggle", ev => { const d = /** @type {HTMLDetailsElement} */ (ev.target); if (!d.dataset || !d.dataset.adv) return; const k = "adv:" + d.dataset.adv; d.open ? ui.open.add(k) : ui.open.delete(k); }, true);
+  pb.addEventListener("toggle", ev => { const d = (ev.target as HTMLDetailsElement); if (!d.dataset || !d.dataset.adv) return; const k = "adv:" + d.dataset.adv; d.open ? ui.open.add(k) : ui.open.delete(k); }, true);
   pb.addEventListener("click", ev => {
-    const b = /** @type {HTMLButtonElement} */ (/** @type {HTMLElement} */ (ev.target).closest("button")); if (!b || b.disabled) return;
+    const b = ((ev.target as HTMLElement).closest("button") as HTMLButtonElement); if (!b || b.disabled) return;
     if (b.dataset.toggle) {
       const k = b.dataset.toggle, open = !ui.open.has(k);
       open ? ui.open.add(k) : ui.open.delete(k);
       if (k.startsWith("it:") || k.startsWith("st:")) { renderPanel(); return; }     // los ajustes de un dato o un estado se pintan al abrirlo
       b.setAttribute("aria-expanded", String(open));
-      const body = /** @type {HTMLElement} */ (b.closest(".blk,.sc").querySelector(":scope > .blk-b, :scope > .sc-b")); body.hidden = !open;
+      const body = (b.closest(".blk,.sc")!.querySelector(":scope > .blk-b, :scope > .sc-b") as HTMLElement); body.hidden = !open;
       return;
     }
     const p = b.dataset.p;
     if (p) {
       const k = b.dataset.k;
-      if (k === "seg") { const v = b.dataset.vt === "number" ? +b.dataset.v : b.dataset.v; commit(p, v, true); }
+      if (k === "seg") { const v = b.dataset.vt === "number" ? +b.dataset.v! : b.dataset.v; commit(p, v, true); }
       else if (k === "bool") {
         const v = !getP(p);
         if (p === "foot.on" && v && !S().foot.filled) { const s = S(); snapshot(); lastPath = ""; fillFoot(s); s.foot.on = true; ui.open.add("pie"); preview(); renderPanel(); return; }
-        if (/^(foot|rate|states|lines|hover)\.on$/.test(p) && v) ui.open.add({ foot: "pie", rate: "valoracion", states: "estados", lines: "lineas", hover: "hover" }[p.split(".")[0]]);
+        if (/^(foot|rate|states|lines|hover)\.on$/.test(p) && v) ui.open.add(({ foot: "pie", rate: "valoracion", states: "estados", lines: "lineas", hover: "hover" } as Record<string, string>)[p.split(".")[0]]);
         if (/\.sup$/.test(p) && !v) setP(p.replace(/sup$/, "join"), false);
         commit(p, v, true);
       }
@@ -581,54 +592,54 @@ export function createPanel(view, host) {
       else if (k === "reset") commit(p, null, true);
       return;
     }
-    if (b.dataset.act === "join") { joinToggle(b.dataset.id); return; }
+    if (b.dataset.act === "join") { joinToggle(b.dataset.id!); return; }
     if (b.dataset.act === "delst") { const s = S(); snapshot(); lastPath = ""; s.states.list = s.states.list.filter(x => x.id !== b.dataset.id); syncStruct(s); renderPanel(); preview(); return; }
     if (b.id === "addSBtn") { addState(); return; }
-    if (b.dataset.act === "del") { delItem(b.dataset.list, b.dataset.id); return; }
+    if (b.dataset.act === "del") { delItem(b.dataset.list as ListKey, b.dataset.id!); return; }
     if (b.dataset.act === "delline") { const s = S(); snapshot(); lastPath = ""; s.items = s.items.filter(x => x.id !== b.dataset.id); s.lines.n = Math.max(0, s.lines.n - 1); if (!s.lines.n) { s.lines.n = 1; s.lines.on = false; syncStruct(s); } renderPanel(); preview(); return; }
     if (b.id === "addBtn") { ui.add ? closeAdd() : openAdd(); return; }
-    if (b.dataset.ptype) { ui.add.type = b.dataset.ptype; refreshPop(); return; }
+    if (b.dataset.ptype) { ui.add!.type = b.dataset.ptype; refreshPop(); return; }
     if (b.dataset.pop === "cancel") { closeAdd(); $("#addBtn").focus(); return; }
     if (b.dataset.pop === "ok") { addItem(); return; }
     if (b.id === "addFBtn") { if (ui.addF) closeAddF(); else { ui.addF = { prop: freeUrl(S())[0] }; renderPanel(); const pf = $("#popF"); if (pf) { pf.scrollIntoView({ block: "nearest" }); $("#footProp").focus(); } } return; }
     if (b.dataset.popf === "cancel") { closeAddF(); $("#addFBtn").focus(); return; }
-    if (b.dataset.popf === "ok") { const s = S(); snapshot(); lastPath = ""; const it = footItem(ui.addF.prop); if (s.fitems[0]) it.color = s.fitems[0].color; s.fitems.push(it); s.foot.filled = true; ui.addF = null; renderPanel(); preview(); return; }
+    if (b.dataset.popf === "ok") { const s = S(); snapshot(); lastPath = ""; const it = footItem(ui.addF!.prop); if (s.fitems[0]) it.color = s.fitems[0].color; s.fitems.push(it); s.foot.filled = true; ui.addF = null; renderPanel(); preview(); return; }
   });
   /* arrastrar en horizontal sobre un número para cambiarlo */
   let scrubMoved = false;
   pb.addEventListener("pointerdown", ev => {
-    const el = /** @type {HTMLInputElement} */ (/** @type {HTMLElement} */ (ev.target).closest("input.num")); if (!el || el.disabled || document.activeElement === el) return;
-    const sx = ev.clientX, p = el.dataset.p, s = S();
-    const start = getP(p) ?? s.font.size, step = +el.dataset.step;
+    const el = ((ev.target as HTMLElement).closest("input.num") as HTMLInputElement); if (!el || el.disabled || document.activeElement === el) return;
+    const sx = ev.clientX, p = el.dataset.p!, s = S();
+    const start = (getP(p) as number | null) ?? s.font.size, step = +el.dataset.step!;
     let moved = false; scrubMoved = false;
-    const mv = e => {
+    const mv = (e: PointerEvent) => {
       const dx = e.clientX - sx;
       if (!moved && Math.abs(dx) < 4) return;
       if (!moved) { moved = true; scrubMoved = true; document.body.addClass("cb-scrubbing"); }
       e.preventDefault();
-      const n = clamp(+(start + Math.round(dx / 3) * step).toFixed(2), +el.dataset.min, +el.dataset.max);
+      const n = clamp(+(start + Math.round(dx / 3) * step).toFixed(2), +el.dataset.min!, +el.dataset.max!);
       commit(p, n); el.value = fmt(n) + " " + el.dataset.unit;
     };
     const up = () => { document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.body.removeClass("cb-scrubbing"); if (moved) renderPanel(); };
     document.addEventListener("pointermove", mv); document.addEventListener("pointerup", up);
     ev.preventDefault();
   });
-  pb.addEventListener("click", ev => { const el = /** @type {HTMLInputElement} */ (/** @type {HTMLElement} */ (ev.target).closest("input.num")); if (!el || el.disabled) return; if (scrubMoved) { scrubMoved = false; return; } el.focus(); el.select(); });
+  pb.addEventListener("click", ev => { const el = ((ev.target as HTMLElement).closest("input.num") as HTMLInputElement); if (!el || el.disabled) return; if (scrubMoved) { scrubMoved = false; return; } el.focus(); el.select(); });
 
-  function joinToggle(id) {
+  function joinToggle(id: string) {
     const s = S(), it = s.items.find(x => x.id === id); if (!it) return;
     snapshot(); lastPath = "";
     if (it.join || it.sup) { it.join = false; it.sup = false; } else { it.join = true; if (it.sep == null) it.sep = "·"; if (it.gap == null) it.gap = 1; }
     renderPanel(); preview();
-    const b = /** @type {HTMLElement} */ (pb.querySelector('[data-act="join"][data-id="' + id + '"]')); if (b) b.focus();
+    const b = (pb.querySelector('[data-act="join"][data-id="' + id + '"]') as HTMLElement); if (b) b.focus();
   }
-  function delItem(list, id) {
+  function delItem(list: ListKey, id: string) {
     const s = S(), arr = s[list], i = arr.findIndex(x => x.id === id); if (i < 0) return;
     snapshot(); lastPath = "";
     const [m] = arr.splice(i, 1);
     renderPanel(); preview(); toast(t("toast.removed", { what: pname(m.prop) }), true);
   }
-  function moveItem(list, id, dir) {
+  function moveItem(list: ListKey, id: string, dir: number) {
     const s = S(), arr = s[list];
     const vis = list === "items" ? visibleItems(s) : arr;
     const vi = vis.findIndex(x => x.id === id), ti = vi + dir;
@@ -638,7 +649,7 @@ export function createPanel(view, host) {
     let to = arr.findIndex(x => x.id === target.id); if (dir > 0) to++;
     arr.splice(to, 0, m);
     renderPanel(); preview();
-    const g = /** @type {HTMLElement} */ (pb.querySelector('[data-grip][data-id="' + id + '"]')); if (g) g.focus();
+    const g = (pb.querySelector('[data-grip][data-id="' + id + '"]') as HTMLElement); if (g) g.focus();
   }
   function openAdd() {
     const s = S(), used = new Set(s.items.map(x => x.prop));
@@ -650,30 +661,30 @@ export function createPanel(view, host) {
   }
   function closeAdd() { ui.add = null; const pop = $("#pop"); if (pop) pop.remove(); const a = $("#addBtn"); if (a) a.setAttribute("aria-expanded", "false"); }
   function closeAddF() { ui.addF = null; const pf = $("#popF"); if (pf) pf.remove(); const a = $("#addFBtn"); if (a) a.setAttribute("aria-expanded", "false"); }
-  function refreshPopF() { const pf = $("#popF"); if (pf) pf.replaceWith(addFootNode(S())); }
-  function refreshPop() { const pop = $("#pop"); if (pop) pop.replaceWith(addPopNode(S())); }
+  function refreshPopF() { const pf = $("#popF"); if (pf) pf.replaceWith(addFootNode(S())!); }
+  function refreshPop() { const pop = $("#pop"); if (pop) pop.replaceWith(addPopNode(S())!); }
   function addItem() {
-    const pp = ui.add, s = S(); snapshot(); lastPath = "";
+    const pp = ui.add!, s = S(); snapshot(); lastPath = "";
     const it = newItem(pp.prop, pp.type);
     const lastText = s.items.map(x => textish(x)).lastIndexOf(true);
     s.items.splice(lastText + 1, 0, it);
     ui.open.add("it:" + it.id); ui.add = null;
     renderPanel(); preview();
-    const el = pb.querySelector('.sc[data-id="' + it.id + '"]'); if (el) { el.scrollIntoView({ block: "nearest" }); /** @type {HTMLElement} */ (el.querySelector(".sc-main")).focus(); }
+    const el = pb.querySelector('.sc[data-id="' + it.id + '"]'); if (el) { el.scrollIntoView({ block: "nearest" }); (el.querySelector(".sc-main") as HTMLElement).focus(); }
   }
 
   /* arrastrar para ordenar (y pasar un dato con URL entre Datos y Pie) */
-  let drag = null;
-  pb.addEventListener("pointerdown", ev => { const g = /** @type {HTMLElement} */ (ev.target).closest("[data-grip]"); if (g) /** @type {HTMLElement} */ (g.closest(".sc")).draggable = true; });
-  pb.addEventListener("dragstart", ev => { const c = /** @type {HTMLElement} */ (/** @type {HTMLElement} */ (ev.target).closest(".sc[data-id]")); if (!c || c.dataset.fixed !== undefined) return; drag = { id: c.dataset.id, list: c.dataset.list }; c.addClass("dragging"); ev.dataTransfer.effectAllowed = "move"; try { ev.dataTransfer.setData("text/plain", drag.id); } catch { /* algunos sistemas no dejan */ } });
-  function canMove(id, from, to) { if (from === to) return true; const it = S()[from].find(x => x.id === id); return !!it && it.kind === "dato" && isUrlProp(it.prop); }
+  let drag: { id: string; list: ListKey } | null = null;
+  pb.addEventListener("pointerdown", ev => { const g = (ev.target as HTMLElement).closest("[data-grip]"); if (g) (g.closest(".sc") as HTMLElement).draggable = true; });
+  pb.addEventListener("dragstart", ev => { const c = ((ev.target as HTMLElement).closest(".sc[data-id]") as HTMLElement); if (!c || c.dataset.fixed !== undefined) return; drag = { id: c.dataset.id!, list: c.dataset.list as ListKey }; c.addClass("dragging"); ev.dataTransfer!.effectAllowed = "move"; try { ev.dataTransfer!.setData("text/plain", drag.id); } catch { /* algunos sistemas no dejan */ } });
+  function canMove(id: string, from: ListKey, to: ListKey) { if (from === to) return true; const it = S()[from].find(x => x.id === id); return !!it && it.kind === "dato" && isUrlProp(it.prop); }
   function clearDrop() { pb.querySelectorAll(".drop-before,.drop-after,.drop-into").forEach(x => x.classList.remove("drop-before", "drop-after", "drop-into")); }
   pb.addEventListener("dragover", ev => {
     if (!drag) return; clearDrop();
-    const lb = /** @type {HTMLElement} */ (/** @type {HTMLElement} */ (ev.target).closest("[data-listbox]")); if (!lb) return;
-    const to = lb.dataset.listbox; if (!canMove(drag.id, drag.list, to)) return;
+    const lb = ((ev.target as HTMLElement).closest("[data-listbox]") as HTMLElement); if (!lb) return;
+    const to = lb.dataset.listbox as ListKey; if (!canMove(drag.id, drag.list, to)) return;
     ev.preventDefault();
-    const c = /** @type {HTMLElement} */ (/** @type {HTMLElement} */ (ev.target).closest(".sc[data-id]"));
+    const c = ((ev.target as HTMLElement).closest(".sc[data-id]") as HTMLElement);
     if (c && c.dataset.id !== drag.id) {
       const r = c.getBoundingClientRect(), before = ev.clientY < r.top + r.height / 2;
       c.addClass(before ? "drop-before" : "drop-after");
@@ -681,31 +692,32 @@ export function createPanel(view, host) {
   });
   pb.addEventListener("drop", ev => {
     if (!drag) return;
-    const lb = /** @type {HTMLElement} */ (/** @type {HTMLElement} */ (ev.target).closest("[data-listbox]")); if (!lb) { drag = null; clearDrop(); return; }
-    const to = lb.dataset.listbox; if (!canMove(drag.id, drag.list, to)) return;
+    const dg = drag;
+    const lb = ((ev.target as HTMLElement).closest("[data-listbox]") as HTMLElement); if (!lb) { drag = null; clearDrop(); return; }
+    const to = lb.dataset.listbox as ListKey; if (!canMove(dg.id, dg.list, to)) return;
     ev.preventDefault();
-    const c = /** @type {HTMLElement} */ (pb.querySelector(".drop-before,.drop-after")), into = lb.classList.contains("drop-into");
+    const c = (pb.querySelector(".drop-before,.drop-after") as HTMLElement), into = lb.classList.contains("drop-into");
     if (!c && !into) { drag = null; clearDrop(); return; }
-    const s = S(), srcList = s[drag.list], dst = s[to]; snapshot(); lastPath = "";
-    const [m] = srcList.splice(srcList.findIndex(x => x.id === drag.id), 1);
+    const s = S(), srcList = s[dg.list], dst = s[to]; snapshot(); lastPath = "";
+    const [m] = srcList.splice(srcList.findIndex(x => x.id === dg.id), 1);
     const idx = c ? dst.findIndex(x => x.id === c.dataset.id) + (c.classList.contains("drop-before") ? 0 : 1) : (to === "items" ? dst.map(textish).lastIndexOf(true) + 1 : dst.length);
-    if (to !== drag.list) {
+    if (to !== dg.list) {
       m.join = false; m.sup = false;
       if (to === "fitems") { m.type = "enlace"; m.link = "self"; s.foot.on = true; s.foot.filled = true; ui.open.add("pie"); }
     }
     dst.splice(idx, 0, m); drag = null; clearDrop(); renderPanel(); preview();
   });
-  pb.addEventListener("dragend", () => { drag = null; clearDrop(); pb.querySelectorAll(".sc").forEach(x => { /** @type {HTMLElement} */ (x).draggable = false; x.classList.remove("dragging"); }); });
+  pb.addEventListener("dragend", () => { drag = null; clearDrop(); pb.querySelectorAll(".sc").forEach(x => { (x as HTMLElement).draggable = false; x.classList.remove("dragging"); }); });
 
   /* ---------- ventanitas flotantes (menús, fuentes, color) ---------- */
-  function placeFp(anchor) {
+  function placeFp(anchor: HTMLElement | null) {
     if (!anchor || !anchor.isConnected) return;
     const r = anchor.getBoundingClientRect(), w = fp.offsetWidth, hh = fp.offsetHeight;
     const left = clamp(r.left, 8, innerWidth - w - 8); let top = r.bottom + 6;
     if (top + hh > innerHeight - 8) top = Math.max(8, r.top - hh - 6);
     setVars(fp, { "--cbp-fp-x": left + "px", "--cbp-fp-y": top + "px" });
   }
-  function openFp(kind, anchor, node, data) {
+  function openFp(kind: string, anchor: HTMLElement, node: Node, data?: Partial<Fp>) {
     closeFp();
     ui.fp = Object.assign({ kind, anchorId: anchor.id }, data || {});
     fp.append(node); fp.hidden = false; anchor.setAttribute("aria-expanded", "true");
@@ -718,13 +730,13 @@ export function createPanel(view, host) {
   }
   pb.addEventListener("scroll", () => { if (ui.fp) { const a = byId(ui.fp.anchorId); a ? placeFp(a) : closeFp(); } });
   const onResize = () => { if (ui.fp) { const a = byId(ui.fp.anchorId); if (a) placeFp(a); } };
-  const onMouseDown = ev => {
-    const tg = /** @type {HTMLElement} */ (ev.target);
+  const onMouseDown = (ev: MouseEvent) => {
+    const tg = (ev.target as HTMLElement);
     if (ui.fp && !fp.contains(tg) && !(tg.closest && tg.closest("#" + CSS.escape(ui.fp.anchorId)))) closeFp();
     if (ui.add && !(tg.closest && tg.closest(".cb-panel .addwrap")) && !fp.contains(tg)) closeAdd();
     if (ui.addF && !(tg.closest && tg.closest(".cb-panel .addwrap")) && !fp.contains(tg)) closeAddF();
   };
-  const onKey = ev => {
+  const onKey = (ev: KeyboardEvent) => {
     const inPanel = root.contains(document.activeElement) || fp.contains(document.activeElement);
     if (ev.key === "Escape" && inPanel) {
       if (ui.fp) { const a = byId(ui.fp.anchorId); closeFp(); if (a) a.focus(); ev.preventDefault(); return; }
@@ -733,8 +745,8 @@ export function createPanel(view, host) {
       ev.preventDefault(); ev.stopPropagation(); askCancel(); return;   // Escape = Cancelar
     }
     const ae = document.activeElement;
-    const typing = ae && ((ae.tagName === "INPUT" && !/^(range|checkbox|radio|color|button)$/.test(/** @type {HTMLInputElement} */ (ae).type)) ||
-      /TEXTAREA|SELECT/.test(ae.tagName) || /** @type {HTMLElement} */ (ae).isContentEditable);   // en un deslizador, Ctrl+Z es nuestro
+    const typing = ae && ((ae.tagName === "INPUT" && !/^(range|checkbox|radio|color|button)$/.test((ae as HTMLInputElement).type)) ||
+      /TEXTAREA|SELECT/.test(ae.tagName) || (ae as HTMLElement).isContentEditable);   // en un deslizador, Ctrl+Z es nuestro
     const ours = inPanel || view.containsFocus() || ae === document.body;
     if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "z" && !ev.shiftKey && !typing && ours) { ev.preventDefault(); ev.stopPropagation(); undo(); }
   };
@@ -743,18 +755,19 @@ export function createPanel(view, host) {
   document.addEventListener("keydown", onKey, true);
 
   /* selector de color: espectro + tono + transparencia + código opcional */
-  function openPicker(path, anchor) {
+  function openPicker(path: string, anchor: HTMLElement) {
+    const F = () => ui.fp as Required<Fp>;            // la ventanita del color abierta (con su ruta y su color)
     const s = S(), cur0 = tokCol(getP(path), s), st = hexToHsva(hex6(cur0) + (cur0 && cur0.length === 9 ? cur0.slice(7) : ""));
     const quick = [s.col.bg, s.col.text, s.col.det, "#ffffff", "#000000", "#8b8b8b", "#00000000"];
     const knob = () => h("span", "knob");
     const kSV = knob(), kH = knob(), kA = knob();
     const sv = h("div", "cp-sv", kSV), hb = h("div", "cp-bar cp-hue", kH), ab = h("div", "cp-bar cp-alpha", kA);
     const prev = h("span", "fill");
-    const hex = /** @type {HTMLInputElement} */ (h("input", { cls: "hex", attr: { type: "text", spellcheck: "false", maxlength: 9, "aria-label": t("p.colorCode") } }));
-    const sws = h("div", "cp-sws", quick.map(c => h("button", { attr: { type: "button", "aria-label": c }, on: { click: () => { ui.fp.st = hexToHsva(c); apply(); } } }, h("i", { css: { "--cbp-q": c } }))));
+    const hex = h("input", { cls: "hex", attr: { type: "text", spellcheck: "false", maxlength: 9, "aria-label": t("p.colorCode") } });
+    const sws = h("div", "cp-sws", quick.map(c => h("button", { attr: { type: "button", "aria-label": c }, on: { click: () => { F().st = hexToHsva(c); apply(); } } }, h("i", { css: { "--cbp-q": c } }))));
     openFp("color", anchor, h("div", { cls: "cp", attr: { role: "dialog", "aria-label": t("c.color") } }, sv, hb, ab, h("div", "cp-row", h("span", "swc cbp-static", prev), hex), sws), { path, st });
     const paint = () => {
-      const o = ui.fp.st, hx = hsvaToHex(o);
+      const o = F().st, hx = hsvaToHex(o);
       setVars(sv, { "--h": o.h });
       setVars(kSV, { "--cbp-kx": (o.s * 100) + "%", "--cbp-ky": ((1 - o.v) * 100) + "%" });
       setVars(kH, { "--cbp-kx": (o.h / 360 * 100) + "%" }); setVars(kA, { "--cbp-kx": (o.a * 100) + "%" });
@@ -762,23 +775,23 @@ export function createPanel(view, host) {
       setVars(prev, { "--cbp-fill": hx });
       if (document.activeElement !== hex) hex.value = hx;
     };
-    const apply = () => { paint(); commit(ui.fp.path, hsvaToHex(ui.fp.st)); };
-    const dragOn = (el, fn) => el.addEventListener("pointerdown", e => {
+    const apply = () => { paint(); commit(F().path, hsvaToHex(F().st)); };
+    const dragOn = (el: HTMLElement, fn: (x: number, y: number) => void) => el.addEventListener("pointerdown", e => {
       e.preventDefault(); el.setPointerCapture(e.pointerId);
-      const go = evt => { const r = el.getBoundingClientRect(); fn(clamp((evt.clientX - r.left) / r.width, 0, 1), clamp((evt.clientY - r.top) / r.height, 0, 1)); apply(); };
+      const go = (evt: PointerEvent) => { const r = el.getBoundingClientRect(); fn(clamp((evt.clientX - r.left) / r.width, 0, 1), clamp((evt.clientY - r.top) / r.height, 0, 1)); apply(); };
       go(e); el.onpointermove = go; el.onpointerup = () => { el.onpointermove = null; };
     });
-    dragOn(sv, (x, y) => { ui.fp.st.s = x; ui.fp.st.v = 1 - y; if (ui.fp.st.a === 0) ui.fp.st.a = 1; });
-    dragOn(hb, x => { ui.fp.st.h = x * 360; });
-    dragOn(ab, x => { ui.fp.st.a = x; });
-    hex.addEventListener("input", () => { const v = hex.value.trim(); if (/^#([0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)) { ui.fp.st = hexToHsva(v.toLowerCase()); paint(); commit(ui.fp.path, v.toLowerCase()); } });
+    dragOn(sv, (x, y) => { F().st.s = x; F().st.v = 1 - y; if (F().st.a === 0) F().st.a = 1; });
+    dragOn(hb, (x: number) => { F().st.h = x * 360; });
+    dragOn(ab, (x: number) => { F().st.a = x; });
+    hex.addEventListener("input", () => { const v = hex.value.trim(); if (/^#([0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)) { F().st = hexToHsva(v.toLowerCase()); paint(); commit(F().path, v.toLowerCase()); } });
     paint();
   }
   /* fuentes: las instaladas (si el sistema deja), si no una lista; se puede escribir cualquier nombre */
   async function loadLocalFonts() {
     if (localFonts) return localFonts;
     try {
-      const q = /** @type {any} */ (window).queryLocalFonts;
+      const q = (window as unknown as { queryLocalFonts?: () => Promise<{ family: string }[]> }).queryLocalFonts;
       if (typeof q === "function") {
         const list = await q.call(window);
         const fams = [...new Set(list.map(f => f.family))].sort((a, b) => a.localeCompare(b));
@@ -787,9 +800,9 @@ export function createPanel(view, host) {
     } catch { /* sin permiso: lista de reserva */ }
     return localFonts;
   }
-  function openFonts(path, anchor) {
-    const v = getP(path), stack = v == null ? S().font.family : v, eff = fontName(stack);
-    const q = /** @type {HTMLInputElement} */ (h("input", { attr: { type: "text", id: "fpSearch", placeholder: t("p.search"), spellcheck: "false", "aria-label": t("p.searchFont") } }));
+  function openFonts(path: string, anchor: HTMLElement) {
+    const v = getP(path) as string | null, stack = v == null ? S().font.family : v, eff = fontName(stack);
+    const q = h("input", { attr: { type: "text", id: "fpSearch", placeholder: t("p.search"), spellcheck: "false", "aria-label": t("p.searchFont") } });
     const list = h("div", { cls: "fl", attr: { id: "fpList", role: "listbox" } });
     openFp("font", anchor, h("div", { cls: "fontp", attr: { role: "dialog", "aria-label": t("c.typeface") } }, q, list), { path });
     let act = 0, names = FONTS.map(f => f[0]);
@@ -803,15 +816,15 @@ export function createPanel(view, host) {
       const a = list.querySelector(".act"); if (a) a.scrollIntoView({ block: "nearest" });
     };
     /* elegir la misma que ya estaba conserva su pila entera */
-    const pick = b => { const val = b.dataset.font === eff ? stack : b.dataset.font; const p = ui.fp.path; closeFp(); commit(p, val, true); const fb = byId(fid(p)); if (fb) fb.focus(); };
+    const pick = (b: HTMLElement) => { const val = b.dataset.font === eff ? stack : b.dataset.font; const p = ui.fp!.path!; closeFp(); commit(p, val, true); const fb = byId(fid(p)); if (fb) fb.focus(); };
     q.addEventListener("input", () => { act = 0; draw(); });
     q.addEventListener("keydown", e => {
       const n = list.children.length;
       if (e.key === "ArrowDown") { e.preventDefault(); act = (act + 1) % n; draw(); }
       if (e.key === "ArrowUp") { e.preventDefault(); act = (act - 1 + n) % n; draw(); }
-      if (e.key === "Enter") { e.preventDefault(); const b = list.children[act]; if (b) pick(b); }
+      if (e.key === "Enter") { e.preventDefault(); const b = list.children[act] as HTMLElement; if (b) pick(b); }
     });
-    list.addEventListener("click", e => { const b = /** @type {HTMLElement} */ (e.target).closest("[data-font]"); if (b) pick(b); });
+    list.addEventListener("click", e => { const b = (e.target as HTMLElement).closest<HTMLElement>("[data-font]"); if (b) pick(b); });
     act = Math.max(0, names.indexOf(eff));
     draw(); q.focus();
     void loadLocalFonts().then(fams => {
@@ -822,40 +835,41 @@ export function createPanel(view, host) {
   }
 
   /* ---------- Estilos ---------- */
-  function applyStyle(st, name) {
+  function applyStyle(st: Style, name: string) {
     const s = S(); snapshot(); lastPath = "";
-    const st2 = clone(st), filled = s.foot.filled;
-    STYLE_KEYS.forEach(k => s[k] = merge(clone(BASE_STYLE[k]), st2[k] || {}));
+    const st2 = clone(st), filled = s.foot.filled, sk = s as unknown as Record<string, unknown>;
+    STYLE_KEYS.forEach(k => sk[k] = merge(clone(BASE_STYLE[k]), st2[k] || {}));
     s.css = st2.css || "";
-    const title = s.items.find(x => x.kind === "title");
-    const tt = merge(clone(BASE_STYLE.title), splitSpace(clone(st2.title || {}))); TITLE_KEYS.forEach(k => { title[k] = k in tt && tt[k] !== undefined ? tt[k] : ITEM_DEF[k]; });
+    const title = s.items.find(x => x.kind === "title") as unknown as Record<string, unknown>;
+    const tt = merge(clone(BASE_STYLE.title), splitSpace(clone(st2.title || {}))) as Record<string, unknown>, def = ITEM_DEF as Record<string, unknown>;
+    TITLE_KEYS.forEach(k => { title[k] = k in tt && tt[k] !== undefined ? tt[k] : def[k]; });
     s.items.concat(s.fitems).forEach(it => { if (textish(it) && it.kind !== "title" && it.color !== "tx" && it.color !== "det") it.color = "tx"; });
     s.foot.filled = filled;
     if (s.foot.on && !filled) fillFoot(s);
     syncStruct(s);
     closeFp(); renderPanel(); preview(); toast(t("toast.applied", { name }), true);
   }
-  function thumb(st) {
+  function thumb(st: Style) {
     const bg = st.col.bg, tx = st.col.text, dt = st.col.det, f = st.img.src === "none" ? "none" : st.img.fit, pos = st.img.pos;
-    const R = (x, y, w, hh, fill, op) => svg("rect", { x, y, width: w, height: hh, fill, opacity: op });
-    let img = null;
+    const R = (x: number, y: number, w: number, hh: number, fill: string, op?: string) => svg("rect", { x, y, width: w, height: hh, fill, opacity: op });
+    let img: Kid = null;
     if (f === "fondo") img = [R(0, 0, 30, 22, "#6b6b6b"), R(0, 11, 30, 11, bg, ".75")];
     else if (f !== "none") img = pos === "left" ? R(0, 0, 10, 22, "#6b6b6b") : R(0, 0, 30, 11, "#6b6b6b");
     const x = f !== "none" && f !== "fondo" && pos === "left" ? 13 : 3, y = f === "fondo" ? 14 : (f !== "none" && pos !== "left" ? 14 : 4);
     return svg("svg", { viewBox: "0 0 30 22" }, R(0, 0, 30, 22, bg), img, R(x, y, f === "fondo" ? 16 : 12, 3, tx), R(x, y + 4.5, 8, 2, dt));
   }
-  const menuItem = (st, label, attr, onClick) => h("button", { attr: Object.assign({ type: "button", role: "menuitem" }, attr), on: { click: onClick } }, h("span", "thumb", thumb(st)), label);
+  const menuItem = (st: Style, label: string, attr: Record<string, AttrVal>, onClick: () => void) => h("button", { attr: Object.assign({ type: "button", role: "menuitem" }, attr), on: { click: onClick } }, h("span", "thumb", thumb(st)), label);
   presetsBtn.addEventListener("click", () => {
     if (ui.fp && ui.fp.kind === "presets") { closeFp(); return; }
     const myStyles = plugin.getStyles();
     openFp("presets", presetsBtn, h("div", { cls: "cbmenu", attr: { role: "menu" } }, h("h5", null, t("p.presets")),
       Object.entries(PRESETS).map(([k, p]) => menuItem(p.s, t("preset." + k), { "data-preset": k }, () => applyStyle(p.s, t("preset." + k)))),
       myStyles.length ? [h("h5", null, t("p.myStyles")), myStyles.map((m, i) => menuItem(m.s, m.name, { "data-mine": i }, () => applyStyle(m.s, m.name)))] : null));
-    const first = /** @type {HTMLElement} */ (fp.querySelector("button")); if (first) first.focus();
+    const first = (fp.querySelector("button") as HTMLElement); if (first) first.focus();
   });
   saveBtn.addEventListener("click", () => {
     if (ui.fp && ui.fp.kind === "save") { closeFp(); return; }
-    const inp = /** @type {HTMLInputElement} */ (h("input", { attr: { type: "text", id: "saveName", "aria-label": t("p.styleName"), placeholder: t("p.name"), spellcheck: "false", value: view.config.name || "" } }));
+    const inp = h("input", { attr: { type: "text", id: "saveName", "aria-label": t("p.styleName"), placeholder: t("p.name"), spellcheck: "false", value: view.config.name || "" } });
     const form = h("form", { cls: "savef", attr: { id: "saveForm" } }, inp, h("button", { cls: "btn primary", attr: { type: "submit" } }, t("p.save")));
     openFp("save", saveBtn, form);
     inp.focus(); inp.select();
@@ -865,7 +879,7 @@ export function createPanel(view, host) {
       closeFp(); toast(t("toast.saved", { name })); saveBtn.focus();
     });
   });
-  copyBtn.addEventListener("click", async () => {
+  async function copyMenu() {
     if (ui.fp && ui.fp.kind === "copy") { closeFp(); return; }
     openFp("copy", copyBtn, h("div", { cls: "cbmenu", attr: { role: "menu" } }, h("h5", null, t("p.searching"))));
     const list = await view.otherViews();
@@ -873,14 +887,15 @@ export function createPanel(view, host) {
     fp.empty();
     fp.append(h("div", { cls: "cbmenu", attr: { role: "menu" } }, list.length ? list.map((v, i) => menuItem(v.style, v.label, { "data-copy": i }, () => applyStyle(v.style, v.label))) : h("h5", null, t("p.noViews"))));
     placeFp(copyBtn);
-    const first = /** @type {HTMLElement} */ (fp.querySelector("button")); if (first) first.focus();
-  });
+    const first = (fp.querySelector("button") as HTMLElement); if (first) first.focus();
+  }
+  copyBtn.addEventListener("click", () => { void copyMenu(); });
 
   /* ---------- cabecera ---------- */
-  function toast(msg, withUndo) {
+  function toast(msg: string, withUndo?: boolean) {
     const frag = createFragment();
     frag.append(msg);
-    let n = null;
+    let n: Notice | null = null;
     if (withUndo) {
       const b = h("button", { cls: "cb-toast-undo", on: { click: () => { undo(); n && n.hide(); } } }, t("p.undo"));
       frag.append(" ", b);
