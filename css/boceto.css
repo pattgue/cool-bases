@@ -1,9 +1,9 @@
 /* ===== Tarjetas del modo nuevo (pasado del boceto v3) ===== */
 .cb-view .cb-grid{display:grid;align-items:start}
 .cb-view .cb-cell{container-type:inline-size;min-width:0}
-.cb-view .cb-card{position:relative;display:grid;overflow:hidden;background:var(--cb-bg);color:var(--cb-text);border-radius:var(--cb-rad);border:var(--cb-bw) solid var(--cb-bc);isolation:isolate;mask-image:linear-gradient(#000 0 0);font-family:var(--cb-font);font-weight:var(--cb-w);font-size:calc(var(--cb-fs)*1cqi);text-align:var(--cb-align);line-height:1.25;max-width:100%}
+.cb-view .cb-card{position:relative;display:grid;overflow:hidden;background:var(--cb-bg);color:var(--cb-text);border-radius:var(--cb-rad);border:var(--cb-bw) solid var(--cb-bc);isolation:isolate;clip-path:inset(0 round var(--cb-rad));font-family:var(--cb-font);font-weight:var(--cb-w);font-size:calc(var(--cb-fs)*1cqi);text-align:var(--cb-align);line-height:1.25;max-width:100%}
 .cb-view .cb-card::before{content:"";grid-area:1/1;padding-top:var(--cb-minp,0);height:var(--cb-minh,auto);pointer-events:none}
-.cb-view .cb-in{grid-area:1/1;position:relative;display:flex;flex-direction:column;min-width:0;overflow:hidden;border-radius:var(--cb-irad);mask-image:linear-gradient(#000 0 0)}
+.cb-view .cb-in{grid-area:1/1;position:relative;display:flex;flex-direction:column;min-width:0;overflow:hidden;border-radius:var(--cb-irad);clip-path:inset(0 round var(--cb-irad))}
 .cb-view .cb-main{flex:1 1 auto;display:flex;flex-direction:column;min-width:0;min-height:0}
 .cb-view .cb-media{position:relative;overflow:hidden;flex:none;min-width:0}
 .cb-view .cb-media img{display:block;filter:var(--cb-filter);transform:var(--cb-imgtf,none)}
