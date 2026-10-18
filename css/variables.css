@@ -17,10 +17,10 @@
 .cb-view .cb-card .cb-x.has-w { font-weight: var(--cb-x-w); }
 .cb-view .cb-card .cb-x.is-upper { text-transform: uppercase; letter-spacing: .02em; }
 .cb-view .cb-card .cb-x.is-ital { font-style: italic; }
-.cb-view .cb-card .cb-x.is-under, .cb-view .cb-card .cb-x.is-strike { text-underline-offset: .16em; text-decoration-thickness: .07em; }
+.cb-view .cb-card .cb-x.is-under, .cb-view .cb-card .cb-x.is-strike { text-underline-offset: .16em; }
 .cb-view .cb-card .cb-x.is-under { text-decoration: underline; }
 .cb-view .cb-card .cb-x.is-strike { text-decoration: line-through; }
-.cb-view .cb-card .cb-x.is-under.is-strike { text-decoration: underline line-through; }
+.cb-view .cb-card .cb-x.is-under.is-strike { --cb-x-deco: underline line-through; text-decoration: var(--cb-x-deco); }   /* las dos a la vez: el valor doble, en una variable */
 .cb-view .cb-card .cb-x.is-hl { background: var(--cb-x-hl); padding: 0 .18em; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
 .cb-view .cb-card .cb-x.is-title { line-height: .95; }
 .cb-view .cb-card sup.cb-sup.cb-x { margin-left: calc(var(--cb-sep-g, 0) * 1cqi); vertical-align: var(--cb-sup-va, baseline); }

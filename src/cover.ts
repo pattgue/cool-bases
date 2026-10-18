@@ -7,26 +7,28 @@
    Se dibuja para una proporción (alto / ancho): la media de las imágenes de la vista o la del hueco. */
 
 /* parejas fondo / tinta, elegidas para que se lean bien y combinen entre sí */
-export const COVER_PALETTE = [
+export const COVER_PALETTE: [string, string][] = [
   ["#d9d2c3", "#1f3a5f"], ["#8c3b2b", "#f1e3c8"], ["#1d2b2a", "#9fd3c7"], ["#ece6da", "#222222"], ["#e8c547", "#1c1c1c"],
   ["#2f3e46", "#f2e9e4"], ["#f4a259", "#2b2d42"], ["#3d405b", "#f2cc8f"], ["#e07a5f", "#fdf0d5"], ["#6b705c", "#ffe8d6"],
 ];
 const SHAPES = 5;
 
 /* un número fijo por título (así cada nota saca siempre los mismos colores y la misma forma) */
-export function hashStr(t) { let h = 2166136261; for (const c of String(t)) { h ^= c.codePointAt(0); h = Math.imul(h, 16777619) >>> 0; } return h; }
+export function hashStr(t: unknown): number { let h = 2166136261; for (const c of String(t)) { h ^= c.codePointAt(0)!;
+ h = Math.imul(h, 16777619) >>> 0; } return h; }
 
-const xmlEsc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" }[c]));
+const XML_ESC: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&apos;" };
+const xmlEsc = (s: unknown) => String(s).replace(/[&<>"']/g, c => XML_ESC[c]);
 /* en una imagen SVG no hay variables CSS ni fuentes de la página: solo las del sistema, con una genérica detrás */
-function svgFont(stack, generic) {
+function svgFont(stack: string | undefined, generic: string) {
   const fams = String(stack || "").split(",").map(x => x.trim()).filter(x => x && !/^var\(/.test(x));
   return (fams.length ? fams.join(", ") + ", " : "") + generic;
 }
 /* reparte el título en líneas (sin partir palabras) y busca el tamaño mayor con el que cabe en el ancho y en 4 líneas */
-function wrap(text, width, maxFs, minFs, em) {
+function wrap(text: string, width: number, maxFs: number, minFs: number, em: number) {
   const words = String(text).trim().split(/\s+/).filter(Boolean);
   for (let fs = maxFs; fs >= minFs; fs -= 1) {
-    const max = width / (fs * em), lines = [];
+    const max = width / (fs * em), lines: string[] = [];
     let cur = "", ok = true;
     for (const w of words) {
       if (w.length > max) { ok = false; break; }
@@ -38,7 +40,7 @@ function wrap(text, width, maxFs, minFs, em) {
   return { fs: minFs, lines: [String(text).slice(0, 40)] };
 }
 
-function shapeSVG(k, W, H, cy, fg) {
+function shapeSVG(k: number, W: number, H: number, cy: number, fg: string) {
   const s = Math.min(W * 0.62, H * 0.36), x = W / 2, sw = Math.max(4, W * 0.025);
   switch (k) {
     case 0: return '<circle cx="' + x + '" cy="' + cy + '" r="' + s / 2 + '" fill="none" stroke="' + fg + '" stroke-width="' + sw + '"/>';
@@ -50,11 +52,9 @@ function shapeSVG(k, W, H, cy, fg) {
   }
 }
 
-/**
- * @param {{kind:string, title:string, sub?:string, bg:string, fg:string, shape:number, font?:string, ini?:string}} d
- * @param {number} ratio alto / ancho
- */
-export function coverSrc(d, ratio) {
+export interface CoverData { kind: string; title: string; sub?: string; bg: string; fg: string; shape: number; font?: string; ini?: string }
+/* ratio: alto / ancho */
+export function coverSrc(d: CoverData, ratio: number): string {
   const W = 400, H = Math.round(W * Math.max(0.2, Math.min(5, ratio || 1.5)));
   let body = '<rect width="' + W + '" height="' + H + '" fill="' + d.bg + '"/>';
   if (d.kind === "iniciales") {

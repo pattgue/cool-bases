@@ -102,6 +102,9 @@ In the `.base` file, inside the view, under the `coolbases` key. Delete that key
 **Does it change my notes?**
 Only if you tick a **Checkbox** state on a card: that changes the yes/no property of that note. Nothing else is written to your notes.
 
+**What does it read?**
+The properties of your notes, through Obsidian, to draw the cards. And only for **Copy from another view** it lists the `.base` files in your vault, to find their Cool Bases views. It reads nothing else and sends nothing to the internet.
+
 **Can I use my own fonts?**
 Yes: any font installed on your computer. If Obsidian can't list them, type the font's name in the typeface search. Generated covers can only use fonts installed on the system.
 

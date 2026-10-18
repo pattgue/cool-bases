@@ -11,24 +11,29 @@
 .cb-view .cb-card { cursor: pointer; }
 .cb-view .cb-card:focus-visible { outline: none; }
 .cb-view .cb-card:focus-visible::after { content: ""; position: absolute; inset: 0; border-radius: inherit; box-shadow: inset 0 0 0 2px var(--cb-det); z-index: 6; pointer-events: none; }
+/* Lo que tiene que ganar a cualquier regla de un tema o de Obsidian lleva «:not(#cb-imp)» (un id que no tiene ningún
+   elemento): suma la especificidad de un id, así no hace falta marcar nada como importante. */
 /* los enlaces, superíndices y etiquetas toman el estilo de su dato, no el del tema (los temas les ponen peso, tamaño,
-   fuente, color, subrayado, icono…). Con !important porque un tema puede ser más específico; el hover y el subrayado
+   fuente, color, subrayado, icono…). Con :not(#cb-imp) porque un tema puede ser más específico; el hover y el subrayado
    que pida el dato van más abajo, más específicos aún. */
-.cb-view .cb-card a, .cb-view .cb-card a.internal-link, .cb-view .cb-card a.external-link, .cb-view .cb-card a.internal-link.is-unresolved,
-.cb-view .cb-card sup:not(.cb-sup), .cb-view .cb-card .tag {
-  font-weight: inherit !important; font-size: inherit !important; font-family: inherit !important; font-style: inherit !important;
-  letter-spacing: inherit !important; text-transform: inherit !important; line-height: inherit !important; color: inherit !important;
-  text-decoration: inherit !important; background-image: none !important; padding-inline-end: 0 !important; padding-right: 0 !important;
-  filter: none !important; opacity: 1 !important; text-shadow: inherit;
+.cb-view .cb-card a:not(#cb-imp), .cb-view .cb-card a.internal-link:not(#cb-imp), .cb-view .cb-card a.external-link:not(#cb-imp),
+.cb-view .cb-card a.internal-link.is-unresolved:not(#cb-imp), .cb-view .cb-card sup:not(.cb-sup):not(#cb-imp), .cb-view .cb-card .tag:not(#cb-imp) {
+  font-weight: inherit; font-size: inherit; font-family: inherit; font-style: inherit;
+  letter-spacing: inherit; text-transform: inherit; line-height: inherit; color: inherit;
+  text-decoration: inherit; background-image: none; padding-inline-end: 0; padding-right: 0;
+  filter: none; opacity: 1;
 }
+.cb-view .cb-card a, .cb-view .cb-card a.internal-link, .cb-view .cb-card a.external-link, .cb-view .cb-card a.internal-link.is-unresolved,
+.cb-view .cb-card sup:not(.cb-sup), .cb-view .cb-card .tag { text-shadow: inherit; }
 .cb-view .cb-card a { cursor: pointer; }
 /* el superíndice lleva su propio estilo en línea; lo que no fije, lo hereda (no lo pone el tema) */
 .cb-view .cb-card sup.cb-sup { font-weight: inherit; font-family: inherit; font-style: inherit; letter-spacing: inherit; text-transform: inherit;
   color: inherit; text-decoration: inherit; line-height: 0; }
-.cb-view .cb-card a.cb-a.cb-u { text-decoration: underline !important; text-underline-offset: .16em; text-decoration-thickness: .07em; }
-.cb-view .cb-grid.hv-on .cb-card a.cb-a.hv:hover { color: var(--cb-hc) !important; }
-.cb-view .cb-grid.hv-on.hv-u .cb-card a.cb-a.hv:hover { text-decoration: underline !important; }
-.cb-view .cb-card .cb-copy { text-decoration: none !important; }
+.cb-view .cb-card a.cb-a.cb-u { text-underline-offset: .16em; }
+.cb-view .cb-card a.cb-a.cb-u:not(#cb-imp) { text-decoration: underline; }
+.cb-view .cb-grid.hv-on .cb-card a.cb-a.hv:hover:not(#cb-imp) { color: var(--cb-hc); }
+.cb-view .cb-grid.hv-on.hv-u .cb-card a.cb-a.hv:hover:not(#cb-imp) { text-decoration: underline; }
+.cb-view .cb-card .cb-copy:not(#cb-imp) { text-decoration: none; }
 .cb-view .cb-head { display: block; font-size: .72em; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .2em; }
 
 /* botón «Editar tarjeta», arriba a la derecha de la vista */
@@ -38,7 +43,7 @@
 
 /* panel lateral montado sobre la vista */
 .cb-panel-host { position: relative; }
-.cb-editing { padding-right: min(400px, 50%) !important; }
+.cb-editing:not(#cb-imp) { padding-right: min(400px, 50%); }
 .cb-panel {
   position: absolute; right: 0; bottom: 0; width: 400px; max-width: 100%; z-index: 30;
   display: flex; flex-direction: column; min-height: 0;
@@ -47,14 +52,15 @@
   --cbp-acc-soft: color-mix(in srgb, var(--interactive-accent) 18%, transparent);
 }
 .cb-fp { font: 12.5px/1.4 var(--font-interface); color: var(--text-normal); --cbp-acc-soft: color-mix(in srgb, var(--interactive-accent) 18%, transparent); }
-.cb-panel [hidden], .cb-fp[hidden], .cb-fp [hidden] { display: none !important; }
+.cb-panel [hidden]:not(#cb-imp), .cb-fp[hidden]:not(#cb-imp), .cb-fp [hidden]:not(#cb-imp) { display: none; }
 /* los botones y campos de Obsidian traen su estilo: aquí se parte de cero y manda el del panel */
 .cb-panel button, .cb-fp button { box-shadow: none; height: auto; min-height: 0; margin: 0; padding: 0; border: 0; background: transparent; font: inherit; color: inherit; cursor: pointer; }
 .cb-panel input, .cb-panel select, .cb-panel textarea, .cb-fp input, .cb-fp select { box-shadow: none; margin: 0; }
 .cb-panel input[type=range]::-webkit-slider-thumb { box-shadow: none; }
 .cb-panel h2, .cb-panel h3, .cb-panel h4, .cb-fp h5 { font-family: inherit; }
 .cb-panel .ph { padding: 14px 16px 12px; }
-body.cb-scrubbing, body.cb-scrubbing * { cursor: ew-resize !important; user-select: none; }
+body.cb-scrubbing, body.cb-scrubbing * { user-select: none; }
+body.cb-scrubbing:not(#cb-imp), body.cb-scrubbing *:not(#cb-imp) { cursor: ew-resize; }
 .cb-toast-undo { margin-left: 8px; }
 
 /* la imagen generada (portada, iniciales, hueco) no lleva el efecto de las fotos (B/N, duotono…); el CSS libre sí le vale */

@@ -2,7 +2,7 @@
    {nombre} se sustituye por el valor que se pase. */
 import { getLanguage, moment } from "obsidian";
 
-const en = {
+const en: Record<string, string> = {
   "edit": "✎ Edit card",
   "p.title": "Edit card", "p.view": "View:", "p.undo": "Undo", "p.cancel": "Cancel", "p.done": "Done",
   "p.styles": "Styles", "p.presets": "Presets", "p.myStyles": "My styles", "p.saveStyle": "Save style", "p.copyFrom": "Copy from another view",
@@ -66,8 +66,7 @@ const en = {
   "q.open": "“", "q.close": "”",
 };
 
-/** @type {typeof en} */
-const es = {
+const es: Record<string, string> = {
   "edit": "✎ Editar tarjeta",
   "p.title": "Editar tarjeta", "p.view": "Vista:", "p.undo": "Deshacer", "p.cancel": "Cancelar", "p.done": "Listo",
   "p.styles": "Estilos", "p.presets": "Predeterminados", "p.myStyles": "Mis estilos", "p.saveStyle": "Guardar estilo", "p.copyFrom": "Copiar de otra vista",
@@ -132,21 +131,19 @@ const es = {
 };
 
 const STR = { en, es };
-let lang = null;
-/** @returns {"en" | "es"} */
-export function locale() {
+let lang: "en" | "es" | null = null;
+export function locale(): "en" | "es" {
   if (lang) return lang;
   let l = "";
   try { l = getLanguage(); } catch { /* Obsidian anterior a 1.8.7 */ }
   if (!l) try { l = moment.locale(); } catch { /* sin moment */ }
   return lang = /^es/i.test(String(l || "")) ? "es" : "en";
 }
-/** @param {string} key @param {Record<string, any>} [vars] */
-export function t(key, vars) {
+export function t(key: string, vars?: Record<string, string | number | null | undefined>): string {
   const s = STR[locale()][key] ?? en[key] ?? key;
-  return vars ? s.replace(/\{(\w+)\}/g, (m, k) => vars[k] != null ? String(vars[k]) : m) : s;
+  return vars ? s.replace(/\{(\w+)\}/g, (m: string, k: string) => vars[k] != null ? String(vars[k]) : m) : s;
 }
 export const numLocale = () => locale() === "es" ? "es-ES" : "en-US";
 export const decSep = () => locale() === "es" ? "," : ".";
 /* nombre que se enseña de una familia: las dos de Obsidian, traducidas */
-export const fontLabel = name => name === "Interfaz" ? t("font.interface") : name === "Texto de Obsidian" ? t("font.text") : name;
+export const fontLabel = (name: string): string => name === "Interfaz" ? t("font.interface") : name === "Texto de Obsidian" ? t("font.text") : name;

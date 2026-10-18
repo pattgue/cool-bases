@@ -102,6 +102,9 @@ En el archivo `.base`, dentro de la vista, en la clave `coolbases`. Si borras es
 **¿Cambia mis notas?**
 Solo si marcas un estado **Casilla** en una tarjeta: eso cambia la propiedad sí/no de esa nota. No escribe nada más en tus notas.
 
+**¿Qué lee?**
+Las propiedades de tus notas, a través de Obsidian, para pintar las tarjetas. Y solo para **Copiar de otra vista** lista los archivos `.base` del vault, para encontrar sus vistas Cool Bases. No lee nada más y no envía nada a internet.
+
 **¿Puedo usar mis fuentes?**
 Sí: cualquier fuente instalada en tu ordenador. Si Obsidian no puede listarlas, escribe el nombre en el buscador de tipografías. Las portadas generadas solo pueden usar fuentes instaladas en el sistema.
 

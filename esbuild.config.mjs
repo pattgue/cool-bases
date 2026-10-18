@@ -9,7 +9,7 @@ const buildCss = () => writeFileSync("styles.css", "/* Cool Bases — generado d
   CSS.map(p => `/* ---------- ${p} ---------- */\n` + readFileSync(p, "utf8").trim()).join("\n\n") + "\n");
 
 const ctx = await esbuild.context({
-  entryPoints: ["src/main.js"],
+  entryPoints: ["src/main.ts"],
   bundle: true,
   format: "cjs",
   platform: "browser",
