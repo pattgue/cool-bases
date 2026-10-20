@@ -15,6 +15,7 @@ import type { Kid, CssVal, AttrVal } from "./dom";
 import type { ColStyle, Item, ItemT, LinkedNote, Model, Rec, RecValue, Source, State } from "./types";
 
 export const NOISE = 'url("data:image/svg+xml;charset=utf-8,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="160"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2" stitchTiles="stitch"/><feColorMatrix type="saturate" values="0"/></filter><rect width="100%" height="100%" filter="url(#n)"/></svg>') + '")';
+const IMG_FILE = /\.(png|jpe?g|gif|webp|avif|svg|bmp)$/i;
 const IMG_NAMES = /^(note\.)?(cover|image|imagen|img|visual_ref|poster|portada|logo|thumbnail|thumb|banner|foto|photo|picture)$/i;
 
 /* ---------- lo que se sabe de los datos de la vista (a partir de unas cuantas notas) ---------- */
@@ -36,7 +37,9 @@ export class Facts implements ModelFacts {
     if (p.startsWith("rel:") || p.startsWith("file.")) return false;
     const f = this.flat(p);
     if (!f.length) return IMG_NAMES.test(p);
-    return f.some(v => isImageURL(v) || (/\.(png|jpe?g|gif|webp|avif|svg)\]\]$/i.test(v))) || (IMG_NAMES.test(p) && f.some(v => isURL(v) || parseLink(v)));
+    /* una URL de imagen, o una imagen del vault: [[x.jpg]], ![[x.jpg|200]] o la ruta tal cual (covers/x.jpg) */
+    const looksImg = (v: string) => { const s = clean(v).replace(/^!?\[\[|\]\]$/g, "").replace(/\|.*$/, "").trim(); return isImageURL(s) || IMG_FILE.test(s.split(/[?#]/)[0]); };
+    return IMG_NAMES.test(p) || f.some(looksImg);   // con un nombre de imagen (cover, poster…) basta
   }
   imgProps(): string[] { return (this.cache.img ??= this.props.filter(p => this.isImage(p))) as string[]; }
   urlProps(): string[] { return (this.cache.url ??= this.props.filter(p => !this.isImage(p) && !p.startsWith("rel:") && this.flat(p).some(v => isURL(v)))) as string[]; }

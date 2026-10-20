@@ -1,7 +1,7 @@
 {
 	"id": "cool-bases",
 	"name": "Cool Bases",
-	"version": "1.0.1",
+	"version": "1.0.2",
 	"minAppVersion": "1.10.0",
 	"description": "Design your own card views for Bases from a visual side panel: layout, colors, fonts, images, ratings and more.",
 	"author": "Patt",
