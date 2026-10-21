@@ -70,7 +70,7 @@ At the top: **Undo** (or Ctrl/Cmd+Z), **Cancel** (or Escape: leaves the view as 
 - **Image**: which property holds the image, its position and fit (**Fill**, **Original**, **Framed**, **Background**), effects (B&W, duotone, blur, invert), grain, brightness and a dark gradient. **No image** decides what notes without an image show: nothing, their initials, a blank space or a generated **Cover**.
 
 ### Data
-- The **title** is always there, but you can put data above it.
+- The **title** is always the first item, but you can put data above it. In **Show** you choose what it displays: the note name, the first alias, another property, or nothing at all (handy when the cover already shows the title).
 - Drag the other properties into order, remove them with ✕ and add more with **+ Add data**.
 - The chain icon between two items puts them on the **same line**, with a separator.
 - Each item has its own typeface, uppercase, color, size, weight, **Fit** (one line, shrinks to fit), space above and below, italic, underline, highlight, strikethrough, superscript, link and hover.

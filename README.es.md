@@ -70,7 +70,7 @@ Arriba: **Deshacer** (o Ctrl/Cmd+Z), **Cancelar** (o Escape: deja la vista como 
 - **Imagen**: qué propiedad tiene la imagen, su posición y su ajuste (**Encajar**, **Original**, **Enmarcada**, **Fondo**), efectos (B/N, duotono, desenfoque, invertir), grano, brillo y un degradado oscuro. **Sin imagen** decide qué enseñan las notas sin imagen: nada, sus iniciales, un hueco o una **Portada** generada.
 
 ### Datos
-- El **título** está siempre, pero puede llevar datos encima.
+- El **título** es siempre el primer dato, pero puede llevar datos encima. En **Mostrar** eliges qué enseña: el nombre de la nota, el primer alias, otra propiedad o nada (útil cuando la portada ya lleva el título).
 - Ordena las demás propiedades arrastrando, quítalas con ✕ y añade más con **+ Añadir dato**.
 - El icono de cadena entre dos datos los pone en la **misma línea**, con un separador.
 - Cada dato tiene su tipografía, mayúsculas, color, tamaño, peso, **Ajustar** (una sola línea, encoge hasta caber), separación arriba y abajo, cursiva, subrayado, resaltado, tachado, superíndice, enlace y hover.

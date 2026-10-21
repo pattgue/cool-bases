@@ -114,8 +114,16 @@ function wrapLink(s: Model, it: Item, kids: Kid, rec: Rec): Kid {
 /* «& co.»: texto tras el máximo, solo si se ha cortado la lista */
 const moreNode = (t: ItemT, cut: boolean) => cut && t.more ? h("span", "cb-more", t.more) : null;
 /* contenido de un dato en una nota (con «texto antes/después»), o null si no hay nada que enseñar */
+/* el título: el nombre de la nota, el primer alias, otra propiedad o nada; si la nota no tiene ese dato, su nombre */
+function titleValue(it: Item, rec: Rec): RecValue {
+  const from = it.t?.tsrc || "name";
+  if (from === "none") return null;
+  if (from === "name") return rec.name;
+  const first = toArr(rec.get(from === "alias" ? "note.aliases" : from)).map(v => clean(v)).find(Boolean);
+  return first || rec.name;
+}
 export function itemContent(s: Model, it: Item, rec: Rec, src: Source): DocumentFragment | null {
-  const raw: RecValue = it.kind === "title" ? rec.name : it.prop.startsWith("rel:") ? null : rec.get(it.prop);
+  const raw: RecValue = it.kind === "title" ? titleValue(it, rec) : it.prop.startsWith("rel:") ? null : rec.get(it.prop);
   const t = it.t || {} as ItemT, hide = String(it.hide || "").split(",").map(x => x.trim().toLowerCase()).filter(Boolean);
   const hidden = (v: unknown) => hide.includes(String(v).toLowerCase());
   const B = () => it.before ? h("span", "cb-bef", it.before) : null, A = () => it.after ? h("span", "cb-aft", it.after) : null;

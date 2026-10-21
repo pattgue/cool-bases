@@ -260,12 +260,14 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     const linkCtl = foot || it.type === "enlace" ? h("select", { attr: { disabled: true, "aria-label": t("c.link") } }, h("option", null, pname(it.prop))) : sel(p + ".link", linkOpts(), linkDis);
     const open = ui.open.has("adv:" + it.id);
     const tc = isT ? null : typeCtl(s, it, p, foot);
+    const titleRow = isT ? row(t("c.show"), sel(p + ".t.tsrc", [["name", t("ti.name")], ["alias", t("ti.alias")],
+      ...coverTextProps().filter(x => x !== "note.aliases").map((x): Opt => [x, pname(x)]), ["none", t("ti.none")]], false, it.t?.tsrc || "name"), p + ".t.tsrc") : null;
     const hoverDis = it.link === "none" && !foot && it.type !== "enlace";
     const adv = h("details", { cls: "adv", attr: { "data-adv": it.id, open: D(open) } }, h("summary", null, h("span", "chev"), t("c.advanced")),
       row(t("c.before"), txt(p + ".before", ""), p + ".before"),
       row(t("c.after"), txt(p + ".after", ""), p + ".after"),
       row(t("c.hide"), txt(p + ".hide", ""), p + ".hide"));
-    return [typeRow, tc, tc || typeRow ? sepH() : null,
+    return [titleRow, typeRow, tc, tc || typeRow || titleRow ? sepH() : null,
       cells([[capR(t("c.typeface"), p + ".font", s.font.family), fontBtn(p + ".font")], [t("c.upper"), sw(p + ".upper", t("c.upper"))]], "c-1-a"),
       row(t("c.color"), tok(p + ".color"), null),
       cells([[capR(t("c.size"), p + ".size", s.font.size), scrub(p + ".size", 1, 24, 0.1, "%")], [capR(t("c.weight"), p + ".weight", s.font.weight), sel(p + ".weight", weightOpts(), false, it.weight == null ? s.font.weight : it.weight)], [t("c.fit1"), sw(p + ".fit", t("c.fit1"))]], "c-1-1-a"),

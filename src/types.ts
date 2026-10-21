@@ -33,6 +33,7 @@ export interface ItemT {
   multi: string; nfmt: string; dec: number; src: string; short: boolean; tagStyle: string; max: number; tsep: string;
   yes: string; no: string; stStyle: string; show: string; fixed: string; arrow: boolean; sort: string; dir: string;
   nlay: string; head: string; headColor: string; more: string;
+  tsrc?: string;   // solo el título: "name" (nombre de la nota), "alias" (primer alias), una propiedad o "none"
 }
 /* un dato de la tarjeta o del pie. La valoración, las líneas y los estados también van en la lista, solo con id y kind (y sid) */
 export interface Item {
