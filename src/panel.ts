@@ -175,7 +175,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   /* cada palabra del interruptor cabe en su hueco (el botón no cambia de ancho): si no cabe, encoge */
   function fitToggles() {
     pb.querySelectorAll<HTMLElement>(".tgl").forEach(b => {
-      const k = b.querySelector<HTMLElement>(".tgl-k"); if (!k) return;
+      const k = b.querySelector<HTMLElement>(".tgl-k"); if (!k || !b.offsetWidth) return;
       const avail = b.clientWidth - k.offsetWidth - 12;          // menos la bola y los márgenes
       b.querySelectorAll<HTMLElement>(".tgl-w").forEach(w => {
         setVars(w, { "--cbp-tk": null });
@@ -691,6 +691,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       if (k.startsWith("it:") || k.startsWith("st:")) { renderPanel(); return; }     // los ajustes de un dato o un estado se pintan al abrirlo
       b.setAttribute("aria-expanded", String(open));
       const body = (b.closest(".blk,.sc")!.querySelector(":scope > .blk-b, :scope > .sc-b") as HTMLElement); body.hidden = !open;
+      if (open) fitToggles();                          // en un bloque cerrado no se puede medir: al abrirlo
       return;
     }
     const p = b.dataset.p;
@@ -1084,6 +1085,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   function onData() { src = view.source(); facts = view.factsFor(src); renderPanel(); }
 
   renderPanel();
+  if (document.fonts) void document.fonts.ready.then(() => fitToggles());   // Inter Tight cargada: se mide de nuevo
   view.renderCool(model);
   return { get model() { return model; }, destroy, onData, root, undo };
 }
