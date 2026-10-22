@@ -151,7 +151,12 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   function tile(path: string, label: string, o: TileOpts) {
     const v = tileVal(path);
     const icon = o.icon ? h("span", "tile-i") : null;
-    if (icon && o.icon) setIcon(icon, o.icon);
+    if (icon && o.icon) {
+      setIcon(icon, o.icon);
+      /* el recuadro del icono, justo lo que se ve de la flecha (Lucide deja mucho aire): así se centra a ojo */
+      const crop: Record<string, string> = { "move-horizontal": "0.6 6.6 22.8 10.8", "move-vertical": "6.6 0.6 10.8 22.8" };
+      icon.querySelector("svg")?.setAttribute("viewBox", crop[o.icon] || "0 0 24 24");
+    }
     const inner = [h("label", { cls: "tile-l", attr: { for: fid(path) } }, label),
       h("span", "tile-pill", h("input", { cls: "num", attr: { type: "text", id: fid(path), "data-p": path, "data-k": "scrub", "data-min": o.min, "data-max": o.max, "data-step": o.step,
         "data-rate": o.rate, "data-axis": o.axis, "data-unit": o.unit, "data-tight": "1", value: fmt(v) + o.unit, spellcheck: "false", inputmode: "decimal", disabled: D(o.dis) } })),

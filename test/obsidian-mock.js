@@ -136,6 +136,12 @@
   const moment = { locale: () => window.__lang || "en" };
   window.__obsidian = { Plugin, PluginSettingTab, Setting, BasesView, Component, Events, ListValue, NullValue, StringValue, Value, TFile, Notice, Keymap, MarkdownRenderer,
     parseYaml: s => window.jsyaml.load(s), Platform,
-    setIcon: (el, name) => { el.empty(); el.createSpan({ cls: "icon-" + name, text: /up/.test(name) ? "⌃" : /down/.test(name) ? "⌄" : "•" }); }, toValue, getLanguage, moment };
+    setIcon: (el, name) => {
+      el.empty();
+      const paths = { "move-horizontal": ["m18 8 4 4-4 4", "M2 12h20", "m6 8-4 4 4 4"], "move-vertical": ["M12 2v20", "m8 18 4 4 4-4", "m8 6 4-4 4 4"] }[name];
+      if (!paths) { el.createSpan({ cls: "icon-" + name, text: /up/.test(name) ? "⌃" : /down/.test(name) ? "⌄" : "•" }); return; }
+      const s = el.createSvg("svg", { attr: { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", width: "24", height: "24" } });
+      for (const d of paths) s.appendChild(window.createSvg("path", { attr: { d } }));
+    }, toValue, getLanguage, moment };
   window.require = name => { if (name === "obsidian") return window.__obsidian; throw new Error("módulo desconocido: " + name); };
 })();

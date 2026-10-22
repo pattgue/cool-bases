@@ -80,9 +80,13 @@ body.cb-scrubbing-y:not(#cb-imp), body.cb-scrubbing-y *:not(#cb-imp) { cursor: n
 }
 .cb-panel .sz-c3 .tile input.num { width: 66px; height: 13px; font-size: 9px; line-height: 13px; }
 .cb-panel .tile input.num:focus { cursor: text; outline: 1.5px solid var(--cool-accent); outline-offset: 0; }
-.cb-panel .tile-i { display: grid; place-items: center; height: 22px; color: var(--cool-tile-fg); }
-.cb-panel .tile-i svg { width: 26px; height: 26px; stroke-width: 2.6; }
-.cb-panel .t-h .tile-i svg { width: 22px; height: 26px; }
+.cb-panel .tile-i { display: grid; place-items: center; color: var(--cool-tile-fg); }
+.cb-panel .tile-i svg { display: block; stroke-width: 2.6; }
+.cb-panel .t-w .tile-i svg { width: 26px; height: 12.3px; }
+.cb-panel .t-h .tile-i svg { width: 12.3px; height: 26px; }
+/* WIDTH y HEIGHT: etiqueta, valor e icono con el mismo aire arriba, abajo y entre ellos (la etiqueta mide lo que sus mayúsculas) */
+.cb-panel .sz-c1 .tile { gap: 9.5px; padding: 9.5px 6px; }
+.cb-panel .tile-l { text-box: trim-both cap alphabetic; }
 .cb-panel .tile.dis { opacity: .45; cursor: default; }
 /* PADDING: la guía es un recuadro de fondo, separado del borde según el valor (0 % = pegado al borde). Va detrás de la
    etiqueta y del valor, así el tile nunca cambia de tamaño. */
