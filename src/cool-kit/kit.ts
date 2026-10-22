@@ -42,7 +42,7 @@ interface Registry {
   tools: Record<string, CoolTool>;
   leader: string | null;
   settings: BarSettings | null;
-  shown: boolean;                                   // modo «escondida»: se ve tras el comando
+  toggled: boolean;                                 // el comando «Mostrar u ocultar»: enseña la escondida, esconde las demás
   refresh(): void;
 }
 
@@ -57,11 +57,11 @@ function normSettings(s: Partial<BarSettings> | null | undefined): BarSettings {
 
 /* ---------- registro compartido ---------- */
 type KitGlobal = { __coolKit?: Registry };
-function registry(): Registry {
+export function registry(): Registry {
   const g = window as unknown as KitGlobal;
   if (!g.__coolKit) {
     const reg: Registry = {
-      protocol: PROTOCOL, kits: {}, tools: {}, leader: null, settings: null, shown: false,
+      protocol: PROTOCOL, kits: {}, tools: {}, leader: null, settings: null, toggled: false,
       refresh: () => { const k = reg.leader ? reg.kits[reg.leader] : null; if (k) k.refresh(); },
     };
     g.__coolKit = reg;
@@ -78,10 +78,17 @@ function elect(reg: Registry) {
 }
 
 /* los ajustes del dispositivo (el teléfono tiene los suyos; la tablet usa los del ordenador) */
-export function devicePrefs(): BarPrefs {
+export type Device = "desktop" | "phone";
+export const thisDevice = (): Device => Platform.isPhone ? "phone" : "desktop";
+export function devicePrefs(device: Device = thisDevice()): BarPrefs {
   const reg = registry();
   reg.settings ??= defaultSettings();
-  return Platform.isPhone ? reg.settings.phone : reg.settings.desktop;
+  return reg.settings[device];
+}
+/* las herramientas en el orden de la barra (el del usuario; si no, el de cada plugin) */
+export function sortedTools(prefs: BarPrefs): CoolTool[] {
+  return Object.values(registry().tools)
+    .sort((a, b) => (prefs.tools[a.id]?.order ?? a.order ?? 0) - (prefs.tools[b.id]?.order ?? b.order ?? 0) || a.id.localeCompare(b.id));
 }
 /* guarda los ajustes en todos los plugins Cool */
 export async function saveBarSettings(): Promise<void> {
@@ -123,6 +130,7 @@ export function joinCoolKit(plugin: Plugin, tool: CoolTool): CoolKitHandle {
    (.view-header) y el contenido (.view-content): queda fuera de lo que hace scroll. Si no hay .view-content, al principio
    o al final del contenedor. No es API oficial de Obsidian: solo se usan esas dos clases. */
 type State = "active" | "available" | "locked";
+const COMMAND = "toggle-cool-bar";
 
 class BarPainter {
   plugin: Plugin;
@@ -139,10 +147,13 @@ class BarPainter {
     this.comp.registerEvent(ws.on("layout-change", () => this.refresh()));
     this.comp.registerEvent(ws.on("active-leaf-change", () => this.refresh()));
     this.comp.registerEvent(ws.on("file-open", () => this.refresh()));
+    /* el comando lo registra solo el líder (así no sale repetido en la paleta, uno por plugin Cool) */
+    this.plugin.addCommand({ id: COMMAND, name: kt("cmd.toggle"), callback: () => { const reg = registry(); reg.toggled = !reg.toggled; this.refresh(); } });
     this.paint();
   }
   stop() {
     window.cancelAnimationFrame(this.raf);
+    try { this.plugin.removeCommand(COMMAND); } catch { /* ya no estaba */ }
     this.comp?.unload();
     this.comp = null;
     for (const el of this.bars.values()) { el.parentElement?.removeClass("cool-has-bar"); el.remove(); }
@@ -158,8 +169,7 @@ class BarPainter {
     if (!this.comp) return;
     const reg = registry(), prefs = devicePrefs(), ws = this.plugin.app.workspace;
     const vis = (t: CoolTool): ToolVisibility => prefs.tools[t.id]?.visibility || "always";
-    const tools = Object.values(reg.tools).filter(t => vis(t) !== "never")
-      .sort((a, b) => (prefs.tools[a.id]?.order ?? a.order ?? 0) - (prefs.tools[b.id]?.order ?? b.order ?? 0) || a.id.localeCompare(b.id));
+    const tools = sortedTools(prefs).filter(t => vis(t) !== "never");
     const seen = new Set<WorkspaceLeaf>();
     ws.iterateAllLeaves(leaf => {
       const root = typeof leaf.getRoot === "function" ? leaf.getRoot() : null;
@@ -170,7 +180,7 @@ class BarPainter {
       const states = tools.map(t => ({ t, s: stateOf(t) }))
         .filter(x => vis(x.t) === "always" || x.s !== "locked");
       const applies = states.some(x => x.s !== "locked");
-      const show = states.length > 0 && (prefs.mode === "fixed" || (prefs.mode === "context" && applies) || (prefs.mode === "hidden" && reg.shown));
+      const show = states.length > 0 && (prefs.mode === "hidden" ? reg.toggled : !reg.toggled && (prefs.mode === "fixed" || applies));
       if (!show) return;
       seen.add(leaf);
       let bar = this.bars.get(leaf);

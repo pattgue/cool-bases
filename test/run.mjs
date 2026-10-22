@@ -118,6 +118,61 @@ for (const [hash, name] of [["views", "views-dark"], ["views|light", "views-ligh
   await p.close();
 }
 
+/* ---------- 1c. ajustes de la Cool Bar ---------- */
+for (const lang of ["en", "es"]) {
+  const { p, errs } = await page("views|demo" + (lang === "es" ? "|es" : ""), { width: 1300, height: 900 });
+  errors.push(...errs);
+  await p.evaluate(() => { const tab = window.__settingTabs["cool-bases"]; tab.display(); tab.containerEl.id = "settings"; document.body.prepend(tab.containerEl); });
+  const names = await p.$$eval("#settings .setting-item-name", els => els.map(e => e.textContent));
+  if (lang === "es") {
+    ok("settings in Spanish", ["Ubicación", "Alineación", "Modo", "Plegada", "Botones"].every(x => names.includes(x)), names.join(", "));
+    await p.close(); continue;
+  }
+  await p.locator("#settings").screenshot({ path: join(out, "settings.png") });
+  ok("settings: Cool Bar section with every option", ["Location", "Alignment", "Mode", "Collapsed", "Buttons", "Cool Bases", "cool markdown"].every(x => names.includes(x)), names.join(", "));
+  /* cambia un desplegable por el nombre de su ajuste (n: el n-ésimo con ese nombre) */
+  const setSel = (name, v) => p.evaluate(([name, v]) => { const it = [...document.querySelectorAll("#settings .setting-item")].find(x => x.querySelector(".setting-item-name").textContent === name);
+    const sel = it.querySelector("select"); sel.value = v; sel.dispatchEvent(new Event("change")); }, [name, v]);
+  const wait = () => p.waitForTimeout(80);
+  const where = () => p.evaluate(() => window.__leaves.map(l => { const h = l.view.containerEl, b = h.querySelector(":scope > .cool-bar"); return b ? (b === h.firstElementChild ? "first" : b === h.lastElementChild ? "last" : "mid") + ":" + b.getAttribute("data-loc") + ":" + b.getAttribute("data-align") : "none"; }));
+  await setSel("Location", "bottom"); await wait();
+  const w1 = await where();
+  ok("settings: Location bottom puts the bar at the end of each tab (note: after its content)", w1.every(x => x.startsWith("last:bottom")), w1.join(" "));
+  await setSel("Alignment", "left"); await wait();
+  ok("settings: Alignment left", (await where()).every(x => x.endsWith(":left")));
+  await setSel("Location", "float"); await wait();
+  ok("settings: Floating", await p.evaluate(() => getComputedStyle(document.querySelector(".cool-bar")).position === "absolute"));
+  await setSel("Location", "top"); await setSel("Alignment", "right"); await wait();
+  await setSel("Mode", "context"); await wait();
+  const w2 = await where();
+  ok("settings: Contextual hides the bar where nothing applies (the note)", w2[4] === "none" && w2.slice(0, 4).every(x => x !== "none"), w2.join(" "));
+  await setSel("Mode", "hidden"); await wait();
+  ok("settings: Hidden mode shows no bar", (await where()).every(x => x === "none"));
+  await p.evaluate(() => window.__commands["cool-bases:toggle-cool-bar"].callback()); await wait();
+  ok("command «Show or hide the Cool Bar» shows the hidden bar", (await where()).every(x => x !== "none"));
+  await p.evaluate(() => window.__commands["cool-bases:toggle-cool-bar"].callback()); await wait();
+  ok("…and hides it again", (await where()).every(x => x === "none"));
+  await setSel("Mode", "fixed"); await wait();
+  /* botones: visibilidad y orden */
+  await setSel("cool trip", "never"); await wait();
+  const order = () => p.evaluate(() => [...document.querySelector(".cool-bar").querySelectorAll(".cool-tool")].map(b => b.getAttribute("data-tool")).join(" "));
+  ok("settings: a button set to Never disappears", !(await order()).includes("cool-trip"), await order());
+  await setSel("cool markdown", "applies"); await wait();
+  ok("settings: «Only when it applies» hides a locked button", !(await order()).includes("cool-markdown"), await order());
+  await p.evaluate(() => { const it = [...document.querySelectorAll("#settings .setting-item")].find(x => x.querySelector(".setting-item-name").textContent === "Cool Bases"); it.querySelector('[data-icon="arrow-up"]').click(); });
+  await wait();
+  ok("settings: move Cool Bases up", (await order()) === "cool-bases cool-properties", await order());
+  /* móvil: sus propios ajustes */
+  await p.click('#settings [data-device="phone"]');
+  await setSel("Location", "bottom"); await wait();
+  ok("settings: the Phone tab edits the phone settings, not the desktop ones", await p.evaluate(() => { const c = window.__pluginData.coolBar; return c.phone.location === "bottom" && c.desktop.location === "top"; }) && (await where()).every(x => x.includes(":top:")));
+  await p.click('#settings [data-device="desktop"]');
+  await p.evaluate(() => { const it = [...document.querySelectorAll("#settings .setting-item")].find(x => x.querySelector(".setting-item-name").textContent === "Collapsed"); const c = it.querySelector("input"); c.checked = true; c.dispatchEvent(new Event("change")); });
+  await wait();
+  ok("settings: Collapsed", await p.evaluate(() => document.querySelector(".cool-bar").classList.contains("is-collapsed")));
+  await p.close();
+}
+
 /* ---------- 2. el panel, en inglés y en español ---------- */
 const EN = /\b(Card|Data|Decorations|Size|Colors|Font|Image|Footer|Rating|States|Lines|Hover|Custom CSS|Presets|Save style|Done|Undo|Cancel)\b/;
 const ES = /\b(Tarjeta|Datos|Decoraciones|Tamaño|Colores|Fuente|Imagen|Pie|Valoración|Estados|Líneas|CSS libre|Predeterminados|Guardar estilo|Listo|Deshacer|Cancelar)\b/;

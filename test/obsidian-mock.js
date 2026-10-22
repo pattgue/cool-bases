@@ -82,6 +82,43 @@
     async loadData() { return window[this.dataKey] || null; }
     async saveData(d) { window[this.dataKey] = JSON.parse(JSON.stringify(d)); }
     addCommand(c) { (window.__commands ||= {})[this.manifest.id + ":" + c.id] = c; return c; }
+    removeCommand(id) { delete (window.__commands || {})[this.manifest.id + ":" + id]; }
+    addSettingTab(tab) { (window.__settingTabs ||= {})[this.manifest.id] = tab; }
+  }
+  /* ajustes: lo justo de PluginSettingTab y Setting (desplegables, interruptores y botones pequeños) */
+  class PluginSettingTab { constructor(app, plugin) { this.app = app; this.plugin = plugin; this.containerEl = document.createElement("div"); this.containerEl.className = "vertical-tab-content"; } }
+  class Setting {
+    constructor(el) {
+      this.settingEl = el.createDiv({ cls: "setting-item" });
+      const info = this.settingEl.createDiv({ cls: "setting-item-info" });
+      this.nameEl = info.createDiv({ cls: "setting-item-name" }); this.descEl = info.createDiv({ cls: "setting-item-description" });
+      this.controlEl = this.settingEl.createDiv({ cls: "setting-item-control" });
+    }
+    setName(t) { this.nameEl.textContent = t; return this; }
+    setDesc(t) { this.descEl.textContent = t; return this; }
+    setClass(c) { this.settingEl.addClass(c); return this; }
+    setHeading() { this.settingEl.addClass("setting-item-heading"); return this; }
+    addDropdown(cb) {
+      const sel = this.controlEl.createEl("select", { cls: "dropdown" }); let fn = null;
+      sel.addEventListener("change", () => fn && fn(sel.value));
+      const dd = { selectEl: sel, addOption: (v, t) => { sel.createEl("option", { text: t, attr: { value: v } }); return dd; },
+        addOptions: o => { for (const [v, t] of Object.entries(o)) dd.addOption(v, t); return dd; },
+        setValue: v => { sel.value = v; return dd; }, onChange: f => { fn = f; return dd; } };
+      cb(dd); return this;
+    }
+    addToggle(cb) {
+      const el = this.controlEl.createEl("input", { cls: "checkbox-container", attr: { type: "checkbox" } }); let fn = null;
+      el.addEventListener("change", () => fn && fn(el.checked));
+      const tg = { toggleEl: el, setValue: v => { el.checked = !!v; return tg; }, onChange: f => { fn = f; return tg; } };
+      cb(tg); return this;
+    }
+    addExtraButton(cb) {
+      const el = this.controlEl.createEl("button", { cls: "clickable-icon extra-setting-button" }); let fn = null;
+      el.addEventListener("click", () => fn && !el.disabled && fn());
+      const b = { extraSettingsEl: el, setIcon: i => { el.setAttribute("data-icon", i); return b; }, setTooltip: t => { el.setAttribute("aria-label", t); return b; },
+        setDisabled: d => { el.disabled = !!d; return b; }, onClick: f => { fn = f; return b; } };
+      cb(b); return this;
+    }
   }
   class Notice {
     constructor(msg, ms) {
@@ -97,7 +134,7 @@
   const getLanguage = () => window.__lang || "en";
   const Platform = { get isPhone() { return !!window.__phone; }, get isMobile() { return !!window.__phone; }, isDesktop: true };
   const moment = { locale: () => window.__lang || "en" };
-  window.__obsidian = { Plugin, BasesView, Component, Events, ListValue, NullValue, StringValue, Value, TFile, Notice, Keymap, MarkdownRenderer,
+  window.__obsidian = { Plugin, PluginSettingTab, Setting, BasesView, Component, Events, ListValue, NullValue, StringValue, Value, TFile, Notice, Keymap, MarkdownRenderer,
     parseYaml: s => window.jsyaml.load(s), Platform,
     setIcon: (el, name) => { el.empty(); el.createSpan({ cls: "icon-" + name, text: /up/.test(name) ? "⌃" : /down/.test(name) ? "⌄" : "•" }); }, toValue, getLanguage, moment };
   window.require = name => { if (name === "obsidian") return window.__obsidian; throw new Error("módulo desconocido: " + name); };

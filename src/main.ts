@@ -5,6 +5,7 @@ import { CoolBasesView, VIEW, CLOSE_PANELS } from "./view";
 import { clone } from "./util";
 import { t } from "./i18n";
 import { joinCoolKit } from "./cool-kit/kit";
+import { CoolBasesSettingTab } from "./settings";
 import type { BarSettings, CoolKitHandle } from "./cool-kit/kit";
 import type { Style } from "./types";
 
@@ -37,6 +38,7 @@ export default class CoolBasesPlugin extends Plugin {
       saveShared: async data => { this.store.coolBar = data; await this.saveData(this.store); },
       loadShared: async () => this.store.coolBar,
     });
+    this.addSettingTab(new CoolBasesSettingTab(this.app, this));
     this.addCommand({
       id: "edit-card",
       name: t("cmd.edit"),
