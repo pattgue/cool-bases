@@ -84,12 +84,14 @@ body.cb-scrubbing-y:not(#cb-imp), body.cb-scrubbing-y *:not(#cb-imp) { cursor: n
 .cb-panel .tile-i svg { width: 26px; height: 26px; stroke-width: 2.6; }
 .cb-panel .t-h .tile-i svg { width: 22px; height: 26px; }
 .cb-panel .tile.dis { opacity: .45; cursor: default; }
-/* PADDING: la guía es un recuadro dentro del tile, separado del borde según el valor */
-.cb-panel .t-pad { padding: var(--cbp-inset, 7px); }
+/* PADDING: la guía es un recuadro de fondo, separado del borde según el valor (0 % = pegado al borde). Va detrás de la
+   etiqueta y del valor, así el tile nunca cambia de tamaño. */
+.cb-panel .t-pad { position: relative; }
 .cb-panel .tile-guide {
-  flex: 1; align-self: stretch; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
-  background: var(--cool-guide); border-radius: var(--r-in);
+  position: absolute; inset: var(--cbp-inset, 6px); pointer-events: none;
+  background: var(--cool-guide); border-radius: max(var(--r-in), calc(var(--r-el) - var(--cbp-inset, 6px)));
 }
+.cb-panel .t-pad > .tile-l, .cb-panel .t-pad > .tile-pill { position: relative; }
 /* FILL ↔ FIXED y GRADIENT ↔ SOLID: interruptores con palabra, de ancho fijo. Encendido: acento, la palabra a la izquierda
    y la bola a la derecha; apagado: gris, la bola a la izquierda y la otra palabra a la derecha. La bola se desliza. */
 .cb-panel .tgl {
@@ -100,6 +102,7 @@ body.cb-scrubbing-y:not(#cb-imp), body.cb-scrubbing-y *:not(#cb-imp) { cursor: n
 .cb-panel .tgl[aria-checked="true"] { background: var(--cool-accent); color: var(--cool-on-accent); }
 .cb-panel .tgl-w {
   position: absolute; top: 50%; white-space: nowrap; font-size: calc(var(--cbp-fs) * var(--cbp-tk, 1));
+  text-box: trim-both cap alphabetic;               /* centrado por la altura de las mayúsculas, no por la de la línea */
   transition: opacity .18s ease, transform .3s cubic-bezier(.3, 1.3, .5, 1);
 }
 .cb-panel .tgl .w-on { left: var(--cbp-tp); transform: translate(0, -50%); }

@@ -157,12 +157,12 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
         "data-rate": o.rate, "data-axis": o.axis, "data-unit": o.unit, "data-tight": "1", value: fmt(v) + o.unit, spellcheck: "false", inputmode: "decimal", disabled: D(o.dis) } })),
       icon];
     return h("div", { cls: "tile" + (o.cls ? " " + o.cls : "") + (o.dis ? " dis" : ""), attr: { "data-tile": path }, css: tileVars(path, v) },
-      path === "card.pad" ? h("div", "tile-guide", inner) : inner);
+      path === "card.pad" ? [h("span", { cls: "tile-guide", attr: { "aria-hidden": "true" } }), inner] : inner);
   }
   /* RADIUS enseña su esquina y PADDING su guía, según el valor (con un tope) */
   function tileVars(path: string, v: number): Record<string, string> | undefined {
     if (path === "card.radius") return { "--cbp-r": Math.min(v, 18) + "px" };
-    if (path === "card.pad") return { "--cbp-inset": Math.min(3 + v * 0.8, 13) + "px" };
+    if (path === "card.pad") return { "--cbp-inset": (12 * Math.sqrt(Math.max(0, v) / 14)).toFixed(1) + "px" };   // 0 % = sin margen; 5 % ≈ 7 px; 14 % = 12 px
     return undefined;
   }
   /* interruptor con palabra: encendido, en acento y con la bola a la derecha; apagado, en gris, con la otra palabra */
