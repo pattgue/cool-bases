@@ -38,7 +38,7 @@
 
 /* panel lateral montado sobre la vista */
 .cb-panel-host { position: relative; }
-.cb-editing:not(#cb-imp) { padding-right: calc(min(var(--cbp-w, 400px), 50%) + var(--cbp-right, 0px)); }
+.cb-editing:not(#cb-imp) { padding-right: calc(min(389px, 50%) + var(--cbp-right, 0px)); }
 .cb-panel {
   position: absolute; right: var(--cbp-right, 0); bottom: var(--cbp-bottom, 0); width: 400px; max-width: 100%; z-index: 30;
   display: flex; flex-direction: column; min-height: 0;

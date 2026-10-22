@@ -166,10 +166,23 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     return undefined;
   }
   /* interruptor con palabra: encendido, en acento y con la bola a la derecha; apagado, en gris, con la otra palabra */
+  let animTgl: string | null = null;                 // el interruptor recién pulsado: se pinta en su estado anterior y se anima al nuevo
   function toggle(path: string, on: string, off: string, label: string, cls: string) {
-    const v = !!getP(path);
-    return h("button", { cls: "tgl " + cls, attr: { type: "button", role: "switch", id: fid(path), "data-p": path, "data-k": "bool", "aria-checked": String(v), "aria-label": label } },
-      h("span", "tgl-w", v ? on : off), h("span", "tgl-k"));
+    const v = !!getP(path), id = fid(path), shown = animTgl === id ? !v : v;
+    return h("button", { cls: "tgl " + cls, attr: { type: "button", role: "switch", id, "data-p": path, "data-k": "bool", "aria-checked": String(shown), "data-v": String(v), "aria-label": label } },
+      h("span", "tgl-w w-on", on), h("span", "tgl-w w-off", off), h("span", "tgl-k"));
+  }
+  /* cada palabra del interruptor cabe en su hueco (el botón no cambia de ancho): si no cabe, encoge */
+  function fitToggles() {
+    pb.querySelectorAll<HTMLElement>(".tgl").forEach(b => {
+      const k = b.querySelector<HTMLElement>(".tgl-k"); if (!k) return;
+      const avail = b.clientWidth - k.offsetWidth - 12;          // menos la bola y los márgenes
+      b.querySelectorAll<HTMLElement>(".tgl-w").forEach(w => {
+        setVars(w, { "--cbp-tk": null });
+        const need = w.scrollWidth;
+        if (avail > 0 && need > avail) setVars(w, { "--cbp-tk": (avail / need).toFixed(3) });
+      });
+    });
   }
   /* el valor de un tile; HEIGHT con una proporción enseña el alto calculado */
   function tileVal(path: string): number {
@@ -186,6 +199,13 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     return h("div", { cls: "gapc", attr: { role: "slider", tabindex: 0, id: fid("card.gap"), "data-gap": "card.gap", "aria-label": t("c.gap"), "aria-valuemin": 0, "aria-valuemax": GAP_MAX,
       "aria-valuenow": g, "aria-valuetext": g + " px" }, css: { "--cbp-gap": (g * GAP_K) + "px" } },
       L("G"), M(true), L("A"), M(), L("P"));
+  }
+  function syncTiles() {
+    pb.querySelectorAll<HTMLElement>("[data-tile]").forEach(tl => {
+      const p = tl.dataset.tile!, v = tileVal(p), inp = tl.querySelector<HTMLInputElement>("input.num");
+      if (inp && document.activeElement !== inp) inp.value = numTxt(inp, v);
+      const tv = tileVars(p, v); if (tv) setVars(tl, tv);
+    });
   }
   function syncGap() {
     const el = pb.querySelector<HTMLElement>(".gapc"); if (!el) return;
@@ -555,6 +575,11 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     const st = pb.scrollTop, s = S(), act = document.activeElement, aid = act && root.contains(act) && act.id;
     pb.empty();
     pb.append(tarjetaNode(s), datosNode(s), decoNode(s), cssNode(s));
+    fitToggles();
+    if (animTgl) {
+      const b = byId(animTgl); animTgl = null;
+      if (b) window.requestAnimationFrame(() => window.requestAnimationFrame(() => b.setAttribute("aria-checked", b.dataset.v!)));
+    }
     pb.scrollTop = st;
     if (aid) { const el = byId(aid); if (el && el !== document.activeElement) el.focus({ preventScroll: true }); }
     updateSums();
@@ -575,12 +600,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     setSum("css", s.css.trim() ? t("sum.cssLines", { n: s.css.trim().split("\n").length }) : "");
     pb.querySelectorAll<HTMLElement>("[data-fill]").forEach(f => { setVars(f, { "--cbp-fill": tokCol(getP(f.dataset.fill!), s) }); });
     pb.querySelectorAll<HTMLInputElement>("input.hex").forEach(hx => { if (document.activeElement !== hx) hx.value = getP(hx.dataset.p!) as string; });
-    pb.querySelectorAll<HTMLElement>("[data-tile]").forEach(tl => {
-      const p = tl.dataset.tile!, v = tileVal(p), inp = tl.querySelector<HTMLInputElement>("input.num");
-      if (inp && document.activeElement !== inp) inp.value = numTxt(inp, v);
-      const tv = tileVars(p, v); if (tv) setVars(tl, tv);
-    });
-    syncMini();
+    syncTiles(); syncMini();
     s.items.concat(s.fitems).forEach(it => { if (textish(it)) setSum("it:" + it.id, sumText(sample(s, it))); });
     undoBtn.disabled = !hist.length;
   }
@@ -589,8 +609,13 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   let liveRaf = 0;
   function commitLive(path: string, val: unknown) {
     if (!LIVE.has(path)) { commit(path, val); return; }
-    pushFor(path); setP(path, val); updateSums();
-    window.cancelAnimationFrame(liveRaf); liveRaf = window.requestAnimationFrame(() => view.restyle(model));
+    pushFor(path); setP(path, val);
+    window.cancelAnimationFrame(liveRaf); liveRaf = window.requestAnimationFrame(() => { view.restyle(model); liveSums(); });
+  }
+  function liveSums() {
+    const c = S().card;
+    setSum("tamano", c.w + " px · " + (FMT_L[c.fmt] || t("fmt.free")).toUpperCase());
+    syncTiles(); syncMini(); undoBtn.disabled = !hist.length;
   }
   function commit(path: string, val: unknown, re?: boolean) { pushFor(path); const old = getP(path); setP(path, val); afterChange(path, old); preview(); re ? renderPanel() : updateSums(); }
   function afterChange(path: string, old?: unknown) {
@@ -673,6 +698,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       if (k === "seg") { const v = b.dataset.vt === "number" ? +b.dataset.v! : b.dataset.v; commit(p, v, true); }
       else if (k === "bool") {
         const v = !getP(p);
+        if (b.classList.contains("tgl")) animTgl = b.id;
         if (p === "foot.on" && v && !S().foot.filled) { const s = S(); snapshot(); lastPath = ""; fillFoot(s); s.foot.on = true; ui.open.add("pie"); preview(); renderPanel(); return; }
         if (/^(foot|rate|states|lines|hover)\.on$/.test(p) && v) ui.open.add(({ foot: "pie", rate: "valoracion", states: "estados", lines: "lineas", hover: "hover" } as Record<string, string>)[p.split(".")[0]]);
         if (/\.sup$/.test(p) && !v) setP(p.replace(/sup$/, "join"), false);
@@ -715,7 +741,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     const start = (getP(p) as number | null) ?? s.font.size, step = +el.dataset.step!, rate = +(el.dataset.rate || 0) || step / 3;
     let moved = false; scrubMoved = false;
     const mv = (e: PointerEvent) => {
-      const d = y ? sy - e.clientY : e.clientX - sx;
+      const d = y ? e.clientY - sy : e.clientX - sx;
       if (!moved && Math.abs(d) < 4) return;
       if (!moved) { moved = true; scrubMoved = true; document.body.addClass(y ? "cb-scrubbing-y" : "cb-scrubbing"); }
       e.preventDefault();
