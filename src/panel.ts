@@ -172,22 +172,29 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   }
   /* interruptor con palabra: encendido, en acento y con la bola a la derecha; apagado, en gris, con la otra palabra */
   let animTgl: string | null = null;                 // el interruptor recién pulsado: se pinta en su estado anterior y se anima al nuevo
-  function toggle(path: string, on: string, off: string, label: string, cls: string) {
+  function toggle(path: string, on: string, off: string, label: string, cls: string, dis?: unknown) {
     const v = !!getP(path), id = fid(path), shown = animTgl === id ? !v : v;
-    return h("button", { cls: "tgl " + cls, attr: { type: "button", role: "switch", id, "data-p": path, "data-k": "bool", "aria-checked": String(shown), "data-v": String(v), "aria-label": label } },
+    return h("button", { cls: "tgl " + cls, attr: { type: "button", role: "switch", id, "data-p": path, "data-k": "bool", "aria-checked": String(shown), "data-v": String(v), "aria-label": label, disabled: D(dis) } },
       h("span", "tgl-w w-on", on), h("span", "tgl-w w-off", off), h("span", "tgl-k"));
   }
   /* cada palabra del interruptor cabe en su hueco (el botón no cambia de ancho): si no cabe, encoge */
-  function fitToggles() {
+  /* los textos que no caben (palabras de los interruptores, etiquetas de los tiles) encogen; las cajas no cambian */
+  function fitEl(w: HTMLElement, avail: number, ref: HTMLElement) {
+    setVars(w, { "--cbp-tk": null });
+    const rg = document.createRange(); rg.selectNodeContents(w);
+    const need = rg.getBoundingClientRect().width / (ref.getBoundingClientRect().width / ref.offsetWidth || 1);   // el ancho del texto (sin el zoom)
+    if (avail > 0 && need > avail) setVars(w, { "--cbp-tk": (avail / need).toFixed(3) });
+  }
+  function fitText() {
     pb.querySelectorAll<HTMLElement>(".tgl").forEach(b => {
       const k = b.querySelector<HTMLElement>(".tgl-k"); if (!k || !b.offsetWidth) return;
-      const avail = b.clientWidth - k.offsetWidth - 12;          // menos la bola y los márgenes
-      b.querySelectorAll<HTMLElement>(".tgl-w").forEach(w => {
-        setVars(w, { "--cbp-tk": null });
-        const rg = document.createRange(); rg.selectNodeContents(w);
-        const need = rg.getBoundingClientRect().width / (b.getBoundingClientRect().width / b.offsetWidth || 1);   // el ancho del texto (sin el zoom)
-        if (avail > 0 && need > avail) setVars(w, { "--cbp-tk": (avail / need).toFixed(3) });
-      });
+      const cs = getComputedStyle(b), kp = parseFloat(cs.getPropertyValue("--cbp-kp")) || 0, tp = parseFloat(cs.getPropertyValue("--cbp-tp")) || 0;
+      const avail = b.clientWidth - k.offsetWidth - kp - tp - 5;          // menos la bola, sus márgenes y un respiro
+      b.querySelectorAll<HTMLElement>(".tgl-w").forEach(w => fitEl(w, avail, b));
+    });
+    pb.querySelectorAll<HTMLElement>(".tile:not(.t-wide) > .tile-l").forEach(l => {
+      const tl = l.parentElement!; if (!tl.offsetWidth) return;
+      fitEl(l, tl.clientWidth - 10, tl);
     });
   }
   /* el valor de un tile; HEIGHT con una proporción enseña el alto calculado */
@@ -233,6 +240,32 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     const s = S(), col = s.col;
     setVars(el, { "--mc-bg": col.grad ? "linear-gradient(" + col.angle + "deg," + col.bg + "," + col.bg2 + ")" : col.bg, "--mc-text": col.text, "--mc-bgc": col.bg, "--mc-det": col.det,
       "--mc-bw": Math.min(col.bw, 4) + "px", "--mc-bc": col.bc, "--mc-r": Math.min(s.card.radius, 14) + "px", "--mc-ff": fontStack(s.font.family) });
+  }
+  /* tile ancho: la etiqueta a la izquierda y, en la pastilla, un desplegable o el botón de la fuente */
+  function wide(label: string, ctl: Kid, path: string) {
+    return h("div", "tile t-wide", h("label", { cls: "tile-l", attr: { for: fid(path) } }, label), h("span", "tile-pill", ctl));
+  }
+  /* opciones como chips (2, 3 o 4 por fila), con su título pequeño encima; con icono, la palabra va de etiqueta accesible */
+  function chips(path: string, label: string, opts: [string, string, string?][], cols: number, dis?: unknown, extra?: Kid) {
+    const v = getP(path);
+    return h("div", "chipg" + (dis ? " dis" : ""), h("span", "chipg-l", label),
+      h("div", { cls: "chipg-b c" + cols, attr: { role: "group", "aria-label": label } },
+        opts.map(([val, l, ic]) => {
+          const b = h("button", { cls: ic ? "ic" : undefined, attr: { type: "button", id: fid(path + "=" + val), "data-p": path, "data-k": "seg", "data-v": val, "data-vt": "string",
+            "aria-pressed": String(v === val), "aria-label": ic ? l : null, title: ic ? l : null, disabled: D(dis) } }, ic ? null : l);
+          if (ic) setIcon(b, ic);
+          return b;
+        }), extra));
+  }
+  /* tile con iconos en la pastilla (ALIGN) */
+  function iconTile(path: string, label: string, opts: [string, string, string][]) {
+    const v = getP(path);
+    return h("div", "tile t-icons", h("span", "tile-l", label),
+      h("span", { cls: "tile-pill icons", attr: { role: "group", "aria-label": label } }, opts.map(([val, ic, l]) => {
+        const b = h("button", { attr: { type: "button", id: fid(path + "=" + val), "data-p": path, "data-k": "seg", "data-v": val, "data-vt": "string", "aria-pressed": String(v === val), "aria-label": l, title: l } });
+        setIcon(b, ic);
+        return b;
+      })));
   }
   /* una fila de COLORS: etiqueta (o un interruptor) y su muestra */
   function crow(label: Kid, ctl: Kid, chip?: boolean) { return h("div", "crow", chip ? label : h("span", "crow-l", label), h("div", "crow-c", ctl)); }
@@ -283,23 +316,29 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
           crow(t("c.border"), [h("span", "numw bw", h("input", { cls: "num pill-in", attr: { type: "text", id: fid("col.bw"), "data-p": "col.bw", "data-k": "scrub", "data-min": 0, "data-max": 20,
             "data-step": 1, "data-rate": 0.25, "data-unit": "px", "data-tight": "1", value: fmt(col.bw) + "px", spellcheck: "false", inputmode: "decimal", "aria-label": t("c.border") } })),
             swatch("col.bc", col.bw === 0)])))),
-      block("fuente", t("b.font"), [
-        row(t("c.typeface"), fontBtn("font.family"), "font.family"),
-        cells([[t("c.weight"), sel("font.weight", weightOpts())], [t("c.size"), slider("font.size", 2, 8, 0.1, "%")]], "c-1-13"),
-        row(t("c.align"), seg("font.align", [["left", t("al.left")], ["center", t("al.center")], ["right", t("al.right")]], t("c.align")))]),
-      block("imagen", t("b.image"), [
-        row(t("c.source"), sel("img.src", [...ip.map((p): Opt => [p, pname(p)]), ["none", t("img.none")]], false, sp || "none"), "img.src"),
-        row(t("c.position"), seg("img.pos", [["top", t("pos.top")], ["bottom", t("pos.bottom")], ["left", t("pos.left")], ["right", t("pos.right")]], t("c.position"), noImg || fondo), null, { dis: noImg || fondo }),
-        row(t("c.fit"), seg("img.fit", [["encajar", t("fit.encajar")], ["original", t("fit.original")], ["enmarcada", t("fit.enmarcada")], ["fondo", t("fit.fondo")]], t("c.fit"), noImg), null, { stk: true, dis: noImg }),
-        row(t("c.noImage"), seg("img.empty", [["nada", t("empty.nada")], ["iniciales", t("empty.iniciales")], ["hueco", t("empty.hueco")], ["portada", t("empty.portada")]], t("c.noImageAria"), noImg), null, { stk: true, dis: noImg }),
+      /* TEXT STYLE: la fuente (ancha) | WEIGHT, SIZE y ALIGN */
+      block("fuente", t("b.font"), h("div", "mod",
+        wide(t("c.typeface"), fontBtn("font.family"), "font.family"),
+        h("div", "mod-3",
+          tile("font.weight", t("c.weight"), { min: 300, max: 900, step: 100, rate: 0.05, unit: "", axis: "x" }),
+          tile("font.size", t("c.size"), { min: 2, max: 8, step: 0.1, rate: 0.02, unit: "%", axis: "x" }),
+          iconTile("font.align", t("c.alignShort"), [["left", "align-left", t("al.left")], ["center", "align-center", t("al.center")], ["right", "align-right", t("al.right")]])))),
+      /* IMAGE: origen | posición y ajuste | sin imagen | MARGIN, INTENSITY y BRIGHTNESS | efecto | grano y degradado */
+      block("imagen", t("b.image"), h("div", "mod",
+        wide(t("c.source"), sel("img.src", [...ip.map((p): Opt => [p, pname(p)]), ["none", t("img.none")]], false, sp || "none"), "img.src"),
+        chips("img.pos", t("c.position"), [["top", t("pos.top"), "panel-top"], ["bottom", t("pos.bottom"), "panel-bottom"], ["left", t("pos.left"), "panel-left"], ["right", t("pos.right"), "panel-right"]], 4, noImg || fondo),
+        chips("img.fit", t("c.fit"), [["encajar", t("fit.encajar")], ["original", t("fit.original")], ["enmarcada", t("fit.enmarcada")], ["fondo", t("fit.fondo")]], 2, noImg),
+        chips("img.empty", t("c.ifNoImage"), [["nada", t("empty.nada")], ["iniciales", t("empty.iniciales")], ["hueco", t("empty.hueco")], ["portada", t("empty.portada")]], 2, noImg),
         im.empty === "portada" && !noImg ? coverCtl(s) : null,
-        row(t("c.margin"), slider("img.frame", 0, 14, 0.5, "%", null, noImg || im.fit !== "enmarcada"), "img.frame", { dis: noImg || im.fit !== "enmarcada" }),
-        row(t("c.effect"), seg("img.fx", [["color", t("fx.color")], ["bn", t("fx.bn")], ["duo", t("fx.duo")], ["blur", t("fx.blur")], ["inv", t("fx.inv")]], t("c.effect"), noImg), null, { stk: true, dis: noImg }),
-        row(t("c.intensity"), slider("img.amt." + fx, 0, 100, 1, "%", 0, noImg || im.fx === "color"), "img.amt." + fx, { dis: noImg || im.fx === "color" }),
-        row(t("fx.duo"), [swatch("img.duo1", noImg || im.fx !== "duo"), swatch("img.duo2", noImg || im.fx !== "duo")], null, { dis: noImg || im.fx !== "duo" }),
-        row(t("c.grain"), sw("img.grain", t("c.grain"), noImg), "img.grain", { dis: noImg }),
-        cells([[t("c.brightness"), slider("img.bright", 20, 140, 1, "%", 0, noImg), noImg],
-          [t("c.shade"), [sw("img.shade", t("c.shade"), noImg || !fondo), swatch("img.shadeC", noImg || !fondo || !im.shade)], noImg || !fondo]], "c-1-a")]),
+        h("div", "mod-3",
+          tile("img.frame", t("c.margin"), { min: 0, max: 14, step: 0.5, rate: 0.1, unit: "%", axis: "x", dis: noImg || im.fit !== "enmarcada" }),
+          tile("img.amt." + fx, t("c.intensity"), { min: 0, max: 100, step: 1, rate: 0.5, unit: "%", axis: "x", dis: noImg || im.fx === "color" }),
+          tile("img.bright", t("c.brightness"), { min: 20, max: 140, step: 1, rate: 0.5, unit: "%", axis: "x", dis: noImg })),
+        chips("img.fx", t("c.effect"), [["color", t("fx.color")], ["bn", t("fx.bn")], ["duo", t("fx.duo")], ["blur", t("fx.blur")], ["inv", t("fx.inv")]], 3, noImg,
+          h("div", { cls: "duo" + (noImg || im.fx !== "duo" ? " dis" : ""), attr: { role: "group", "aria-label": t("fx.duo") } }, swatch("img.duo1", noImg || im.fx !== "duo"), swatch("img.duo2", noImg || im.fx !== "duo"))),
+        h("div", "mod-2",
+          toggle("img.grain", t("c.grain"), t("c.noGrain"), t("c.grain"), "tg-row", noImg),
+          h("div", "tg-sw", toggle("img.shade", t("c.shade"), t("c.noShade"), t("c.shade"), "tg-row", noImg || !fondo), swatch("img.shadeC", noImg || !fondo || !im.shade))))),
     ));
   }
 
@@ -307,10 +346,11 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   const coverTextProps = () => propsOf().filter(p => !p.startsWith("rel:") && p !== "file.name" && !facts.isImage(p) && !facts.isUrlProp(p));
   function coverCtl(s: Model) {
     const tp = coverTextProps(), cur = s.img.cvText; if (cur && !tp.includes(cur)) tp.unshift(cur);
-    return [row(t("c.bottomText"), sel("img.cvText", [["", t("o.none")], ...tp.map((p): Opt => [p, pname(p)])], false, cur || ""), "img.cvText"),
-      row(t("b.colors"), seg("img.cvColors", [["auto", t("cv.auto")], ["card", t("cv.card")]], t("b.colors"))),
-      row(t("c.shape"), seg("img.cvShape", [["auto", t("cv.shapeAuto")], ["none", t("cv.shapeNone")]], t("c.shape"))),
-      row(t("c.typeface"), fontBtn("img.cvFont"), "img.cvFont")];
+    return h("div", "mod sub",
+      wide(t("c.bottomText"), sel("img.cvText", [["", t("o.none")], ...tp.map((p): Opt => [p, pname(p)])], false, cur || ""), "img.cvText"),
+      wide(t("c.typeface"), fontBtn("img.cvFont"), "img.cvFont"),
+      chips("img.cvColors", t("b.colors"), [["auto", t("cv.auto")], ["card", t("cv.card")]], 2),
+      chips("img.cvShape", t("c.shape"), [["auto", t("cv.shapeAuto")], ["none", t("cv.shapeNone")]], 2));
   }
 
   /* ---------- Datos ---------- */
@@ -581,7 +621,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     const st = pb.scrollTop, s = S(), act = document.activeElement, aid = act && root.contains(act) && act.id;
     pb.empty();
     pb.append(tarjetaNode(s), datosNode(s), decoNode(s), cssNode(s));
-    fitToggles();
+    fitText();
     if (animTgl) {
       const b = byId(animTgl); animTgl = null;
       if (b) window.requestAnimationFrame(() => window.requestAnimationFrame(() => b.setAttribute("aria-checked", b.dataset.v!)));
@@ -611,10 +651,10 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     undoBtn.disabled = !hist.length;
   }
   /* tamaños que solo cambian variables de la rejilla (arrastrar): sin repintar las tarjetas, que va lento con muchas */
-  const LIVE = new Set(["card.w", "card.h", "card.gap", "card.pad", "card.radius", "col.bw"]);
+  const LIVE = new Set(["card.w", "card.h", "card.gap", "card.pad", "card.radius", "col.bw", "font.size", "font.weight", "img.bright", "img.frame"]);
   let liveRaf = 0;
   function commitLive(path: string, val: unknown) {
-    if (!LIVE.has(path)) { commit(path, val); return; }
+    if (!LIVE.has(path) && !path.startsWith("img.amt.")) { commit(path, val); return; }
     pushFor(path); setP(path, val);
     window.cancelAnimationFrame(liveRaf); liveRaf = window.requestAnimationFrame(() => { view.restyle(model); liveSums(); });
   }
@@ -696,7 +736,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       if (k.startsWith("it:") || k.startsWith("st:")) { renderPanel(); return; }     // los ajustes de un dato o un estado se pintan al abrirlo
       b.setAttribute("aria-expanded", String(open));
       const body = (b.closest(".blk,.sc")!.querySelector(":scope > .blk-b, :scope > .sc-b") as HTMLElement); body.hidden = !open;
-      if (open) fitToggles();                          // en un bloque cerrado no se puede medir: al abrirlo
+      if (open) fitText();                          // en un bloque cerrado no se puede medir: al abrirlo
       return;
     }
     const p = b.dataset.p;
@@ -1090,7 +1130,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   function onData() { src = view.source(); facts = view.factsFor(src); renderPanel(); }
 
   renderPanel();
-  if (document.fonts) void document.fonts.ready.then(() => fitToggles());   // Inter Tight cargada: se mide de nuevo
+  if (document.fonts) void document.fonts.ready.then(() => fitText());   // Inter Tight cargada: se mide de nuevo
   view.renderCool(model);
   return { get model() { return model; }, destroy, onData, root, undo };
 }

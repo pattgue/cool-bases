@@ -138,7 +138,10 @@
     parseYaml: s => window.jsyaml.load(s), Platform,
     setIcon: (el, name) => {
       el.empty();
-      const paths = { "move-horizontal": ["m18 8 4 4-4 4", "M2 12h20", "m6 8-4 4 4 4"], "move-vertical": ["M12 2v20", "m8 18 4 4 4-4", "m8 6 4-4 4 4"] }[name];
+      const R = "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z";   // iconos de Lucide que usa el panel
+      const paths = { "move-horizontal": ["m18 8 4 4-4 4", "M2 12h20", "m6 8-4 4 4 4"], "move-vertical": ["M12 2v20", "m8 18 4 4 4-4", "m8 6 4-4 4 4"],
+        "align-left": ["M15 12H3", "M17 18H3", "M21 6H3"], "align-center": ["M17 12H7", "M19 18H5", "M21 6H3"], "align-right": ["M21 12H9", "M21 18H7", "M21 6H3"],
+        "panel-top": [R, "M3 9h18"], "panel-bottom": [R, "M3 15h18"], "panel-left": [R, "M9 3v18"], "panel-right": [R, "M15 3v18"] }[name];
       if (!paths) { el.createSpan({ cls: "icon-" + name, text: /up/.test(name) ? "⌃" : /down/.test(name) ? "⌄" : "•" }); return; }
       const s = el.createSvg("svg", { attr: { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", width: "24", height: "24" } });
       for (const d of paths) s.appendChild(window.createSvg("path", { attr: { d } }));

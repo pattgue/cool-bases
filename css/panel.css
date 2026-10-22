@@ -70,9 +70,9 @@ body.cb-scrubbing-y:not(#cb-imp), body.cb-scrubbing-y *:not(#cb-imp) { cursor: n
 .cb-panel .tile.t-h { flex: 96 1 0; cursor: ns-resize; }
 .cb-panel .sz-c3 .tile { flex: 1 1 0; min-height: 57px; gap: 4px; }
 .cb-panel .tile.t-radius { border-radius: var(--cbp-r, var(--r-el)); }
-.cb-panel .tile-l { font-size: 17px; font-weight: 900; text-transform: uppercase; letter-spacing: 0; line-height: 1; color: inherit; cursor: inherit; }
-.cb-panel .t-radius .tile-l { font-size: 16px; }
-.cb-panel .t-pad .tile-l { font-size: 14px; }
+.cb-panel .tile-l { --tl-fs: 17px; font-size: calc(var(--tl-fs) * var(--cbp-tk, 1)); white-space: nowrap; font-weight: 900; text-transform: uppercase; letter-spacing: 0; line-height: 1; color: inherit; cursor: inherit; }
+.cb-panel .t-radius .tile-l { --tl-fs: 16px; }
+.cb-panel .t-pad .tile-l { --tl-fs: 14px; }
 .cb-panel .tile-pill { display: block; }
 .cb-panel .tile input.num {
   display: block; width: 59px; height: 20px; padding: 0 3px; border: 0; border-radius: var(--r-in); text-align: center;
@@ -132,12 +132,12 @@ body.cb-scrubbing-y:not(#cb-imp), body.cb-scrubbing-y *:not(#cb-imp) { cursor: n
 .cb-panel .fmts.dis button { opacity: .45; cursor: default; }
 /* GAP: G, A y P llenan el ancho; entre ellas, la separación real (a escala) con su marca; el número, al tocarlo */
 .cb-panel .gapc {
-  display: flex; align-items: stretch; padding: var(--sp); background: var(--cool-group); border-radius: var(--r-el);
+  display: flex; align-items: stretch; padding: 0; background: transparent; border-radius: var(--r-el);
   cursor: ew-resize; touch-action: none; user-select: none;
 }
 .cb-panel .gapc:focus-visible { outline: 1.5px solid var(--cool-accent); outline-offset: 1px; }
 .cb-panel .gap-l {
-  flex: 1 1 0; min-width: 0; display: grid; place-items: center; border-radius: var(--r-in);
+  flex: 1 1 0; min-width: 0; display: grid; place-items: center; border-radius: var(--r-el);
   background: var(--cool-letter-bg); color: var(--cool-text); font-size: 41px; font-weight: 900; line-height: 1;
 }
 .cb-panel .gap-m { position: relative; flex: none; align-self: center; width: var(--cbp-gap); height: 8px; }
@@ -178,3 +178,59 @@ body.cb-scrubbing-y:not(#cb-imp), body.cb-scrubbing-y *:not(#cb-imp) { cursor: n
 /* el ángulo del degradado, dentro del selector del segundo color */
 .cb-fp .cp-angle { display: grid; grid-template-columns: auto minmax(0, 1fr) 34px; align-items: center; gap: 8px; margin-top: 10px; font-size: 11px; font-weight: 800; text-transform: uppercase; }
 .cb-fp .cp-angle output { width: auto; font-size: 11px; }
+
+/* ---------- TEXT STYLE e IMAGE: las mismas piezas que SIZE ---------- */
+.cb-panel .mod { display: flex; flex-direction: column; gap: var(--sp); }
+.cb-panel .mod-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--sp); }
+.cb-panel .mod-2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp); align-items: end; }
+/* tiles pequeños (como PADDING y RADIUS) */
+.cb-panel .mod-3 .tile { min-height: 57px; gap: 6px; padding: 9px 4px; }
+.cb-panel .mod-3 .tile-l, .cb-panel .t-wide .tile-l { --tl-fs: 13px; }
+.cb-panel .t-wide .tile-l { flex: none; }
+.cb-panel .mod-3 .tile input.num, .cb-panel .t-icons .tile-pill { width: 66px; height: 15px; font-size: 9.5px; line-height: 15px; }
+/* tile ancho: etiqueta a la izquierda y un desplegable en la pastilla */
+.cb-panel .tile.t-wide { flex-direction: row; justify-content: space-between; gap: var(--bpad); min-height: 0; padding: var(--sp) var(--sp) var(--sp) var(--bpad); cursor: default; }
+.cb-panel .t-wide .tile-pill { flex: 0 1 62%; min-width: 0; }
+.cb-panel .t-wide select, .cb-panel .t-wide .fontb {
+  display: flex; align-items: center; justify-content: space-between; gap: 6px; width: 100%; height: 22px; padding: 0 8px; margin: 0; border: 0; border-radius: var(--r-in);
+  background: var(--cool-pill-bg); color: var(--cool-pill-fg); font-size: 11px; font-weight: 400; box-shadow: none; text-align: left; cursor: pointer;
+}
+.cb-panel .t-wide .fontb .cbp-ff { flex: 1; min-width: 0; font-size: 12.5px; color: var(--cool-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cb-panel .t-wide .fontb .caret { flex: none; font-size: 8px; color: var(--cool-pill-fg); }
+/* tile de iconos (ALIGN): la pastilla lleva los tres botones */
+.cb-panel .t-icons { cursor: default; }
+.cb-panel .t-icons .tile-pill.icons { display: flex; gap: 2px; padding: 2px; border-radius: var(--r-in); background: var(--cool-pill-bg); height: 20px; }
+.cb-panel .t-icons .icons button { flex: 1; display: grid; place-items: center; border-radius: 2px; color: var(--cool-pill-fg); }
+.cb-panel .t-icons .icons button svg { width: 12px; height: 12px; stroke-width: 2.6; }
+.cb-panel .t-icons .icons button[aria-pressed="true"] { background: var(--cool-tile-fg); color: var(--cool-text); }
+/* chips con su título pequeño encima */
+.cb-panel .chipg { display: flex; flex-direction: column; gap: 4px; }
+.cb-panel .chipg-l { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .01em; color: var(--cool-label); padding-left: 1px; }
+.cb-panel .chipg-b { display: grid; gap: var(--sp); grid-auto-rows: 26px; }
+.cb-panel .chipg-b.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.cb-panel .chipg-b.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cb-panel .chipg-b.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.cb-panel .chipg-b button {
+  min-width: 0; padding: 0 4px; border-radius: var(--r-el); background: var(--cool-chip-bg); color: var(--cool-text);
+  font-size: 11px; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.cb-panel .chipg-b button:hover:not(:disabled) { background: var(--cool-pill-bg); }
+.cb-panel .chipg-b button[aria-pressed="true"] { background: var(--cool-tile-bg); color: var(--cool-tile-fg); }
+.cb-panel .chipg-b button.ic { display: grid; place-items: center; }
+.cb-panel .chipg-b button.ic svg { width: 16px; height: 16px; stroke-width: 2.2; }
+.cb-panel .chipg.dis button { opacity: .45; cursor: default; }
+/* DUOTONE: sus dos colores, en el hueco que queda al lado de los efectos */
+.cb-panel .chipg-b .duo { display: flex; align-items: center; justify-content: center; gap: var(--sp); border-radius: var(--r-el); background: var(--cool-chip-bg); }
+.cb-panel .chipg-b .duo .swc { width: 26px; height: 15px; padding: 0; border: 0; border-radius: var(--r-in); overflow: hidden; }
+.cb-panel .chipg-b .duo .swc .fill { display: block; width: 100%; height: 100%; }
+.cb-panel .chipg-b .duo.dis { opacity: .45; }
+/* GRAIN y GRADIENT de la imagen: interruptores del alto de un chip */
+.cb-panel .tg-row { width: 100%; height: 26px; --cbp-fs: 12px; --cbp-tp: 8px; --cbp-k: 18px; --cbp-kp: 4px; --cbp-kr: 3px; }
+.cb-panel .tgl:disabled { opacity: .45; cursor: default; }
+.cb-panel .tg-sw { display: flex; align-items: center; gap: var(--sp); min-width: 0; }
+.cb-panel .tg-sw .tgl { flex: 1; min-width: 0; }
+.cb-panel .tg-sw .swc { flex: none; width: 26px; height: 26px; padding: 0; border: 0; border-radius: var(--r-el); overflow: hidden; }
+.cb-panel .tg-sw .swc .fill { display: block; width: 100%; height: 100%; }
+.cb-panel .tg-sw .swc:disabled { opacity: .35; }
+/* «Sin imagen: Portada»: sus ajustes, metidos un nivel */
+.cb-panel .mod.sub { padding: var(--sp); border-radius: var(--r-el); background: var(--cool-group); }
