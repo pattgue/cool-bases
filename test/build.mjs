@@ -2,7 +2,7 @@
 // y las bases y notas de ../demo-vault. Uso: npm run build (en la raíz) y luego node test/build.mjs
 // node test/build.mjs --data datos.json --extra extra.js --main otro/main.js --css otro/styles.css --out nombre.html  (para otras bases)
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from "node:fs";
-import { join, dirname, relative } from "node:path";
+import { join, dirname, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import yaml from "js-yaml";
 
@@ -14,10 +14,10 @@ const arg = k => { const i = process.argv.indexOf(k); return i > 0 ? process.arg
 function walk(dir) { return readdirSync(dir).flatMap(f => { const p = join(dir, f); return statSync(p).isDirectory() ? walk(p) : [p]; }); }
 function vault(dir) {
   const files = walk(dir);
-  const bases = files.filter(f => f.endsWith(".base")).sort().map(f => { const text = read(f); return { path: relative(dir, f), text, yaml: yaml.load(text) }; });
+  const bases = files.filter(f => f.endsWith(".base")).sort().map(f => { const text = read(f); return { path: relative(dir, f).split(sep).join("/"), text, yaml: yaml.load(text) }; });
   const notes = files.filter(f => f.endsWith(".md") && !/CAPTURAS|README/.test(f)).sort().map(f => {
-    const m = /^---\n([\s\S]*?)\n---/.exec(read(f));
-    return { path: relative(dir, f), fm: m ? yaml.load(m[1], { schema: yaml.JSON_SCHEMA }) || {} : {} };
+    const m = /^---\r?\n([\s\S]*?)\r?\n---/.exec(read(f));   // \r: en Windows git puede dejar saltos CRLF
+    return { path: relative(dir, f).split(sep).join("/"), fm: m ? yaml.load(m[1], { schema: yaml.JSON_SCHEMA }) || {} : {} };
   });
   return { bases, notes };
 }

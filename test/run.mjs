@@ -20,7 +20,7 @@ function placeholder(u) {
   const name = decodeURIComponent(u.split("/").pop().split("?")[0]).replace(/_/g, " ").replace(/\.\w+$/, "").slice(0, 22).replace(/[<&]/g, "");
   return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${hh}"><defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="hsl(${hs % 360} 35% 62%)"/><stop offset="1" stop-color="hsl(${hs % 360} 40% 20%)"/></linearGradient></defs><rect width="100%" height="100%" fill="url(#g)"/><text x="50%" y="88%" font-family="Arial" font-size="${w / 16}" fill="rgba(255,255,255,.8)" text-anchor="middle">${name}</text></svg>`;
 }
-const b = await chromium.launch();
+const b = await chromium.launch(process.env.PW_EXE ? { executablePath: process.env.PW_EXE } : {});   // PW_EXE=ruta a un Chrome instalado, si el de Playwright no arranca
 const results = [];
 const ok = (name, cond, extra) => { results.push((cond ? "✓ " : "✗ ") + name + (extra ? " — " + extra : "")); };
 async function page(hash, viewport) {
