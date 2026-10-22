@@ -4,6 +4,7 @@ node_modules/
 # lo que genera «npm run build» (lo sube la Action a cada Release)
 /main.js
 /styles.css
+css/font.css
 
 # arnés de pruebas
 test/node_modules/

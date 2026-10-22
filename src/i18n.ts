@@ -5,7 +5,8 @@ import { getLanguage, moment } from "obsidian";
 const en: Record<string, string> = {
   "cmd.edit": "Edit card",
   "p.title": "Edit card", "p.view": "View:", "p.undo": "Undo", "p.cancel": "Cancel", "p.done": "Done",
-  "p.styles": "Styles", "p.presets": "Presets", "p.myStyles": "My styles", "p.saveStyle": "Save style", "p.copyFrom": "Copy from another view",
+  "p.styles": "Styles", "p.presets": "Presets", "p.myStyles": "My styles", "p.saveStyle": "Save style", "p.copyFrom": "Copy from another view", "p.saveShort": "Save", "p.copyShort": "Copy view",
+  "c.fill": "Fill", "c.radiusShort": "Radius", "c.padShort": "Padding", "c.preview": "Preview", "mc.title": "Title", "mc.sub": "Subtitle", "mc.tags": "Tags",
   "p.styleName": "Style name", "p.name": "Name", "p.save": "Save", "p.searching": "Looking for views…", "p.noViews": "No other Cool Bases views",
   "p.discardQ": "Discard changes?", "p.keepEditing": "Keep editing", "p.discard": "Discard",
   "p.pickColor": "Pick color", "p.colorCode": "Color code", "p.search": "Search", "p.searchFont": "Search typefaces",
@@ -70,7 +71,8 @@ const en: Record<string, string> = {
 const es: Record<string, string> = {
   "cmd.edit": "Editar tarjeta",
   "p.title": "Editar tarjeta", "p.view": "Vista:", "p.undo": "Deshacer", "p.cancel": "Cancelar", "p.done": "Listo",
-  "p.styles": "Estilos", "p.presets": "Predeterminados", "p.myStyles": "Mis estilos", "p.saveStyle": "Guardar estilo", "p.copyFrom": "Copiar de otra vista",
+  "p.styles": "Estilos", "p.presets": "Predeterminados", "p.myStyles": "Mis estilos", "p.saveStyle": "Guardar estilo", "p.copyFrom": "Copiar de otra vista", "p.saveShort": "Guardar", "p.copyShort": "Copiar vista",
+  "c.fill": "Llenar", "c.radiusShort": "Esquinas", "c.padShort": "Margen", "c.preview": "Vista previa", "mc.title": "Título", "mc.sub": "Subtítulo", "mc.tags": "Etiquetas",
   "p.styleName": "Nombre del estilo", "p.name": "Nombre", "p.save": "Guardar", "p.searching": "Buscando vistas…", "p.noViews": "No hay otras vistas Cool Bases",
   "p.discardQ": "¿Descartar los cambios?", "p.keepEditing": "Seguir editando", "p.discard": "Descartar",
   "p.pickColor": "Elegir color", "p.colorCode": "Código del color", "p.search": "Buscar", "p.searchFont": "Buscar tipografía",

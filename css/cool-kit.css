@@ -1,15 +1,42 @@
 /* ===== Cool Kit: la Cool Bar (común a todos los plugins Cool) =====
    Cada plugin trae su copia de este archivo: todo va acotado a la versión del kit ([data-ck="1"]) para que
    dos versiones cargadas a la vez no se pisen. Solo variables del tema: nada de colores fijos. */
-.cool-bar[data-ck="1"] {
-  --cool-surface-0: var(--background-secondary);
-  --cool-tile-bg: color-mix(in srgb, var(--text-normal) 55%, var(--background-primary));
+
+/* ---------- sistema visual «Cool»: variables derivadas del tema activo (claro u oscuro) ----------
+   .cool-ui: cualquier interfaz Cool (paneles, ventanitas, ajustes), con el mismo data-ck que la barra. */
+:is(.cool-bar, .cool-ui, .cool-settings)[data-ck="1"] {
+  --cool-font: "Cool Inter Tight", var(--font-interface);
+  --cool-surface-0: var(--background-secondary);                 /* la barra */
+  --cool-surface-1: var(--background-primary);                   /* el panel */
+  --cool-surface-2: var(--background-secondary);                 /* los bloques del panel */
+  --cool-tile-bg: color-mix(in srgb, var(--text-normal) 55%, var(--background-primary));   /* tiles y botones de la barra */
+  --cool-tile-hover: color-mix(in srgb, var(--text-normal) 68%, var(--background-primary));
   --cool-tile-fg: var(--background-primary);
+  --cool-pill-bg: color-mix(in srgb, var(--background-primary) 72%, var(--text-normal));    /* el valor dentro de un tile */
+  --cool-pill-fg: var(--text-normal);
+  --cool-chip-bg: var(--background-primary);                     /* botones pequeños y chips */
+  --cool-chip-fg: var(--text-muted);
+  --cool-chip-on: color-mix(in srgb, var(--text-normal) 24%, var(--background-primary));
+  --cool-label: var(--text-muted);
   --cool-accent: var(--interactive-accent);
+  --cool-on-accent: var(--text-on-accent);
   --cool-border: var(--background-modifier-border-hover);
+  font-family: var(--cool-font);
+}
+/* en claro, el gris de los tiles va más oscuro para que el texto blanco se lea (contraste ≥ 4.5:1) */
+.theme-light :is(.cool-bar, .cool-ui, .cool-settings)[data-ck="1"] {
+  --cool-tile-bg: color-mix(in srgb, var(--text-normal) 72%, var(--background-primary));
+  --cool-tile-hover: color-mix(in srgb, var(--text-normal) 85%, var(--background-primary));
+  --cool-pill-bg: color-mix(in srgb, var(--background-primary) 80%, var(--text-normal));
+  --cool-chip-bg: var(--background-primary);
+  --cool-chip-on: color-mix(in srgb, var(--text-normal) 14%, var(--background-primary));
+}
+
+/* ---------- la barra ---------- */
+.cool-bar[data-ck="1"] {
   box-sizing: border-box; flex: none; display: flex; align-items: center; gap: 8px;
   min-height: 40px; padding: 6px 12px; background: var(--cool-surface-0);
-  font-family: var(--font-interface); position: relative; z-index: 40;   /* por encima de los paneles que cuelgan de ella */
+  position: relative; z-index: 40;   /* por encima de los paneles que cuelgan de ella */
 }
 .cool-bar[data-ck="1"] *, .cool-bar[data-ck="1"] *::before, .cool-bar[data-ck="1"] *::after { box-sizing: border-box; }
 .cool-bar[data-ck="1"] .cool-tools { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -28,10 +55,10 @@
   background: var(--cool-tile-bg); color: var(--cool-tile-fg);
   font-size: 13px; font-weight: 800; letter-spacing: .01em; text-transform: uppercase;
 }
-.cool-bar[data-ck="1"] .cool-tool[data-state="available"]:hover { background: color-mix(in srgb, var(--text-normal) 70%, var(--background-primary)); }
+.cool-bar[data-ck="1"] .cool-tool[data-state="available"]:hover, .cool-bar[data-ck="1"] .cool-fold:hover { background: var(--cool-tile-hover); }
 /* activo: una pestaña del color del panel que baja hasta el borde de la barra y se une con el panel que cuelga de ella */
 .cool-bar[data-ck="1"] .cool-tool[data-state="active"] {
-  background: var(--background-primary); color: var(--cool-accent);
+  background: var(--cool-surface-1); color: var(--cool-accent);
   box-shadow: inset 1px 1px 0 var(--cool-border), inset -1px 0 0 var(--cool-border);
   border-radius: 6px 6px 0 0; align-self: flex-end; height: 35px; margin-bottom: -7px; padding-bottom: 7px;
 }
