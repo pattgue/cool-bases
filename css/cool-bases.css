@@ -2,7 +2,7 @@
 .cb-view, .cb-view *, .cb-view *::before, .cb-view *::after,
 .cb-panel, .cb-panel *, .cb-panel *::before, .cb-panel *::after,
 .cb-fp, .cb-fp *, .cb-fp *::before, .cb-fp *::after { box-sizing: border-box; }
-/* ===== Cool Bases: lo propio del plugin (vista nueva, botón y montaje del panel) ===== */
+/* ===== Cool Bases: lo propio del plugin (vista nueva y montaje del panel) ===== */
 .cb-view { padding: var(--size-4-3); }
 .cb-view .cb-group {
   display: inline-block; font-weight: 600; color: var(--text-muted); background: var(--background-modifier-hover);
@@ -35,11 +35,6 @@
 .cb-view .cb-grid.hv-on.hv-u .cb-card a.cb-a.hv:hover:not(#cb-imp) { text-decoration: underline; }
 .cb-view .cb-card .cb-copy:not(#cb-imp) { text-decoration: none; }
 .cb-view .cb-head { display: block; font-size: .72em; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .2em; }
-
-/* botón «Editar tarjeta», arriba a la derecha de la vista */
-.cb-editbar { display: flex; justify-content: flex-end; padding: var(--size-4-2) var(--size-4-3) 0; }
-.cb-editbar .cb-edit-btn { font-size: var(--font-ui-small); height: auto; padding: var(--size-2-2) var(--size-4-2); }
-.cb-editbar .cb-edit-btn[aria-expanded="true"] { background: var(--interactive-accent); color: var(--text-on-accent); }
 
 /* panel lateral montado sobre la vista */
 .cb-panel-host { position: relative; }

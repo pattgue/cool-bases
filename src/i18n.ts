@@ -3,7 +3,7 @@
 import { getLanguage, moment } from "obsidian";
 
 const en: Record<string, string> = {
-  "edit": "✎ Edit card",
+  "cmd.edit": "Edit card",
   "p.title": "Edit card", "p.view": "View:", "p.undo": "Undo", "p.cancel": "Cancel", "p.done": "Done",
   "p.styles": "Styles", "p.presets": "Presets", "p.myStyles": "My styles", "p.saveStyle": "Save style", "p.copyFrom": "Copy from another view",
   "p.styleName": "Style name", "p.name": "Name", "p.save": "Save", "p.searching": "Looking for views…", "p.noViews": "No other Cool Bases views",
@@ -68,7 +68,7 @@ const en: Record<string, string> = {
 };
 
 const es: Record<string, string> = {
-  "edit": "✎ Editar tarjeta",
+  "cmd.edit": "Editar tarjeta",
   "p.title": "Editar tarjeta", "p.view": "Vista:", "p.undo": "Deshacer", "p.cancel": "Cancelar", "p.done": "Listo",
   "p.styles": "Estilos", "p.presets": "Predeterminados", "p.myStyles": "Mis estilos", "p.saveStyle": "Guardar estilo", "p.copyFrom": "Copiar de otra vista",
   "p.styleName": "Nombre del estilo", "p.name": "Nombre", "p.save": "Guardar", "p.searching": "Buscando vistas…", "p.noViews": "No hay otras vistas Cool Bases",

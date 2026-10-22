@@ -14,10 +14,15 @@
   const bases = D.bases.map(b => Object.assign(new TFile(b.path), { text: b.text, yaml: b.yaml }));
   const byName = new Map(notes.map(f => [f.basename.toLowerCase(), f]));
   const byPath = new Map(notes.map(f => [f.path, f]));
+  /* pestañas: cada una con su contenedor (.workspace-leaf-content), donde se cuelga la Cool Bar */
+  const leaves = [];
   const workspace = Object.assign(new Events(), {
     openLinkText: (l, s, m) => log("open", l, "from", s || "-", m ? "(new tab)" : ""),
-    iterateAllLeaves: () => {},
+    iterateAllLeaves: cb => leaves.forEach(cb),
+    getMostRecentLeaf: () => leaves[0] || null,
   });
+  const addLeaf = (containerEl, file) => { const leaf = { view: { containerEl, file } }; leaves.push(leaf); return leaf; };
+  window.__leaves = leaves; window.__addLeaf = addLeaf;
   const app = {
     renderContext: {},
     metadataCache: {
@@ -38,6 +43,13 @@
   const reg = window.__basesViews["cool-bases"];
   if (!reg) throw new Error("the «cool-bases» view was not registered");
   window.__app = app; window.__plugin = plugin;
+  /* modo demostración (solo aquí, nunca en el plugin): botones de ejemplo bloqueados, como en el boceto */
+  if (/(^|[|#])demo(\||$)/.test(decodeURIComponent(location.hash))) {
+    [["cool-markdown", 10], ["cool-trip", 20], ["cool-properties", 30]].forEach(([id, order]) => {
+      window.__coolKit.tools[id] = { id, order, label: () => id.replace("-", " "), appliesTo: () => false, isOpen: () => false, toggle: () => {} };
+    });
+  }
+  const nextFrame = () => new Promise(r => requestAnimationFrame(() => r()));
 
   /* ---------- Bases: filtros, orden y grupos (lo justo para estas bases) ---------- */
   const toArr = v => Array.isArray(v) ? v : v == null ? [] : [v];
@@ -112,12 +124,13 @@
     const bn = parts[0].slice(6), vn = parts[1];
     const base = bases.find(b => b.basename === bn), v = base.yaml.views.find(x => x.name === vn);
     const host = out.createDiv({ cls: "workspace-leaf-content" });
-    app.workspace.iterateAllLeaves = cb => cb({ view: { containerEl: host, file: base } });   // la hoja de Obsidian con su .base
+    addLeaf(host, base);                                      // la hoja de Obsidian con su .base
     host.createDiv({ cls: "bases-toolbar", text: base.basename + " · " + v.name });
     const store = Object.assign({}, v);
     const view = makeView(base, v, store, host);
     window.__view = view; window.__store = store;
-    view.editBtn.click();
+    await nextFrame();
+    host.querySelector('.cool-tool[data-tool="cool-bases"]').click();
     return;
   }
   window.__views = [];
@@ -126,7 +139,15 @@
     const sec = out.createDiv({ cls: "par" });
     sec.createEl("h2", { text: base.basename + " · " + v.name });
     const host = sec.createDiv({ cls: "workspace-leaf-content" });
+    addLeaf(host, base);
     const store = Object.assign({}, v);
     window.__views.push({ id: base.basename + " · " + v.name, view: makeView(base, v, store, host), store });
   }
+  /* una pestaña de nota (aquí Cool Bases no aplica: su botón sale bloqueado) */
+  const sec = out.createDiv({ cls: "par" });
+  sec.createEl("h2", { text: "Note" });
+  const note = sec.createDiv({ cls: "workspace-leaf-content note-leaf" });
+  note.createDiv({ cls: "view-content", text: "A note" });
+  addLeaf(note, notes[0]);
+  app.workspace.trigger("layout-change");
 })().catch(e => { (window.__errors ||= []).push(String(e && e.stack || e)); document.body.prepend("ERROR: " + e); });

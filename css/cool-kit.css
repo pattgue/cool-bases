@@ -1,0 +1,44 @@
+/* ===== Cool Kit: la Cool Bar (común a todos los plugins Cool) =====
+   Cada plugin trae su copia de este archivo: todo va acotado a la versión del kit ([data-ck="1"]) para que
+   dos versiones cargadas a la vez no se pisen. Solo variables del tema: nada de colores fijos. */
+.cool-bar[data-ck="1"] {
+  --cool-surface-0: var(--background-secondary);
+  --cool-tile-bg: color-mix(in srgb, var(--text-normal) 55%, var(--background-primary));
+  --cool-tile-fg: var(--background-primary);
+  --cool-accent: var(--interactive-accent);
+  --cool-border: var(--background-modifier-border-hover);
+  box-sizing: border-box; flex: none; display: flex; align-items: center; gap: 8px;
+  min-height: 40px; padding: 6px 12px; background: var(--cool-surface-0);
+  font-family: var(--font-interface); position: relative; z-index: 2;
+}
+.cool-bar[data-ck="1"] *, .cool-bar[data-ck="1"] *::before, .cool-bar[data-ck="1"] *::after { box-sizing: border-box; }
+.cool-bar[data-ck="1"] .cool-tools { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.cool-bar[data-ck="1"][data-align="right"] .cool-tools { justify-content: flex-end; }
+.cool-bar[data-ck="1"][data-align="center"] .cool-tools { justify-content: center; }
+.cool-bar[data-ck="1"] .cool-tools[hidden] { display: none; }
+/* los botones de Obsidian traen su estilo: aquí se parte de cero */
+.cool-bar[data-ck="1"] button { box-shadow: none; margin: 0; border: 0; font: inherit; cursor: pointer; }
+.cool-bar[data-ck="1"] .cool-fold {
+  flex: none; width: 26px; height: 26px; padding: 0; display: grid; place-items: center; border-radius: 4px;
+  background: var(--cool-tile-bg); color: var(--cool-tile-fg);
+}
+.cool-bar[data-ck="1"] .cool-fold svg { width: 16px; height: 16px; stroke-width: 3; }
+.cool-bar[data-ck="1"] .cool-tool {
+  height: 28px; padding: 0 9px; border-radius: 4px; white-space: nowrap;
+  background: var(--cool-tile-bg); color: var(--cool-tile-fg);
+  font-size: 13px; font-weight: 800; letter-spacing: .01em; text-transform: uppercase;
+}
+.cool-bar[data-ck="1"] .cool-tool[data-state="available"]:hover { background: color-mix(in srgb, var(--text-normal) 70%, var(--background-primary)); }
+.cool-bar[data-ck="1"] .cool-tool[data-state="active"] {
+  background: transparent; color: var(--cool-accent); box-shadow: inset 1px 1px 0 var(--cool-border), inset -1px 0 0 var(--cool-border);
+  border-radius: 4px 4px 0 0;
+}
+.cool-bar[data-ck="1"] .cool-tool[data-state="locked"] { opacity: .35; cursor: default; }
+.cool-bar[data-ck="1"] button:focus-visible { outline: 2px solid var(--cool-accent); outline-offset: 1px; }
+/* plegada: solo el botón ⌃ */
+.cool-bar[data-ck="1"].is-collapsed { background: transparent; min-height: 0; padding-block: 4px; }
+/* flotante: en una esquina de la pestaña */
+.cool-has-bar:has(> .cool-bar[data-ck="1"][data-loc="float"]) { position: relative; }
+.cool-bar[data-ck="1"][data-loc="float"] { position: absolute; right: 12px; bottom: 12px; z-index: 20; border-radius: 6px; box-shadow: 0 4px 16px rgba(0, 0, 0, .25); }
+/* la pestaña: el contenido ocupa lo que deja la barra (sin desbordarse) */
+.cool-has-bar > .view-content { flex: 1 1 0; min-height: 0; }

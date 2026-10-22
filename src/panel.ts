@@ -908,9 +908,9 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   /* Cancelar: cierra y vuelve la vista a como estaba al abrir el panel, sin escribir nada (con cambios, pregunta antes) */
   function askCancel() {
     closeAdd(); closeAddF();
-    if (JSON.stringify(model) === atOpen) { view.closePanel(); view.editBtn.focus(); return; }
+    if (JSON.stringify(model) === atOpen) { view.closePanel(); view.focusBarButton(); return; }
     const keep = h("button", { cls: "btn", attr: { type: "button", "data-cf": "keep" }, on: { click: () => { closeFp(); cancelBtn.focus(); } } }, t("p.keepEditing"));
-    const discard = h("button", { cls: "btn primary", attr: { type: "button", "data-cf": "discard" }, on: { click: () => { closeFp(); view.closePanel(); view.editBtn.focus(); } } }, t("p.discard"));
+    const discard = h("button", { cls: "btn primary", attr: { type: "button", "data-cf": "discard" }, on: { click: () => { closeFp(); view.closePanel(); view.focusBarButton(); } } }, t("p.discard"));
     openFp("cancel", cancelBtn, h("div", { cls: "cbconfirm", attr: { role: "alertdialog", "aria-label": t("p.discardQ") } }, h("p", null, t("p.discardQ")), h("div", "pop-act", keep, discard)));
     discard.focus();
   }

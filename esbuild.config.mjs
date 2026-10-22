@@ -4,7 +4,7 @@ import esbuild from "esbuild";
 import { readFileSync, writeFileSync } from "node:fs";
 
 const prod = process.argv[2] === "production";
-const CSS = ["css/boceto.css", "css/cool-bases.css", "css/variables.css"];
+const CSS = ["css/cool-kit.css", "css/boceto.css", "css/cool-bases.css", "css/variables.css"];
 const buildCss = () => writeFileSync("styles.css", "/* Cool Bases — generado desde css/ con «npm run build». */\n\n" +
   CSS.map(p => `/* ---------- ${p} ---------- */\n` + readFileSync(p, "utf8").trim()).join("\n\n") + "\n");
 

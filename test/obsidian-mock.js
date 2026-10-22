@@ -78,8 +78,10 @@
   class Plugin extends Component {
     constructor(app, manifest) { super(); this.app = app; this.manifest = manifest; }
     registerBasesView(id, reg) { (window.__basesViews ||= {})[id] = reg; return true; }
-    async loadData() { return window.__pluginData || null; }
-    async saveData(d) { window.__pluginData = JSON.parse(JSON.stringify(d)); }
+    get dataKey() { return this.manifest.id === "cool-bases" ? "__pluginData" : "__pluginData_" + this.manifest.id; }
+    async loadData() { return window[this.dataKey] || null; }
+    async saveData(d) { window[this.dataKey] = JSON.parse(JSON.stringify(d)); }
+    addCommand(c) { (window.__commands ||= {})[this.manifest.id + ":" + c.id] = c; return c; }
   }
   class Notice {
     constructor(msg, ms) {
@@ -93,8 +95,10 @@
   const Keymap = { isModEvent: e => !!(e && (e.metaKey || e.ctrlKey)) };
   const MarkdownRenderer = { render: async (app, md, el) => { el.appendText(md); } };
   const getLanguage = () => window.__lang || "en";
+  const Platform = { get isPhone() { return !!window.__phone; }, get isMobile() { return !!window.__phone; }, isDesktop: true };
   const moment = { locale: () => window.__lang || "en" };
   window.__obsidian = { Plugin, BasesView, Component, Events, ListValue, NullValue, StringValue, Value, TFile, Notice, Keymap, MarkdownRenderer,
-    parseYaml: s => window.jsyaml.load(s), setIcon: () => {}, toValue, getLanguage, moment };
+    parseYaml: s => window.jsyaml.load(s), Platform,
+    setIcon: (el, name) => { el.empty(); el.createSpan({ cls: "icon-" + name, text: /up/.test(name) ? "⌃" : /down/.test(name) ? "⌄" : "•" }); }, toValue, getLanguage, moment };
   window.require = name => { if (name === "obsidian") return window.__obsidian; throw new Error("módulo desconocido: " + name); };
 })();

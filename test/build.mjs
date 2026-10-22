@@ -65,6 +65,7 @@ const html = "<!doctype html><meta charset=\"utf-8\"><title>Cool Bases harness</
   script("window.DATOS = " + JSON.stringify(datos) + ";") +
   (arg("--extra") ? script(read(arg("--extra"))) : "") +
   script("(function(){ var module = { exports: {} }, exports = module.exports;\n" + main + "\nwindow.__pluginModule = module.exports; })();") +
+  script("window.__mainSrc = " + JSON.stringify(main) + ";") +   // para cargar una segunda copia (otro plugin Cool)
   script(read(join(here, "harness.js")));
 mkdirSync(join(here, "out"), { recursive: true });
 const name = arg("--out") || "harness.html";
