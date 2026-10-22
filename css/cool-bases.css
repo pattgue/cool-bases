@@ -38,14 +38,17 @@
 
 /* panel lateral montado sobre la vista */
 .cb-panel-host { position: relative; }
-.cb-editing:not(#cb-imp) { padding-right: min(400px, 50%); }
+.cb-editing:not(#cb-imp) { padding-right: calc(min(400px, 50%) + var(--cbp-right, 0px)); }
 .cb-panel {
-  position: absolute; right: 0; bottom: 0; width: 400px; max-width: 100%; z-index: 30;
+  position: absolute; right: var(--cbp-right, 0); bottom: var(--cbp-bottom, 0); width: 400px; max-width: 100%; z-index: 30;
   display: flex; flex-direction: column; min-height: 0;
   background: var(--background-primary); border-left: 1px solid var(--background-modifier-border); box-shadow: -12px 0 32px rgba(0, 0, 0, .25);
   font: 12.5px/1.4 var(--font-interface); color: var(--text-normal); text-align: left;
   --cbp-acc-soft: color-mix(in srgb, var(--interactive-accent) 18%, transparent);
 }
+/* colgado del botón COOL BASES de la Cool Bar: el botón y el panel son una sola pieza (el botón tapa el borde de arriba) */
+.cb-panel.cb-hang { border: 1px solid var(--background-modifier-border-hover); border-radius: 6px 0 6px 6px; box-shadow: -12px 12px 32px rgba(0, 0, 0, .25); }
+.cb-panel.cb-hang.cb-hang-up { border-radius: 6px 6px 0 6px; }
 .cb-fp { font: 12.5px/1.4 var(--font-interface); color: var(--text-normal); --cbp-acc-soft: color-mix(in srgb, var(--interactive-accent) 18%, transparent); }
 .cb-panel [hidden]:not(#cb-imp), .cb-fp[hidden]:not(#cb-imp), .cb-fp [hidden]:not(#cb-imp) { display: none; }
 /* los botones y campos de Obsidian traen su estilo: aquí se parte de cero y manda el del panel */

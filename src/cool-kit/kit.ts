@@ -19,6 +19,7 @@ export interface CoolTool {
   appliesTo(leaf: WorkspaceLeaf): boolean;          // ¿aplica a esta pestaña? (si no: Bloqueado)
   isOpen(leaf: WorkspaceLeaf): boolean;             // ¿su panel está abierto aquí? (Activo)
   toggle(leaf: WorkspaceLeaf, anchor: HTMLElement): void;
+  afterPaint?(): void;                              // tras pintar las barras (para recolocar un panel que cuelga de su botón)
   saveShared?(data: BarSettings): Promise<void>;    // ajustes de la barra, compartidos por todos los plugins Cool
   loadShared?(): Promise<BarSettings | null | undefined>;
 }
@@ -178,6 +179,7 @@ class BarPainter {
       this.fill(leaf, bar, states, prefs);
     });
     for (const [leaf, el] of this.bars) if (!seen.has(leaf)) { el.parentElement?.removeClass("cool-has-bar"); el.remove(); this.bars.delete(leaf); }
+    for (const t of Object.values(reg.tools)) safe(() => { t.afterPaint?.(); return true; });
   }
 
   makeBar(leaf: WorkspaceLeaf): HTMLElement {

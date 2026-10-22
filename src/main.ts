@@ -33,6 +33,7 @@ export default class CoolBasesPlugin extends Plugin {
       appliesTo: leaf => !!this.viewIn(leaf),
       isOpen: leaf => !!this.viewIn(leaf)?.panel,
       toggle: leaf => this.viewIn(leaf)?.editCard(),
+      afterPaint: () => { for (const v of this.views) v.placePanel(); },      // la barra cambió: el panel se recoloca
       saveShared: async data => { this.store.coolBar = data; await this.saveData(this.store); },
       loadShared: async () => this.store.coolBar,
     });

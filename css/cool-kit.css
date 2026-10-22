@@ -9,7 +9,7 @@
   --cool-border: var(--background-modifier-border-hover);
   box-sizing: border-box; flex: none; display: flex; align-items: center; gap: 8px;
   min-height: 40px; padding: 6px 12px; background: var(--cool-surface-0);
-  font-family: var(--font-interface); position: relative; z-index: 2;
+  font-family: var(--font-interface); position: relative; z-index: 40;   /* por encima de los paneles que cuelgan de ella */
 }
 .cool-bar[data-ck="1"] *, .cool-bar[data-ck="1"] *::before, .cool-bar[data-ck="1"] *::after { box-sizing: border-box; }
 .cool-bar[data-ck="1"] .cool-tools { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
@@ -29,9 +29,15 @@
   font-size: 13px; font-weight: 800; letter-spacing: .01em; text-transform: uppercase;
 }
 .cool-bar[data-ck="1"] .cool-tool[data-state="available"]:hover { background: color-mix(in srgb, var(--text-normal) 70%, var(--background-primary)); }
+/* activo: una pestaña del color del panel que baja hasta el borde de la barra y se une con el panel que cuelga de ella */
 .cool-bar[data-ck="1"] .cool-tool[data-state="active"] {
-  background: transparent; color: var(--cool-accent); box-shadow: inset 1px 1px 0 var(--cool-border), inset -1px 0 0 var(--cool-border);
-  border-radius: 4px 4px 0 0;
+  background: var(--background-primary); color: var(--cool-accent);
+  box-shadow: inset 1px 1px 0 var(--cool-border), inset -1px 0 0 var(--cool-border);
+  border-radius: 6px 6px 0 0; align-self: flex-end; height: 35px; margin-bottom: -7px; padding-bottom: 7px;
+}
+.cool-bar[data-ck="1"][data-loc="bottom"] .cool-tool[data-state="active"], .cool-bar[data-ck="1"][data-loc="float"] .cool-tool[data-state="active"] {
+  box-shadow: inset 1px -1px 0 var(--cool-border), inset -1px 0 0 var(--cool-border);
+  border-radius: 0 0 6px 6px; align-self: flex-start; margin: -7px 0 0; padding: 7px 9px 0;
 }
 .cool-bar[data-ck="1"] .cool-tool[data-state="locked"] { opacity: .35; cursor: default; }
 .cool-bar[data-ck="1"] button:focus-visible { outline: 2px solid var(--cool-accent); outline-offset: 1px; }

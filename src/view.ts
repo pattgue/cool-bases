@@ -102,7 +102,7 @@ export class CoolBasesView extends BasesView {
     if (this.panel) { this.panel.onData(); this.renderCool(this.panel.model); return; }
     this.renderCool(this.initialModel());
   }
-  onResize() { this.schedulePost(); }
+  onResize() { this.schedulePost(); this.placePanel(); }
   onunload() {
     this.unloading = true;
     this.closePanel();
@@ -269,14 +269,38 @@ export class CoolBasesView extends BasesView {
     const leafEl = this.scrollEl.closest(".workspace-leaf-content") || this.scrollEl.parentElement;
     leafEl?.querySelector<HTMLElement>('.cool-tool[data-tool="' + this.plugin.manifest.id + '"]')?.focus();
   }
+  /* el panel se monta en la pestaña entera (.workspace-leaf-content) para colgar del botón de la Cool Bar */
   openPanel() {
     this.app.workspace.trigger(CLOSE_PANELS, this);
-    const host = this.scrollEl.parentElement || document.body;
+    const host = this.leafEl() || this.scrollEl.parentElement || document.body;
     if (getComputedStyle(host).position === "static") host.addClass("cb-panel-host");
     this.panel = createPanel(this, host);
-    setVars(this.panel.root, { "--cbp-top": (this.scrollEl.offsetTop || 0) + "px" });
     this.scrollEl.addClass("cb-editing");
+    this.placePanel();
     this.plugin.refreshBar();
+  }
+  leafEl(): HTMLElement | null { return this.scrollEl.closest<HTMLElement>(".workspace-leaf-content"); }
+  /* cuelga del botón COOL BASES (debajo si la barra está arriba, encima si está abajo o flota); si el botón no se ve,
+     ocupa el lado derecho de la vista, como antes */
+  placePanel() {
+    const root = this.panel?.root, host = root?.parentElement;
+    if (!root || !host) return;
+    const hr = host.getBoundingClientRect();
+    const btn = host.querySelector<HTMLElement>('.cool-bar .cool-tool[data-tool="' + this.plugin.manifest.id + '"]');
+    const br = btn && btn.offsetParent ? btn.getBoundingClientRect() : null;
+    const content = host.querySelector<HTMLElement>(":scope > .view-content") || this.scrollEl;
+    const top0 = content.getBoundingClientRect().top - hr.top;
+    let v: Record<string, string>;
+    if (br) {
+      const up = btn!.closest(".cool-bar")?.getAttribute("data-loc") !== "top";
+      const right = Math.max(0, hr.right - br.right);
+      v = up ? { "--cbp-top": top0 + "px", "--cbp-bottom": Math.max(0, hr.bottom - br.top - 1) + "px", "--cbp-right": right + "px" }
+        : { "--cbp-top": (br.bottom - hr.top - 1) + "px", "--cbp-bottom": "0px", "--cbp-right": right + "px" };
+    } else v = { "--cbp-top": top0 + "px", "--cbp-bottom": "0px", "--cbp-right": "0px" };
+    setVars(root, v);
+    setVars(this.scrollEl, { "--cbp-right": v["--cbp-right"] });
+    root.toggleClass("cb-hang", !!br);
+    root.toggleClass("cb-hang-up", !!br && v["--cbp-bottom"] !== "0px");
   }
   /* cerrar sin «Listo» (otra vista abre su panel, se cierra la vista…) descarta los cambios y vuelve a lo guardado */
   closePanel(saving?: boolean) {
@@ -284,6 +308,7 @@ export class CoolBasesView extends BasesView {
     this.panel.destroy();
     this.panel = null;
     this.scrollEl.removeClass("cb-editing");
+    setVars(this.scrollEl, { "--cbp-right": null });
     this.plugin.refreshBar();
     if (!saving && !this.unloading) this.onDataUpdated();
   }
