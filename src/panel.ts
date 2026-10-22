@@ -179,7 +179,8 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       const avail = b.clientWidth - k.offsetWidth - 12;          // menos la bola y los márgenes
       b.querySelectorAll<HTMLElement>(".tgl-w").forEach(w => {
         setVars(w, { "--cbp-tk": null });
-        const need = w.scrollWidth;
+        const rg = document.createRange(); rg.selectNodeContents(w);
+        const need = rg.getBoundingClientRect().width / (b.getBoundingClientRect().width / b.offsetWidth || 1);   // el ancho del texto (sin el zoom)
         if (avail > 0 && need > avail) setVars(w, { "--cbp-tk": (avail / need).toFixed(3) });
       });
     });
