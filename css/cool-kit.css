@@ -3,33 +3,38 @@
    dos versiones cargadas a la vez no se pisen. Solo variables del tema: nada de colores fijos. */
 
 /* ---------- sistema visual «Cool»: variables derivadas del tema activo (claro u oscuro) ----------
-   .cool-ui: cualquier interfaz Cool (paneles, ventanitas, ajustes), con el mismo data-ck que la barra. */
+   Los grises del diseño son mezclas del color del texto con el fondo del tema (en Things oscuro dan #cecece, #6c6c6c,
+   #444649, #313436…). .cool-ui: cualquier interfaz Cool (paneles, ventanitas, ajustes), con el mismo data-ck que la barra. */
 :is(.cool-bar, .cool-ui, .cool-settings)[data-ck="1"] {
   --cool-font: "Cool Inter Tight", var(--font-interface);
+  --cool-mix: var(--text-normal);
   --cool-surface-0: var(--background-secondary);                 /* la barra */
-  --cool-surface-1: var(--background-primary);                   /* el panel */
-  --cool-surface-2: var(--background-secondary);                 /* los bloques del panel */
-  --cool-tile-bg: color-mix(in srgb, var(--text-normal) 55%, var(--background-primary));   /* tiles y botones de la barra */
-  --cool-tile-hover: color-mix(in srgb, var(--text-normal) 68%, var(--background-primary));
-  --cool-tile-fg: var(--background-primary);
-  --cool-pill-bg: color-mix(in srgb, var(--background-primary) 72%, var(--text-normal));    /* el valor dentro de un tile */
-  --cool-pill-fg: var(--text-normal);
-  --cool-chip-bg: var(--background-primary);                     /* botones pequeños y chips */
-  --cool-chip-fg: var(--text-muted);
-  --cool-chip-on: color-mix(in srgb, var(--text-normal) 24%, var(--background-primary));
-  --cool-label: var(--text-muted);
+  --cool-surface-1: var(--background-primary);                   /* el panel y sus bloques */
+  --cool-group: var(--background-secondary);                     /* el contenedor de CARD, DATA y DECORATIONS */
+  --cool-text: color-mix(in srgb, var(--cool-mix) 94%, var(--background-primary));
+  --cool-label: color-mix(in srgb, var(--cool-mix) 42%, var(--background-primary));
+  --cool-dim: color-mix(in srgb, var(--cool-mix) 26%, var(--background-primary));
+  --cool-muted: color-mix(in srgb, var(--cool-mix) 58%, var(--background-primary));
+  --cool-tile-bg: color-mix(in srgb, var(--cool-mix) 42%, var(--background-primary));     /* tiles y botones de la barra */
+  --cool-tile-hover: color-mix(in srgb, var(--cool-mix) 52%, var(--background-primary));
+  --cool-tile-fg: var(--background-secondary);
+  --cool-guide: color-mix(in srgb, var(--cool-mix) 28%, var(--background-primary));       /* la guía del padding */
+  --cool-pill-bg: color-mix(in srgb, var(--cool-mix) 20%, var(--background-primary));     /* el valor dentro de un tile */
+  --cool-pill-fg: color-mix(in srgb, var(--cool-mix) 66%, var(--background-primary));
+  --cool-letter-bg: color-mix(in srgb, var(--cool-mix) 10%, var(--background-primary));   /* las letras del GAP */
+  --cool-chip-bg: var(--background-secondary);                   /* botones pequeños y chips */
+  --cool-chip-on: var(--cool-pill-bg);
   --cool-accent: var(--interactive-accent);
-  --cool-on-accent: var(--text-on-accent);
-  --cool-border: var(--background-modifier-border-hover);
+  --cool-on-accent: var(--cool-text);
+  --cool-border: color-mix(in srgb, var(--cool-mix) 26%, var(--background-primary));
   font-family: var(--cool-font);
 }
-/* en claro, el gris de los tiles va más oscuro para que el texto blanco se lea (contraste ≥ 4.5:1) */
+/* en claro, el texto de los tiles es el del tema (oscuro) para que se lea sobre el gris */
 .theme-light :is(.cool-bar, .cool-ui, .cool-settings)[data-ck="1"] {
-  --cool-tile-bg: color-mix(in srgb, var(--text-normal) 72%, var(--background-primary));
-  --cool-tile-hover: color-mix(in srgb, var(--text-normal) 85%, var(--background-primary));
-  --cool-pill-bg: color-mix(in srgb, var(--background-primary) 80%, var(--text-normal));
-  --cool-chip-bg: var(--background-primary);
-  --cool-chip-on: color-mix(in srgb, var(--text-normal) 14%, var(--background-primary));
+  --cool-tile-bg: color-mix(in srgb, var(--cool-mix) 34%, var(--background-primary));
+  --cool-tile-hover: color-mix(in srgb, var(--cool-mix) 42%, var(--background-primary));
+  --cool-tile-fg: var(--text-normal);
+  --cool-on-accent: var(--text-on-accent);
 }
 
 /* ---------- la barra ---------- */
@@ -53,7 +58,7 @@
 .cool-bar[data-ck="1"] .cool-tool {
   height: 28px; padding: 0 9px; border-radius: 4px; white-space: nowrap;
   background: var(--cool-tile-bg); color: var(--cool-tile-fg);
-  font-size: 13px; font-weight: 800; letter-spacing: .01em; text-transform: uppercase;
+  font-size: 13px; font-weight: 900; letter-spacing: .01em; text-transform: uppercase;
 }
 .cool-bar[data-ck="1"] .cool-tool[data-state="available"]:hover, .cool-bar[data-ck="1"] .cool-fold:hover { background: var(--cool-tile-hover); }
 /* activo: una pestaña del color del panel que baja hasta el borde de la barra y se une con el panel que cuelga de ella */

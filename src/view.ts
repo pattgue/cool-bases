@@ -5,7 +5,7 @@ import { BasesView, Keymap, ListValue, NullValue, parseYaml, TFile } from "obsid
 import type { BasesEntry, BasesPropertyId, Events, QueryController, Value, View } from "obsidian";
 import { clean, clone, str } from "./util";
 import { normalizeModel, storable, getStyle, defaultModel } from "./model";
-import { Facts, renderModel, postRender } from "./render";
+import { Facts, renderModel, postRender, gridSetup } from "./render";
 import { createPanel } from "./panel";
 import type { Panel } from "./panel";
 import { setVars } from "./dom";
@@ -149,6 +149,11 @@ export class CoolBasesView extends BasesView {
     }
     try { this.sheet.css.replaceSync(text); } catch { this.sheet.css.replaceSync(""); }
     if (!text) { const css = this.sheet.css; doc.adoptedStyleSheets = doc.adoptedStyleSheets.filter(x => x !== css); this.sheet = null; }
+  }
+  /* solo las variables de la rejilla (tamaño, separación, márgenes, esquinas, borde): para arrastrar sin repintar */
+  restyle(model: Model) {
+    this.containerEl.querySelectorAll<HTMLElement>(":scope > .cb-grid").forEach(g => gridSetup(g, model, this.cbUid));
+    this.schedulePost();
   }
   schedulePost() {
     window.cancelAnimationFrame(this._postRaf);

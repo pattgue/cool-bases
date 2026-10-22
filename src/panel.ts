@@ -51,7 +51,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   const root = h("aside", { cls: "cb-panel cool-ui", attr: { "aria-label": t("p.title"), "data-ck": KIT_VERSION } },
     h("header", "ph cbp-head",
       h("div", "ph-l", cancelBtn, undoBtn, doneBtn),
-      h("div", "ph-c", h("h2", null, t("p.title")), h("p", "ph-sub", t("p.view") + " ", h("b", null, view.config.name || ""))),
+      h("div", "ph-c", h("h2", null, t("p.title")), h("p", "ph-sub", h("b", null, t("p.view")), " ", h("span", null, view.config.name || ""))),
       h("div", { cls: "ph-r", attr: { role: "toolbar", "aria-label": t("p.styles") } }, presetsBtn, saveBtn, copyBtn)),
     pb);
   host.appendChild(root);
@@ -152,11 +152,24 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     const v = tileVal(path);
     const icon = o.icon ? h("span", "tile-i") : null;
     if (icon && o.icon) setIcon(icon, o.icon);
-    return h("div", { cls: "tile" + (o.cls ? " " + o.cls : "") + (o.dis ? " dis" : ""), attr: { "data-tile": path }, css: path === "card.radius" ? { "--cbp-r": Math.min(v, 18) + "px" } : undefined },
-      h("label", { cls: "tile-l", attr: { for: fid(path) } }, label),
+    const inner = [h("label", { cls: "tile-l", attr: { for: fid(path) } }, label),
       h("span", "tile-pill", h("input", { cls: "num", attr: { type: "text", id: fid(path), "data-p": path, "data-k": "scrub", "data-min": o.min, "data-max": o.max, "data-step": o.step,
         "data-rate": o.rate, "data-axis": o.axis, "data-unit": o.unit, "data-tight": "1", value: fmt(v) + o.unit, spellcheck: "false", inputmode: "decimal", disabled: D(o.dis) } })),
-      icon);
+      icon];
+    return h("div", { cls: "tile" + (o.cls ? " " + o.cls : "") + (o.dis ? " dis" : ""), attr: { "data-tile": path }, css: tileVars(path, v) },
+      path === "card.pad" ? h("div", "tile-guide", inner) : inner);
+  }
+  /* RADIUS enseña su esquina y PADDING su guía, según el valor (con un tope) */
+  function tileVars(path: string, v: number): Record<string, string> | undefined {
+    if (path === "card.radius") return { "--cbp-r": Math.min(v, 18) + "px" };
+    if (path === "card.pad") return { "--cbp-inset": Math.min(3 + v * 0.8, 13) + "px" };
+    return undefined;
+  }
+  /* interruptor con palabra: encendido, en acento y con la bola a la derecha; apagado, en gris, con la otra palabra */
+  function toggle(path: string, on: string, off: string, label: string, cls: string) {
+    const v = !!getP(path);
+    return h("button", { cls: "tgl " + cls, attr: { type: "button", role: "switch", id: fid(path), "data-p": path, "data-k": "bool", "aria-checked": String(v), "aria-label": label } },
+      h("span", "tgl-w", v ? on : off), h("span", "tgl-k"));
   }
   /* el valor de un tile; HEIGHT con una proporción enseña el alto calculado */
   function tileVal(path: string): number {
@@ -165,21 +178,21 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     return getP(path) as number;
   }
   /* GAP: la separación entre las letras es la separación real entre tarjetas (a escala); se arrastra en horizontal */
-  const GAP_K = 0.6, GAP_MAX = 48;
+  const GAP_K = 0.5, GAP_MAX = 48;
   function gapCtl() {
     const g = S().card.gap;
     const L = (x: string) => h("span", { cls: "gap-l", attr: { "aria-hidden": "true" } }, x);
-    const M = () => h("span", { cls: "gap-m", attr: { "aria-hidden": "true" } });
+    const M = (n?: boolean) => h("span", { cls: "gap-m", attr: { "aria-hidden": "true" } }, n ? h("span", "gap-v", String(g)) : null);
     return h("div", { cls: "gapc", attr: { role: "slider", tabindex: 0, id: fid("card.gap"), "data-gap": "card.gap", "aria-label": t("c.gap"), "aria-valuemin": 0, "aria-valuemax": GAP_MAX,
       "aria-valuenow": g, "aria-valuetext": g + " px" }, css: { "--cbp-gap": (g * GAP_K) + "px" } },
-      h("span", "gap-row", L("G"), M(), L("A"), M(), L("P")), h("span", "gap-v", g + "px"));
+      L("G"), M(true), L("A"), M(), L("P"));
   }
   function syncGap() {
     const el = pb.querySelector<HTMLElement>(".gapc"); if (!el) return;
     const g = S().card.gap;
     setVars(el, { "--cbp-gap": (g * GAP_K) + "px" });
     el.setAttribute("aria-valuenow", String(g)); el.setAttribute("aria-valuetext", g + " px");
-    const v = el.querySelector(".gap-v"); if (v) v.textContent = g + "px";
+    const v = el.querySelector(".gap-v"); if (v) v.textContent = String(g);
   }
   /* la mini tarjeta de COLORS: fondo (o degradado), borde, texto y detalles del modelo, en vivo */
   function colorPreview() {
@@ -192,7 +205,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   function syncMini(el?: HTMLElement | null) {
     el = el || pb.querySelector<HTMLElement>(".mini-card"); if (!el) return;
     const s = S(), col = s.col;
-    setVars(el, { "--mc-bg": col.grad ? "linear-gradient(" + col.angle + "deg," + col.bg + "," + col.bg2 + ")" : col.bg, "--mc-text": col.text, "--mc-det": col.det,
+    setVars(el, { "--mc-bg": col.grad ? "linear-gradient(" + col.angle + "deg," + col.bg + "," + col.bg2 + ")" : col.bg, "--mc-text": col.text, "--mc-bgc": col.bg, "--mc-det": col.det,
       "--mc-bw": Math.min(col.bw, 4) + "px", "--mc-bc": col.bc, "--mc-r": Math.min(s.card.radius, 14) + "px", "--mc-ff": fontStack(s.font.family) });
   }
   /* una fila de COLORS: etiqueta (o un interruptor) y su muestra */
@@ -223,28 +236,26 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       /* SIZE: WIDTH y HEIGHT | FILL y proporciones | PADDING y RADIUS; debajo, GAP */
       block("tamano", t("b.size"), h("div", "size-grid",
         h("div", "sz-c1",
-          tile("card.w", t("c.width"), { min: 140, max: 700, step: 1, rate: 1, unit: "px", axis: "x", icon: "move-horizontal" }),
-          tile("card.h", t("c.height"), { min: 40, max: 700, step: 1, rate: 1, unit: "px", axis: "y", icon: "move-vertical", dis: c.fmt !== "libre" || sideOrig })),
+          tile("card.w", t("c.width"), { min: 140, max: 700, step: 1, rate: 2, unit: "px", axis: "x", icon: "move-horizontal", cls: "t-w" }),
+          tile("card.h", t("c.height"), { min: 40, max: 700, step: 1, rate: 2, unit: "px", axis: "y", icon: "move-vertical", cls: "t-h", dis: c.fmt !== "libre" || sideOrig })),
         h("div", "sz-c2",
-          h("button", { cls: "fillb", attr: { type: "button", role: "switch", id: fid("card.fill"), "data-p": "card.fill", "data-k": "bool", "aria-checked": String(!!c.fill), "aria-label": t("c.fillWidth") } },
-            h("span", null, t("c.fill")), h("span", "box")),
+          toggle("card.fill", t("c.fill"), t("c.fixed"), t("c.fillWidth"), "tg-fill"),
           h("div", { cls: "fmts" + (sideOrig ? " dis" : ""), attr: { role: "group", "aria-label": t("c.format") } }, FMTS.map(([v, l]) =>
             h("button", { attr: { type: "button", id: fid("card.fmt=" + v), "data-p": "card.fmt", "data-k": "seg", "data-v": v, "data-vt": "string", "aria-pressed": String(c.fmt === v), disabled: D(sideOrig) } }, l || t("fmt.free"))))),
         h("div", "sz-c3",
-          tile("card.pad", t("c.padShort"), { min: 0, max: 14, step: 0.5, rate: 0.1, unit: "%", axis: "x" }),
-          tile("card.radius", t("c.radiusShort"), { min: 0, max: 40, step: 1, rate: 0.25, unit: "px", axis: "x", cls: "t-radius" })),
+          tile("card.pad", t("c.padShort"), { min: 0, max: 14, step: 0.5, rate: 0.25, unit: "%", axis: "x", cls: "t-pad" }),
+          tile("card.radius", t("c.radiusShort"), { min: 0, max: 40, step: 1, rate: 0.5, unit: "px", axis: "x", cls: "t-radius" })),
         gapCtl())),
       /* COLORS: la mini tarjeta en vivo y, al lado, las muestras */
       block("colores", t("b.colors"), h("div", "colors",
         colorPreview(),
         h("div", "crows",
           crow(t("c.background"), swatch("col.bg")),
-          crow(h("button", { cls: "gchip", attr: { type: "button", role: "switch", id: fid("col.grad"), "data-p": "col.grad", "data-k": "bool", "aria-checked": String(!!col.grad) } },
-            h("span", null, t("c.gradient")), h("span", "box")), swatch("col.bg2", !col.grad), true),
+          crow(toggle("col.grad", t("c.gradient"), t("c.solid"), t("c.gradient"), "tg-grad"), swatch("col.bg2", !col.grad), true),
           crow(t("c.text"), swatch("col.text")),
           crow(t("c.details"), swatch("col.det")),
           crow(t("c.border"), [h("span", "numw bw", h("input", { cls: "num pill-in", attr: { type: "text", id: fid("col.bw"), "data-p": "col.bw", "data-k": "scrub", "data-min": 0, "data-max": 20,
-            "data-step": 1, "data-rate": 0.1, "data-unit": "px", "data-tight": "1", value: fmt(col.bw) + "px", spellcheck: "false", inputmode: "decimal", "aria-label": t("c.border") } })),
+            "data-step": 1, "data-rate": 0.25, "data-unit": "px", "data-tight": "1", value: fmt(col.bw) + "px", spellcheck: "false", inputmode: "decimal", "aria-label": t("c.border") } })),
             swatch("col.bc", col.bw === 0)])))),
       block("fuente", t("b.font"), [
         row(t("c.typeface"), fontBtn("font.family"), "font.family"),
@@ -552,7 +563,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   function setSum(key: string, kids: Kid) { const el = pb.querySelector('[data-sum="' + key + '"]'); if (el) { el.empty(); append(el, [kids]); } }
   function updateSums() {
     const s = S(), c = s.card, im = s.img, sp = imgSrc(s, facts);
-    setSum("tamano", c.w + " px · " + (FMT_L[c.fmt] || t("fmt.free")));
+    setSum("tamano", c.w + " px · " + (FMT_L[c.fmt] || t("fmt.free")).toUpperCase());
     setSum("colores", (["bg", "text", "det"] as const).map(k => h("span", { cls: "dot", css: { "--cbp-dot": s.col[k] } })));
     setSum("fuente", fontLabel(fontName(s.font.family)) + " · " + s.font.weight);
     setSum("imagen", !sp ? t("sum.noImage") : pname(sp) + " · " + t("fit." + im.fit).toLowerCase() + (im.fit === "fondo" ? "" : " · " + t("pos." + im.pos).toLowerCase()));
@@ -567,11 +578,19 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     pb.querySelectorAll<HTMLElement>("[data-tile]").forEach(tl => {
       const p = tl.dataset.tile!, v = tileVal(p), inp = tl.querySelector<HTMLInputElement>("input.num");
       if (inp && document.activeElement !== inp) inp.value = numTxt(inp, v);
-      if (p === "card.radius") setVars(tl, { "--cbp-r": Math.min(v, 18) + "px" });
+      const tv = tileVars(p, v); if (tv) setVars(tl, tv);
     });
     syncMini();
     s.items.concat(s.fitems).forEach(it => { if (textish(it)) setSum("it:" + it.id, sumText(sample(s, it))); });
     undoBtn.disabled = !hist.length;
+  }
+  /* tamaños que solo cambian variables de la rejilla (arrastrar): sin repintar las tarjetas, que va lento con muchas */
+  const LIVE = new Set(["card.w", "card.h", "card.gap", "card.pad", "card.radius", "col.bw"]);
+  let liveRaf = 0;
+  function commitLive(path: string, val: unknown) {
+    if (!LIVE.has(path)) { commit(path, val); return; }
+    pushFor(path); setP(path, val); updateSums();
+    window.cancelAnimationFrame(liveRaf); liveRaf = window.requestAnimationFrame(() => view.restyle(model));
   }
   function commit(path: string, val: unknown, re?: boolean) { pushFor(path); const old = getP(path); setP(path, val); afterChange(path, old); preview(); re ? renderPanel() : updateSums(); }
   function afterChange(path: string, old?: unknown) {
@@ -701,9 +720,9 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       if (!moved) { moved = true; scrubMoved = true; document.body.addClass(y ? "cb-scrubbing-y" : "cb-scrubbing"); }
       e.preventDefault();
       const n = clamp(+(start + Math.round(d * rate / step) * step).toFixed(2), +el.dataset.min!, +el.dataset.max!);
-      commit(p, n); el.value = numTxt(el, n);
+      commitLive(p, n); el.value = numTxt(el, n);
     };
-    const up = () => { document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.body.removeClass("cb-scrubbing", "cb-scrubbing-y"); if (moved) renderPanel(); };
+    const up = () => { document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.body.removeClass("cb-scrubbing", "cb-scrubbing-y"); if (moved) { preview(); renderPanel(); } };
     document.addEventListener("pointermove", mv); document.addEventListener("pointerup", up);
     ev.preventDefault();
   });
@@ -711,15 +730,15 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     const el = ev.target instanceof HTMLElement ? ev.target.closest<HTMLElement>(".gapc") : null; if (!el) return;
     const sx = ev.clientX, start = S().card.gap;
     let moved = false;
-    el.focus();
+    el.focus(); el.addClass("is-drag");
     const mv = (e: PointerEvent) => {
       const d = e.clientX - sx;
       if (!moved && Math.abs(d) < 3) return;
       if (!moved) { moved = true; document.body.addClass("cb-scrubbing"); }
       e.preventDefault();
-      commit("card.gap", clamp(Math.round(start + d / 3), 0, GAP_MAX)); syncGap();
+      commitLive("card.gap", clamp(Math.round(start + d), 0, GAP_MAX)); syncGap();
     };
-    const up = () => { document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.body.removeClass("cb-scrubbing"); };
+    const up = () => { document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.body.removeClass("cb-scrubbing"); el.removeClass("is-drag"); if (moved) preview(); };
     document.addEventListener("pointermove", mv); document.addEventListener("pointerup", up);
     ev.preventDefault();
   }
