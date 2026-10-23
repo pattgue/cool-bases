@@ -167,6 +167,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   /* RADIUS enseña su esquina y PADDING su guía, según el valor (con un tope) */
   function tileVars(path: string, v: number): Record<string, string> | undefined {
     if (path === "card.radius") return { "--cbp-r": Math.min(v, 18) + "px" };
+    if (path === "font.weight") return { "--tl-w": String(clamp(v, 400, 900)) };   // la fuente del panel va de 400 a 900
     if (path === "card.pad") return { "--cbp-inset": (12 * Math.sqrt(Math.max(0, v) / 14)).toFixed(1) + "px" };   // 0 % = sin margen; 5 % ≈ 7 px; 14 % = 12 px
     return undefined;
   }
@@ -191,6 +192,11 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       const cs = getComputedStyle(b), kp = parseFloat(cs.getPropertyValue("--cbp-kp")) || 0, tp = parseFloat(cs.getPropertyValue("--cbp-tp")) || 0;
       const avail = b.clientWidth - k.offsetWidth - kp - tp - 5;          // menos la bola, sus márgenes y un respiro
       b.querySelectorAll<HTMLElement>(".tgl-w").forEach(w => fitEl(w, avail, b));
+    });
+    pb.querySelectorAll<HTMLElement>(".fxb-w, .picto-w").forEach(w => {
+      const b = w.parentElement!; if (!b.offsetWidth) return;
+      const other = [...b.children].filter(x => x !== w).reduce((n, x) => n + (x as HTMLElement).offsetWidth, 0);
+      fitEl(w, b.clientWidth - other - 16, b);
     });
     pb.querySelectorAll<HTMLElement>(".tile:not(.t-wide) > .tile-l").forEach(l => {
       const tl = l.parentElement!; if (!tl.offsetWidth) return;
@@ -241,6 +247,36 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     setVars(el, { "--mc-bg": col.grad ? "linear-gradient(" + col.angle + "deg," + col.bg + "," + col.bg2 + ")" : col.bg, "--mc-text": col.text, "--mc-bgc": col.bg, "--mc-det": col.det,
       "--mc-bw": Math.min(col.bw, 4) + "px", "--mc-bc": col.bc, "--mc-r": Math.min(s.card.radius, 14) + "px", "--mc-ff": fontStack(s.font.family) });
   }
+  /* la mini tarjeta de IMAGE: el ajuste pintado con una imagen de verdad de la vista. La imagen se pulsa para elegir de
+     dónde sale; los bordes, para moverla de lado. */
+  const FITS = ["encajar", "original", "enmarcada", "fondo"];
+  const firstImg = (p: string | null) => p ? ents().map(r => src.imageUrl(r, p)).find(Boolean) || null : null;
+  /* la imagen de muestra (la primera de la vista), para la mini tarjeta y las miniaturas de los efectos */
+  function imgVar(sp: string | null) { const url = firstImg(sp); return url ? 'url("' + url.replace(/"/g, "%22") + '")' : "none"; }
+  function fxFilter(s: Model, f: string): string {
+    const a = ((s.img.amt && s.img.amt[f]) ?? 100) / 100;
+    const base = f === "bn" ? "grayscale(" + a + ")" : f === "inv" ? "invert(" + a + ")" : f === "blur" ? "blur(" + (a * 2.5).toFixed(1) + "px)"
+      : f === "duo" ? (s.img.fx === "duo" ? "url(#cbduo-" + view.cbUid + ")" : "grayscale(1)") : "none";
+    return base;
+  }
+  function imgCard(s: Model, sp: string | null, noImg: boolean) {
+    const im = s.img, col = s.col;
+    const pic = h("button", { cls: "ic-img", attr: { type: "button", "data-src": "1", "aria-haspopup": "menu", "aria-expanded": "false", id: "cbp-imgsrc",
+      "aria-label": t("c.source") + ": " + (sp ? pname(sp) : t("img.none")), title: sp ? pname(sp) : t("img.none") } }, noImg ? h("span", "ic-plus", "+") : null);
+    const edges = ["top", "right", "bottom", "left"].map(p => h("button", { cls: "ic-edge e-" + p, attr: { type: "button", "data-pos": p, "aria-pressed": String(im.pos === p),
+      "aria-label": t("c.position") + ": " + t("pos." + p), title: t("pos." + p), disabled: D(noImg || im.fit === "fondo") } }));
+    return h("div", { cls: "imgcard p-" + im.pos + " f-" + im.fit + (noImg ? " no-img" : "") + (im.grain ? " grain" : "") + (im.fit === "fondo" && im.shade ? " shade" : ""),
+      css: { "--ic-bg": col.bg, "--ic-text": col.text, "--ic-det": col.det,
+        "--ic-filter": (im.fx === "color" ? "" : fxFilter(s, im.fx) + " ") + "brightness(" + im.bright / 100 + ")", "--ic-frame": (im.frame * 0.9).toFixed(1) + "px", "--ic-shade": im.shadeC } },
+      h("div", "ic-in", pic, h("span", "ic-txt", h("i", "l1"), h("i", "l2"), h("i", "l3"))), edges);
+  }
+  function openSrcMenu(anchor: HTMLElement) {
+    const s = S(), cur = imgSrc(s, facts) || "none", ip = imgProps().slice(); if (cur !== "none" && !ip.includes(cur)) ip.unshift(cur);
+    const pick = (v: string) => { closeFp(); commit("img.src", v, true); byId("cbp-imgsrc")?.focus(); };
+    openFp("src", anchor, h("div", { cls: "menu", attr: { role: "menu", "aria-label": t("c.source") } },
+      [...ip.map((p): [string, string] => [p, pname(p)]), ["none", t("img.none")] as [string, string]].map(([v, l]) =>
+        h("button", { attr: { type: "button", role: "menuitemradio", "aria-checked": String(v === cur), "data-src-v": v }, on: { click: () => pick(v) } }, l))));
+  }
   /* tile ancho: la etiqueta a la izquierda y, en la pastilla, un desplegable o el botón de la fuente */
   function wide(label: string, ctl: Kid, path: string) {
     return h("div", "tile t-wide", h("label", { cls: "tile-l", attr: { for: fid(path) } }, label), h("span", "tile-pill", ctl));
@@ -289,7 +325,6 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     const c = s.card, col = s.col, im = s.img, sp = imgSrc(s, facts), noImg = !sp;
     const fondo = im.fit === "fondo";
     const sideOrig = !noImg && im.fit === "original" && (im.pos === "left" || im.pos === "right");
-    const ip = imgProps().slice(); if (sp && !ip.includes(sp)) ip.unshift(sp);
     const fx = im.fx === "color" ? "bn" : im.fx;
     return h("section", "grp", h("div", "grp-h", h("h3", null, t("g.card"))), h("div", "stack",
       /* SIZE: WIDTH y HEIGHT | FILL y proporciones | PADDING y RADIUS; debajo, GAP */
@@ -325,17 +360,26 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
           iconTile("font.align", t("c.alignShort"), [["left", "align-left", t("al.left")], ["center", "align-center", t("al.center")], ["right", "align-right", t("al.right")]])))),
       /* IMAGE: origen | posición y ajuste | sin imagen | MARGIN, INTENSITY y BRIGHTNESS | efecto | grano y degradado */
       block("imagen", t("b.image"), h("div", "mod",
-        wide(t("c.source"), sel("img.src", [...ip.map((p): Opt => [p, pname(p)]), ["none", t("img.none")]], false, sp || "none"), "img.src"),
-        chips("img.pos", t("c.position"), [["top", t("pos.top"), "panel-top"], ["bottom", t("pos.bottom"), "panel-bottom"], ["left", t("pos.left"), "panel-left"], ["right", t("pos.right"), "panel-right"]], 4, noImg || fondo),
-        chips("img.fit", t("c.fit"), [["encajar", t("fit.encajar")], ["original", t("fit.original")], ["enmarcada", t("fit.enmarcada")], ["fondo", t("fit.fondo")]], 2, noImg),
-        chips("img.empty", t("c.ifNoImage"), [["nada", t("empty.nada")], ["iniciales", t("empty.iniciales")], ["hueco", t("empty.hueco")], ["portada", t("empty.portada")]], 2, noImg),
+        h("div", { cls: "imgmod", css: { "--ic-img": imgVar(sp) } },
+          h("div", "img-side", h("span", "chipg-l", t("c.ifNoImage")),
+            h("div", { cls: "pictos" + (noImg ? " dis" : ""), attr: { role: "group", "aria-label": t("c.noImageAria") } },
+              (["nada", "iniciales", "hueco", "portada"] as const).map(e => h("button", { cls: "picto", attr: { type: "button", id: fid("img.empty=" + e), "data-p": "img.empty", "data-k": "seg",
+                "data-v": e, "data-vt": "string", "aria-pressed": String(im.empty === e), disabled: D(noImg) } }, h("span", "pic pic-" + e, e === "iniciales" ? "AB" : null), h("span", "picto-w", t("empty." + e)))))),
+          h("div", "img-mid", imgCard(s, sp, noImg),
+            h("div", { cls: "fit-nav" + (noImg ? " dis" : ""), attr: { role: "group", "aria-label": t("c.fit") } },
+              h("button", { cls: "fit-arr", attr: { type: "button", "data-fitstep": "-1", "aria-label": t("c.fit") + " ‹", disabled: D(noImg) } }, h("span", null, "‹")),
+              h("span", { cls: "fit-name", attr: { "aria-live": "polite" } }, t("fit." + im.fit)),
+              h("button", { cls: "fit-arr", attr: { type: "button", "data-fitstep": "1", "aria-label": t("c.fit") + " ›", disabled: D(noImg) } }, h("span", null, "›")))),
+          h("div", "img-side r", h("span", "chipg-l", t("c.effect")),
+            h("div", { cls: "fxs" + (noImg ? " dis" : ""), attr: { role: "group", "aria-label": t("c.effect") } },
+              (["color", "bn", "duo", "blur", "inv"] as const).map(f => h("button", { cls: "fxb", attr: { type: "button", id: fid("img.fx=" + f), "data-p": "img.fx", "data-k": "seg", "data-v": f, "data-vt": "string",
+                "aria-pressed": String(im.fx === f), disabled: D(noImg) } }, h("span", "fxb-w", t("fx." + f)), h("span", { cls: "fxb-t", css: { "--ic-filter": fxFilter(s, f) } })))),
+            im.fx === "duo" && !noImg ? h("div", "duo-row", swatch("img.duo1"), swatch("img.duo2")) : null)),
         im.empty === "portada" && !noImg ? coverCtl(s) : null,
         h("div", "mod-3",
           tile("img.frame", t("c.margin"), { min: 0, max: 14, step: 0.5, rate: 0.1, unit: "%", axis: "x", dis: noImg || im.fit !== "enmarcada" }),
           tile("img.amt." + fx, t("c.intensity"), { min: 0, max: 100, step: 1, rate: 0.5, unit: "%", axis: "x", dis: noImg || im.fx === "color" }),
           tile("img.bright", t("c.brightness"), { min: 20, max: 140, step: 1, rate: 0.5, unit: "%", axis: "x", dis: noImg })),
-        chips("img.fx", t("c.effect"), [["color", t("fx.color")], ["bn", t("fx.bn")], ["duo", t("fx.duo")], ["blur", t("fx.blur")], ["inv", t("fx.inv")]], 3, noImg,
-          h("div", { cls: "duo" + (noImg || im.fx !== "duo" ? " dis" : ""), attr: { role: "group", "aria-label": t("fx.duo") } }, swatch("img.duo1", noImg || im.fx !== "duo"), swatch("img.duo2", noImg || im.fx !== "duo"))),
         h("div", "mod-2",
           toggle("img.grain", t("c.grain"), t("c.noGrain"), t("c.grain"), "tg-row", noImg),
           h("div", "tg-sw", toggle("img.shade", t("c.shade"), t("c.noShade"), t("c.shade"), "tg-row", noImg || !fondo), swatch("img.shadeC", noImg || !fondo || !im.shade))))),
@@ -730,6 +774,12 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   pb.addEventListener("toggle", ev => { const d = (ev.target as HTMLDetailsElement); if (!d.dataset || !d.dataset.adv) return; const k = "adv:" + d.dataset.adv; d.open ? ui.open.add(k) : ui.open.delete(k); }, true);
   pb.addEventListener("click", ev => {
     const b = ((ev.target as HTMLElement).closest("button") as HTMLButtonElement); if (!b || b.disabled) return;
+    if (b.dataset.fitstep) {
+      const i = FITS.indexOf(S().img.fit), n = FITS[(i + +b.dataset.fitstep + FITS.length) % FITS.length];
+      commit("img.fit", n, true); pb.querySelector<HTMLElement>('[data-fitstep="' + b.dataset.fitstep + '"]')?.focus(); return;
+    }
+    if (b.dataset.pos) { commit("img.pos", b.dataset.pos, true); pb.querySelector<HTMLElement>('[data-pos="' + b.dataset.pos + '"]')?.focus(); return; }
+    if (b.dataset.src) { if (ui.fp && ui.fp.anchorId === b.id) closeFp(); else openSrcMenu(b); return; }
     if (b.dataset.toggle) {
       const k = b.dataset.toggle, open = !ui.open.has(k);
       open ? ui.open.add(k) : ui.open.delete(k);
