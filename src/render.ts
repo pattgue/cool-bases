@@ -344,15 +344,20 @@ const initials = (name: string) => String(name).split(/[\s\-_]+/).filter(w => /[
 /* ---------- sin imagen: portada, iniciales u hueco, en una <img> que ocupa lo mismo que una imagen ---------- */
 let curRatio = 1.5;                                       // alto / ancho de las imágenes de la vista (media); 2:3 si no hay
 const blend = (a: string, b: string, t: number) => { const A = hex6(a), B = hex6(b), c = (i: number) => Math.round(parseInt(A.slice(i, i + 2), 16) * (1 - t) + parseInt(B.slice(i, i + 2), 16) * t).toString(16).padStart(2, "0"); return "#" + c(1) + c(3) + c(5); };
+/* lo que se dibuja en lugar de la imagen (también para la muestra del panel, con un título y un subtítulo de ejemplo) */
+export function coverData(s: Model, title: string, sub: string): CoverData {
+  const im = s.img;
+  if (im.empty === "portada") {
+    const hs = hashStr(title);
+    const [bg, fg] = im.cvColors === "card" ? [hex6(tokCol("det", s)), hex6(s.col.bg)] : COVER_PALETTE[hs % COVER_PALETTE.length];
+    return { kind: "portada", title, sub, bg, fg, shape: im.cvShape === "none" ? -1 : (hs >>> 5) % SHAPE_COUNT, font: fontStack(im.cvFont || "Georgia") };
+  }
+  return { kind: im.empty, title, bg: blend(s.col.bg, s.col.text, 0.06), fg: hex6(tokCol("det", s)), shape: -1, ini: initials(title) };
+}
 function placeholderImg(s: Model, rec: Rec) {
   const im = s.img;
-  let d: CoverData;
-  if (im.empty === "portada") {
-    const hs = hashStr(rec.name);
-    const [bg, fg] = im.cvColors === "card" ? [hex6(tokCol("det", s)), hex6(s.col.bg)] : COVER_PALETTE[hs % COVER_PALETTE.length];
-    const sub = im.cvText ? toArr(rec.get(im.cvText)).map(v => display(clean(v))).filter(Boolean).join(" · ") : "";
-    d = { kind: "portada", title: rec.name, sub, bg, fg, shape: im.cvShape === "none" ? -1 : (hs >>> 5) % SHAPE_COUNT, font: fontStack(im.cvFont || "Georgia") };
-  } else d = { kind: im.empty, title: rec.name, bg: blend(s.col.bg, s.col.text, 0.06), fg: hex6(tokCol("det", s)), shape: -1, ini: initials(rec.name) };
+  const sub = im.empty === "portada" && im.cvText ? toArr(rec.get(im.cvText)).map(v => display(clean(v))).filter(Boolean).join(" · ") : "";
+  const d = coverData(s, rec.name, sub);
   return h("img", { cls: "cb-ph", attr: { alt: rec.name, src: coverSrc(d, curRatio), "data-r": curRatio, "data-cv": JSON.stringify(d), draggable: "false" } });
 }
 export function cardNode(s: Model, rec: Rec, src: Source, facts: Facts): HTMLDivElement {

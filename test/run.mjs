@@ -247,6 +247,22 @@ const BAR_BTN = '.cool-tool[data-tool="cool-bases"]';
   await p.fill(".cb-fp #fpSearch", "My Rare Font");
   await p.press(".cb-fp #fpSearch", "Enter");
   ok("type any font name", (await model()).font.family === "My Rare Font");
+  /* SIZE se enseña en px (el % del ancho de la tarjeta) y se guarda en % */
+  const sz = '.cb-panel input[data-p="font.size"]';
+  const m0 = await model(), px0 = Math.round(m0.font.size * m0.card.w / 100);
+  ok("SIZE shown in px", (await p.inputValue(sz)) === px0 + "px", await p.inputValue(sz));
+  await p.focus(sz); await p.keyboard.press("ArrowUp");
+  const m1 = await model();
+  ok("…ArrowUp adds 1 px, saved as % of the width", Math.abs(m1.font.size * m1.card.w / 100 - (px0 + 1)) < 0.01, m1.font.size + " %");
+  await p.click('.cb-panel button[data-p="font.align"][data-v="justify"]');
+  ok("ALIGN justify", (await model()).font.align === "justify");
+  /* IMAGE: las flechas de cada muestra pasan por el ajuste y por lo que se pinta sin imagen */
+  await p.click('.cb-panel [data-toggle="imagen"]');
+  const f0 = (await model()).img.fit, e0 = (await model()).img.empty;
+  await p.click('.cb-panel [data-fitstep="1"]');
+  ok("IMAGE: the arrows change the fit", (await model()).img.fit !== f0 && await p.evaluate(() => document.activeElement.dataset.fitstep === "1"));
+  await p.click('.cb-panel [data-emptystep="1"]');
+  ok("IMAGE: the arrows change what shows without an image", (await model()).img.empty !== e0 && await p.isVisible('.cb-panel [data-emptystep="1"]'));
 
   await p.click("#addBtn");
   await p.selectOption(".cb-panel #popProp", "note.rating");
