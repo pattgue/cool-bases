@@ -76,6 +76,7 @@ At the top: **Undo** (or Ctrl/Cmd+Z), **Cancel** (or Escape: leaves the view as 
 - **Placement**: each item (the title too, once unlocked) goes between the data or in any of the 9 spots of the card, also over the image. Items in the same spot stack, or share a line if they're joined.
 - Each item has its own typeface, uppercase, color, size, weight, **Fit** (one line, shrinks to fit), space above and below, italic, underline, highlight, strikethrough, superscript, link and hover.
 - Types: **Text**, **Number**, **Smart number** (a follower or listener count that links to the profile), **Tags**, **Link** and **Linked notes** (including the notes that link *to* this one).
+- Formulas from the base work too, including Obsidian icons: a formula with `icon("star")` shows the icon, at the size and color of its item.
 
 ### Decorations
 - **Footer**: a strip at the bottom of the card for links (website, social profiles…).

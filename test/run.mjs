@@ -185,6 +185,27 @@ for (const [hash, name] of [["panel=Books|Shelf", "panel-en-dark"], ["panel=Book
   ok("joined to an empty item: starts its own line", JSON.stringify(alone) === '["note.year"]', JSON.stringify(alone));
   ok("joined to an empty joined item: the chain goes on", JSON.stringify(chained) === '["note.author","note.year"]', JSON.stringify(chained));
 
+  /* iconos de las fórmulas (icon("…")): se dibujan, también en listas y como etiquetas; uno que no existe sale como texto (#6) */
+  const icons = await p.evaluate(() => {
+    window.__formulas = {
+      "formula.mood": (fm, O) => fm.read ? new O.IconValue("check") : new O.StringValue("to read"),
+      "formula.badges": (fm, O) => new O.ListValue([new O.IconValue("star"), new O.StringValue("fav"), new O.IconValue("nope-x")]),
+    };
+    const v = window.__view, m = JSON.parse(JSON.stringify(v.panel.model));
+    const i = m.items.findIndex(x => x.prop === "note.author"), A = m.items[i];
+    m.items.splice(i + 1, 0, Object.assign({}, A, { id: "tM", prop: "formula.mood", type: "texto", join: false, sup: false, before: "" }),
+      Object.assign({}, A, { id: "tT", prop: "formula.badges", type: "etiquetas", join: false, sup: false, before: "", t: Object.assign({}, A.t, { tagStyle: "fill", max: 5 }) }));
+    v.renderCool(m);
+    const moods = [...document.querySelectorAll('.cb-card .cb-i[data-prop="formula.mood"]')];
+    const badge = document.querySelector('.cb-card .cb-i[data-prop="formula.badges"]');
+    const r = { drawn: moods.filter(x => x.querySelector('.cb-icon[data-icon="check"] svg')).length, text: moods.filter(x => x.textContent === "to read").length,
+      leaked: moods.some(x => /\u0000|icon:/.test(x.textContent)), pills: badge ? [...badge.querySelectorAll(".cb-pill")].map(x => x.querySelector(".cb-icon svg") ? "[" + x.querySelector(".cb-icon").dataset.icon + "]" : x.textContent) : null };
+    v.renderCool(v.panel.model);
+    return r;
+  });
+  ok("formula icons are drawn (and plain text stays text)", icons.drawn > 0 && icons.text > 0 && !icons.leaked, JSON.stringify(icons));
+  ok("formula icons inside lists and tags; an unknown icon shows its name", JSON.stringify(icons.pills) === '["[star]","fav","nope-x"]', JSON.stringify(icons.pills));
+
   /* Estados */
   await p.click('.cb-panel [data-toggle="estados"]').catch(() => {});
   await p.waitForTimeout(60);

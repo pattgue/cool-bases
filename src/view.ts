@@ -1,9 +1,9 @@
 /* La vista «cool-bases».
    - Si la vista tiene `coolbases`, se pinta con ese modelo (el que guarda el panel).
    - Si no, con el modelo de fábrica: el título y las propiedades marcadas en «Propiedades» de Bases. */
-import { BasesView, Keymap, ListValue, NullValue, parseYaml, TFile } from "obsidian";
+import { BasesView, IconValue, Keymap, ListValue, NullValue, parseYaml, TFile } from "obsidian";
 import type { BasesEntry, BasesPropertyId, Events, QueryController, Value, View } from "obsidian";
-import { clean, clone, str } from "./util";
+import { clean, clone, str, ICON_MARK } from "./util";
 import { normalizeModel, storable, getStyle, defaultModel } from "./model";
 import { Facts, renderModel, postRender } from "./render";
 import { createPanel } from "./panel";
@@ -175,10 +175,11 @@ export class CoolBasesView extends BasesView {
     if (!v || v instanceof NullValue) return null;
     if (v instanceof ListValue) {
       const a: string[] = [];
-      for (let i = 0; i < v.length(); i++) { const x = v.get(i); if (!x || x instanceof NullValue) continue; const s = clean(x.toString()); if (s && s !== "null") a.push(s); }
+      for (let i = 0; i < v.length(); i++) { const x = v.get(i); if (!x || x instanceof NullValue) continue; const s = clean(x.toString()); if (s && s !== "null") a.push(x instanceof IconValue ? ICON_MARK + s : s); }
       return a.length ? a : null;
     }
-    const s = clean(v.toString()); return s && s !== "null" ? s : null;
+    const s = clean(v.toString()); if (!s || s === "null") return null;
+    return v instanceof IconValue ? ICON_MARK + s : s;   // un icono de una fórmula: se dibuja en la tarjeta
   }
   rec(entry: BasesEntry): Rec {
     const cache = new Map<string, RecValue>();

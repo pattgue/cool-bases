@@ -77,6 +77,8 @@
     const entries = list.map(f => ({ file: f, getValue: p => {
       if (p === "file.name") return new StringValue(f.basename);
       if (p.startsWith("note.")) return toValue(f.fm[p.slice(5)]);
+      /* fórmulas: las que defina un test en window.__formulas, { "formula.x": (frontmatter, valores) => Value } */
+      if (window.__formulas && window.__formulas[p]) return window.__formulas[p](f.fm, window.__obsidian);
       return new NullValue();
     } }));
     const groups = [];
