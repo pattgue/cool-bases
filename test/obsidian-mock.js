@@ -47,6 +47,9 @@
       el.appendText(String(this.v));
     }
   }
+  class IconValue extends StringValue { renderTo(el) { el.appendChild(getIcon(this.v) || document.createTextNode(String(this.v))); } }
+  /* los iconos de Obsidian: un SVG con su nombre; los que empiezan por «nope» no existen */
+  const getIcon = id => { const n = String(id).replace(/^lucide-/, ""); return /^nope/.test(n) ? null : window.createSvg("svg", { cls: "svg-icon lucide-" + n, attr: { viewBox: "0 0 24 24", "data-icon-id": id } }); };
   class ListValue extends Value {
     constructor(a) { super(); this.a = a; }
     length() { return this.a.length; }
@@ -94,7 +97,7 @@
   const MarkdownRenderer = { render: async (app, md, el) => { el.appendText(md); } };
   const getLanguage = () => window.__lang || "en";
   const moment = { locale: () => window.__lang || "en" };
-  window.__obsidian = { Plugin, BasesView, Component, Events, ListValue, NullValue, StringValue, Value, TFile, Notice, Keymap, MarkdownRenderer,
-    parseYaml: s => window.jsyaml.load(s), setIcon: () => {}, toValue, getLanguage, moment };
+  window.__obsidian = { Plugin, BasesView, Component, Events, ListValue, NullValue, StringValue, IconValue, Value, TFile, Notice, Keymap, MarkdownRenderer,
+    parseYaml: s => window.jsyaml.load(s), setIcon: () => {}, getIcon, toValue, getLanguage, moment };
   window.require = name => { if (name === "obsidian") return window.__obsidian; throw new Error("módulo desconocido: " + name); };
 })();

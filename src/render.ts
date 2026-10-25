@@ -4,7 +4,8 @@
    `src` da acceso a los datos: { recs, displayName(p), imageUrl(rec,p), linkTarget(path, from), backlinks(prop, path) }.
    Cada `rec` es { path, name, get(prop) } con los valores ya limpios: null, texto o lista de textos. */
 import { clamp, fmt, toArr, isEmpty, isEmail, isPhone, isURL, isImageURL, clean, parseLink, display, camelSplit,
-  parseCount, starCount, isStarText, fmtNum, siteParts, bareURL, hexA, hex6 } from "./util";
+  parseCount, starCount, isStarText, fmtNum, siteParts, bareURL, hexA, hex6, iconName } from "./util";
+import { getIcon } from "obsidian";
 import type { Value } from "obsidian";
 import { fontStack, textish, framed } from "./model";
 import type { ModelFacts } from "./model";
@@ -111,6 +112,11 @@ function wrapLink(s: Model, it: Item, kids: Kid, rec: Rec): Kid {
   return kids;
 }
 
+/* un icono de Obsidian (el que devuelve icon("…") en una fórmula), del tamaño y el color de su dato; si no existe, su nombre */
+function iconNode(name: string): Kid {
+  const el = getIcon(name) || getIcon("lucide-" + name);
+  return el ? h("span", { cls: "cb-icon", attr: { "data-icon": name, role: "img", "aria-label": name } }, el) : name;
+}
 /* «& co.»: texto tras el máximo, solo si se ha cortado la lista */
 const moreNode = (t: ItemT, cut: boolean) => cut && t.more ? h("span", "cb-more", t.more) : null;
 /* contenido de un dato en una nota (con «texto antes/después»), o null si no hay nada que enseñar */
@@ -137,6 +143,7 @@ export function itemContent(s: Model, it: Item, rec: Rec, src: Source): Document
       const hasLinks = vals.some(v => parseLink(v));
       const parts = vals.map((v): Kid => {
         const l = parseLink(v);
+        const ic = iconName(v); if (ic != null) return iconNode(ic);
         if (l) { const tg = src.linkTarget(l.path, rec.path); return aNote(it, tg ? tg.path : l.path, rec.path, l.text); }
         if (plain) return h("span", "cb-copy", v.replace(/^(mailto|tel):/i, ""));
         return v;
@@ -150,10 +157,11 @@ export function itemContent(s: Model, it: Item, rec: Rec, src: Source): Document
       return frag(B(), wrapLink(s, it, txt, rec), A());
     }
     case "etiquetas": {
-      const all = toArr(raw).map(v => camelSplit(display(v))).filter(v => v && !hidden(v)), arr = all.slice(0, Math.max(1, t.max || 1));
+      const all = toArr(raw).map(v => ({ ic: iconName(v), txt: camelSplit(display(v)) })).filter(v => v.txt && !hidden(v.txt)), arr = all.slice(0, Math.max(1, t.max || 1));
       if (!arr.length) return null;
-      const inner = t.tagStyle === "text" ? joinNodes(arr.map(v => h("span", "cb-tg", v)), t.tsep)
-        : arr.map(v => h("span", "cb-pill " + (t.tagStyle === "fill" ? "fill" : "outline"), v));
+      const tag = (v: { ic: string | null; txt: string }) => v.ic != null ? iconNode(v.ic) : v.txt;
+      const inner = t.tagStyle === "text" ? joinNodes(arr.map(v => h("span", "cb-tg", tag(v))), t.tsep)
+        : arr.map(v => h("span", "cb-pill " + (t.tagStyle === "fill" ? "fill" : "outline"), tag(v)));
       return frag(B(), wrapLink(s, it, inner, rec), moreNode(t, all.length > arr.length), A());
     }
     case "enlace": {
@@ -601,6 +609,7 @@ export function nodeText(n: Node | null): string {
     if (c.nodeName === "BR") { out += " · "; return; }
     const cl = (c as Element).classList;
     if (cl && cl.contains("cb-head")) { out += c.textContent + ": "; return; }
+    if (cl && cl.contains("cb-icon")) { out += (c as Element).getAttribute("data-icon"); return; }
     if (cl && cl.contains("cb-pill") && c.previousSibling && c.previousSibling.nodeName === "SPAN") out += " · ";
     walk(c);
   });

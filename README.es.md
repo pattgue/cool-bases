@@ -76,6 +76,7 @@ Arriba: **Deshacer** (o Ctrl/Cmd+Z), **Cancelar** (o Escape: deja la vista como 
 - **Colocación**: cada dato (también el título, sin candado) va entre los datos o en cualquiera de los 9 puntos de la tarjeta, también sobre la imagen. Los que van al mismo punto se apilan, o comparten línea si están unidos.
 - Cada dato tiene su tipografía, mayúsculas, color, tamaño, peso, **Ajustar** (una sola línea, encoge hasta caber), separación arriba y abajo, cursiva, subrayado, resaltado, tachado, superíndice, enlace y hover.
 - Tipos: **Texto**, **Número**, **Dato inteligente** (un número de seguidores u oyentes que enlaza al perfil), **Etiquetas**, **Enlace** y **Notas enlazadas** (también las notas que enlazan *a* esta).
+- También valen las fórmulas de la base, con los iconos de Obsidian: una fórmula con `icon("star")` enseña el icono, del tamaño y el color de su dato.
 
 ### Decoraciones
 - **Pie**: una franja abajo de la tarjeta para enlaces (web, redes…).

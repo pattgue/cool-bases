@@ -34,7 +34,10 @@ export function parseLink(s: unknown): { path: string; text: string } | null {
   const path = m[1].trim();
   return { path, text: (m[2] || path.split("/").pop()!.replace(/\.md$/i, "")).trim() };
 }
-export const display = (s: unknown): string => { const l = parseLink(s); return l ? l.text : clean(s).replace(/^#/, ""); };
+/* un icono que devuelve una fórmula (icon("…")): viaja como texto con esta marca delante; donde no se puede dibujar, sale su nombre */
+export const ICON_MARK = "\u0000icon:";
+export const iconName = (v: unknown): string | null => typeof v === "string" && v.startsWith(ICON_MARK) ? v.slice(ICON_MARK.length) : null;
+export const display = (s: unknown): string => { const ic = iconName(s); if (ic != null) return ic; const l = parseLink(s); return l ? l.text : clean(s).replace(/^#/, ""); };
 export const camelSplit = (t: string): string => /^[a-z]+[A-Z]/.test(t) ? t.replace(/([a-z])([A-Z])/g, "$1 $2").toLowerCase() : t;
 
 /* «35.400 monthly listeners» -> 35400 · «43 mil seguidores» -> 43000 · «4,1 M» -> 4100000 */

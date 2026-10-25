@@ -34,6 +34,9 @@
 .cb-view .cb-grid.hv-on .cb-card a.cb-a.hv:hover:not(#cb-imp) { color: var(--cb-hc); }
 .cb-view .cb-grid.hv-on.hv-u .cb-card a.cb-a.hv:hover:not(#cb-imp) { text-decoration: underline; }
 .cb-view .cb-card .cb-copy:not(#cb-imp) { text-decoration: none; }
+/* un icono de Obsidian que devuelve una fórmula (icon("…")): del tamaño y el color del texto */
+.cb-view .cb-icon { display: inline-block; line-height: 0; vertical-align: -.125em; }
+.cb-view .cb-icon svg.svg-icon, .cb-view .cb-icon svg { width: 1em; height: 1em; }
 .cb-view .cb-head { display: block; font-size: .72em; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .2em; }
 
 /* botón «Editar tarjeta», arriba a la derecha de la vista */
