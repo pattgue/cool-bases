@@ -222,9 +222,10 @@ body.cb-scrubbing-y:not(#cb-imp), body.cb-scrubbing-y *:not(#cb-imp) { cursor: n
   display: flex; align-items: center; gap: 6px; height: 22px; padding: 0 9px 0 7px; border-radius: var(--r-el);
   background: var(--cool-chip-bg); color: var(--cool-text); font-size: 10.5px; font-weight: 800; text-transform: uppercase;
 }
-.cb-panel .fxb[aria-pressed="true"] { background: var(--cool-chip-on); }
-.cb-panel .fxb:hover:not(:disabled):not([aria-pressed="true"]) { background: var(--cool-pill-bg); }
-.cb-panel .fxs.dis button { opacity: .45; cursor: default; }
+.cb-panel .fxb[aria-checked="true"] { background: var(--cool-chip-on); }
+.cb-panel .fxb:hover:not(:disabled):not([aria-checked="true"]) { background: var(--cool-pill-bg); }
+.cb-panel .fxb:disabled { opacity: .5; cursor: default; }
+.cb-panel .fxb:focus-visible { outline: 2px solid var(--cool-accent); outline-offset: 1px; }
 .cb-panel .fxb-w { white-space: nowrap; font-size: calc(10.5px * var(--cbp-tk, 1)); }
 .cb-panel .fxb-i { flex: none; width: 9px; height: 9px; border-radius: 1.5px; }
 .cb-panel .fx-color { background: conic-gradient(from 45deg, #f2c94c, #eb5757, #bb6bd9, #2f80ed, #27ae60, #f2c94c); }
@@ -285,56 +286,116 @@ body.cb-scrubbing-y:not(#cb-imp), body.cb-scrubbing-y *:not(#cb-imp) { cursor: n
 .cb-panel .pv-arr:disabled { opacity: 0; cursor: default; }
 /* debajo, el nombre de lo elegido */
 .cb-panel .pv-l { display: block; height: 14px; margin-top: 6px; text-align: center; font-size: 11px; line-height: 14px; font-weight: 900; text-transform: uppercase; white-space: nowrap; color: var(--cool-text); }
-/* tiles pequeños de las dos columnas (etiqueta arriba, valor debajo): los del efecto, debajo de los chips; los del FIT,
-   debajo de la muestra y estirados hasta abajo */
+/* ---------- IMAGE: cada control dibuja su valor ----------
+   - INTENSITY, BRIGHTNESS y MARGIN: tu imagen con ese efecto, ese brillo o ese marco; se arrastran como WIDTH
+   - GRAIN: el tile se llena de grano · DUOTONE: tu imagen con sus dos colores · GRADIENT: el degradado sobre tu imagen
+   - POSITION: una tarjeta pequeña; se pulsa el lado · SIN IMAGEN: cada opción, dibujada · PORTADA: se toca en el visor */
+.cb-panel .imgmod.no-src { grid-template-areas: "fx main" "fx mainl"; }
 .cb-panel .fx-tiles { display: flex; flex-direction: column; gap: var(--sp); align-self: stretch; margin-top: 4px; }
 .cb-panel .img-adj { grid-area: adj; align-self: stretch; display: flex; flex-direction: column; gap: var(--sp); min-width: 0; margin-top: 10px; }
-.cb-panel .fx-tiles .tile, .cb-panel .img-adj .tile { flex: 1 1 auto; min-height: 40px; gap: 5px; padding: 6px 7px; }
-.cb-panel .fx-tiles .tile-l, .cb-panel .img-adj .tile-l { --tl-fs: 11px; }
-.cb-panel .fx-tiles .tile-pill, .cb-panel .img-adj .tile-pill { align-self: stretch; }
-.cb-panel .fx-tiles input.num, .cb-panel .img-adj input.num { width: 100%; height: 17px; font-size: 9.5px; }
-.cb-panel .fx-tiles .tg-pill, .cb-panel .img-adj .tg-pill { align-self: stretch; width: auto; height: 17px; }
-.cb-panel .img-adj .t-sw > .swc, .cb-panel .t-sws .swc { padding: 0; border: 0; border-radius: var(--r-in); overflow: hidden; }
-.cb-panel .img-adj .t-sw > .swc { align-self: stretch; width: auto; height: 17px; }
-.cb-panel .img-adj .swc .fill, .cb-panel .t-sws .swc .fill { display: block; width: 100%; height: 100%; }
-.cb-panel .swc:disabled { opacity: .35; }
-.cb-panel .t-sws { display: flex; gap: 4px; align-self: stretch; }
-.cb-panel .t-sws .swc { flex: 1 1 0; height: 17px; }
-.cb-panel .t-head .t-sws { flex: none; align-self: center; }
-.cb-panel .t-head .t-sws .swc { width: 20px; height: 11px; flex: none; }
-.cb-panel .t-sw { cursor: default; }
-/* POSICIÓN: cuatro iconos en la pastilla */
-.cb-panel .t-stack.t-icons .tile-pill.icons { display: flex; width: auto; height: 22px; }
-.cb-panel .t-stack.t-icons .icons button svg { width: 14px; height: 14px; stroke-width: 2.2; }
-/* SIN IMAGEN: qué se pinta (fila ancha); debajo, el visor | lo que construye la portada */
-.cb-panel .t-mode { grid-area: mode; margin-top: 10px; }
+.cb-panel .fx-tiles .tile, .cb-panel .img-adj .tile { flex: 1 1 auto; min-height: 44px; gap: 5px; padding: 7px; }
+.cb-panel .fx-tiles .tile-l, .cb-panel .img-adj .tile-l { --tl-fs: 12px; }
+/* sobre tu imagen: la imagen va detrás (con su filtro), un velo para leer y, encima, la etiqueta y el valor en blanco */
+.cb-panel .tile.t-img, .cb-panel .tile.t-duo, .cb-panel .tile.t-shade { position: relative; overflow: hidden; background: #161616; color: #fff; }
+.cb-panel .tile-img { position: absolute; inset: 0; border-radius: inherit; background: var(--ic-img) center / cover no-repeat; filter: var(--ts-f, none); pointer-events: none; }
+.cb-panel .t-img .tile-img::after, .cb-panel .t-duo .tile-img::after { content: ""; position: absolute; inset: 0; border-radius: inherit; background: linear-gradient(rgba(0, 0, 0, .2), rgba(0, 0, 0, .5)); }
+.cb-panel .t-img > .tile-l, .cb-panel .t-img > .tile-pill, .cb-panel .t-duo > .tile-l, .cb-panel .t-shade > .tile-l { position: relative; color: #fff; text-shadow: 0 1px 3px rgba(0, 0, 0, .7); }
+.cb-panel .t-img input.num { width: 58px; height: 17px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 10px; font-weight: 600; }
+/* MARGIN: tu imagen enmarcada con ese margen (como la guía del PADDING) */
+.cb-panel .tile.t-frame { background: var(--cool-tile-bg); }
+.cb-panel .t-frame .tile-img { inset: var(--cbp-inset, 6px); border-radius: var(--r-in); transition: inset .12s; }
+/* GRAIN: un interruptor que se llena de grano */
+.cb-panel .tile.t-grain { position: relative; overflow: hidden; cursor: pointer; }
+.cb-panel .t-grain::before { content: ""; position: absolute; inset: 0; background: var(--cbp-noise) 0 0 / 90px; opacity: 0; mix-blend-mode: multiply; transition: opacity .2s; pointer-events: none; }
+.cb-panel .t-grain[aria-checked="true"]::before { opacity: .9; }
+.cb-panel .t-grain > * { position: relative; }
+.cb-panel .t-state { display: grid; place-items: center; width: 44px; height: 17px; border-radius: var(--r-in); background: var(--cool-pill-bg); color: var(--cool-pill-fg); font-size: 9.5px; font-weight: 900; text-transform: uppercase; }
+.cb-panel .t-grain[aria-checked="true"] .t-state { background: var(--cool-accent); color: var(--cool-on-accent); }
+.cb-panel .t-grain:hover:not(:disabled) { background: var(--cool-tile-hover); }
+/* puntos de color (DUOTONE, GRADIENT, colores propios de la portada) */
+.cb-panel .t-dots { position: relative; display: flex; justify-content: center; gap: 8px; }
+.cb-panel .t-dots .swc { width: 18px; height: 18px; padding: 0; border: 2px solid #fff; border-radius: 50%; overflow: hidden; box-shadow: 0 0 0 1px rgba(0, 0, 0, .35), 0 1px 3px rgba(0, 0, 0, .4); }
+.cb-panel .t-dots .swc .fill { display: block; width: 100%; height: 100%; }
+.cb-panel .t-dots .swc:disabled { opacity: .4; }
+/* POSITION: tarjeta pequeña (tus colores); la imagen va al lado elegido; cada triángulo es un lado que se pulsa */
+.cb-panel .tile.t-pos { cursor: default; justify-content: center; }
+.cb-panel .pos-card { position: relative; width: 100%; max-width: 132px; aspect-ratio: 4 / 3; border-radius: var(--r-in); overflow: hidden; background: var(--pc-bg); box-shadow: 0 0 0 1px var(--cool-border); }
+.cb-panel .pos-img { position: absolute; background: var(--ic-img) center / cover no-repeat; box-shadow: inset 0 0 0 2px var(--cool-accent); transition: inset .25s cubic-bezier(.3, 1.2, .5, 1); }
+.cb-panel .p-top .pos-img { inset: 0 0 50% 0; } .cb-panel .p-bottom .pos-img { inset: 50% 0 0 0; }
+.cb-panel .p-left .pos-img { inset: 0 55% 0 0; } .cb-panel .p-right .pos-img { inset: 0 0 0 55%; }
+.cb-panel .pos-txt { position: absolute; display: flex; flex-direction: column; justify-content: center; gap: 3px; padding: 0 9%; transition: inset .25s cubic-bezier(.3, 1.2, .5, 1); }
+.cb-panel .p-top .pos-txt { inset: 50% 0 0 0; } .cb-panel .p-bottom .pos-txt { inset: 0 0 50% 0; }
+.cb-panel .p-left .pos-txt { inset: 0 0 0 45%; } .cb-panel .p-right .pos-txt { inset: 0 45% 0 0; }
+.cb-panel .pos-txt i { display: block; height: 3px; border-radius: 2px; background: var(--pc-tx); }
+.cb-panel .pos-txt i:nth-child(1) { width: 80%; } .cb-panel .pos-txt i:nth-child(2) { width: 55%; opacity: .7; } .cb-panel .pos-txt i:nth-child(3) { width: 35%; background: var(--pc-det); }
+.cb-panel .pos-z { position: absolute; inset: 0; padding: 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; cursor: pointer; }
+.cb-panel .z-top { clip-path: polygon(0 0, 100% 0, 50% 50%); } .cb-panel .z-bottom { clip-path: polygon(0 100%, 100% 100%, 50% 50%); }
+.cb-panel .z-left { clip-path: polygon(0 0, 0 100%, 50% 50%); } .cb-panel .z-right { clip-path: polygon(100% 0, 100% 100%, 50% 50%); }
+.cb-panel .pos-z:hover:not([aria-checked="true"]), .cb-panel .pos-z:focus-visible { background: color-mix(in srgb, var(--cool-accent) 40%, transparent); }
+.cb-panel .pos-z:focus-visible { outline: none; }
+/* GRADIENT (FONDO): el degradado, sobre tu imagen; se pulsa el tile; el punto es su color */
+.cb-panel .tile.t-shade { justify-content: flex-end; min-height: 90px; }
+.cb-panel .shade-ov { position: absolute; inset: 25% 0 0; background: linear-gradient(transparent, var(--sh-c)); opacity: 0; transition: opacity .25s; pointer-events: none; }
+.cb-panel .t-shade.on .shade-ov { opacity: 1; }
+.cb-panel .t-hit { position: absolute; inset: 0; z-index: 1; padding: 0; border: 0; border-radius: inherit; background: transparent; box-shadow: none; cursor: pointer; }
+.cb-panel .t-hit:hover { background: rgba(255, 255, 255, .06); }
+.cb-panel .t-hit:focus-visible { outline: 2px solid var(--cool-accent); outline-offset: -2px; }
+.cb-panel .t-shade > .tile-l { pointer-events: none; }
+.cb-panel .t-shade > .t-dots { position: absolute; top: 7px; right: 7px; z-index: 2; }
+/* SIN IMAGEN: cuatro tarjetas pequeñas con tus colores, cada una con lo que pinta */
+.cb-panel .modes { grid-area: mode; display: flex; flex-direction: column; gap: 5px; margin-top: 14px; }
+.cb-panel .modes-l { font-size: 10px; font-weight: 800; letter-spacing: .02em; text-transform: uppercase; color: var(--cool-muted); }
+.cb-panel .modes-b { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--sp); }
+.cb-panel .mode {
+  display: flex; flex-direction: column; align-items: center; gap: 5px; height: auto; padding: 6px 6px 5px; border-radius: var(--r-el);
+  background: var(--cool-chip-bg); color: var(--cool-text); box-shadow: none; font-size: 9.5px; font-weight: 800; text-transform: uppercase;
+}
+.cb-panel .mode:hover:not([aria-checked="true"]) { background: var(--cool-pill-bg); }
+.cb-panel .mode[aria-checked="true"] { background: var(--cool-tile-bg); color: var(--cool-tile-fg); box-shadow: 0 0 0 2px var(--cool-accent); }
+.cb-panel .mode:focus-visible { outline: 2px solid var(--cool-accent); outline-offset: 2px; }
+.cb-panel .mode-w { white-space: nowrap; }
+.cb-panel .mode-pic { position: relative; width: 100%; aspect-ratio: 3 / 4; border-radius: 3px; overflow: hidden; background: var(--pc-bg); box-shadow: 0 0 0 1px var(--cool-border); }
+.cb-panel .mode-pic::before { content: ""; position: absolute; inset: 0 0 45%; background: var(--mp-img) center / cover no-repeat; }
+.cb-panel .mode-pic i { position: absolute; left: 14%; height: 3px; border-radius: 2px; background: var(--pc-tx); }
+.cb-panel .mode-pic i:first-child { top: 66%; width: 72%; } .cb-panel .mode-pic i:last-child { top: 79%; width: 44%; background: var(--pc-det); }
+.cb-panel .m-nada::before { display: none; }
+.cb-panel .m-nada i:first-child { top: 42%; } .cb-panel .m-nada i:last-child { top: 55%; }
+/* PORTADA: el visor; el título, la forma y el texto de abajo se tocan ahí (marcados con un trazo) */
 .cb-panel .cv-view {
-  grid-area: cov; align-self: start; margin-top: var(--sp); aspect-ratio: 1 / 1.62; border-radius: var(--r-in);
+  grid-area: cov; position: relative; align-self: stretch; margin-top: 10px; min-height: 160px; border-radius: var(--r-in);
   background: var(--cool-letter-bg) var(--cv-img) center / cover no-repeat; box-shadow: 0 0 0 1px var(--cool-border);
 }
-.cb-panel .cv-view.e-nada { background: transparent; box-shadow: none; border: 1.5px dashed var(--cool-border); }
-.cb-panel .cv-view.dis { opacity: .45; }
-.cb-panel .cv-set { grid-area: cset; align-self: stretch; display: flex; flex-direction: column; gap: var(--sp); min-width: 0; margin-top: var(--sp); }
-.cb-panel .tile.t-stack { flex: 1 1 auto; min-height: 0; align-items: stretch; justify-content: center; gap: 5px; padding: 5px 7px; cursor: default; }
-.cb-panel .t-head { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; }
-.cb-panel .t-head:has(.t-sws) { justify-content: space-between; }
-.cb-panel .t-stack .tile-l { --tl-fs: 11px; text-align: center; }
-.cb-panel .t-stack .tile-pill { display: block; min-width: 0; }
-.cb-panel .t-stack select, .cb-panel .t-stack .fontb {
-  display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; height: 19px; padding: 0 6px; margin: 0; border: 0; border-radius: var(--r-in);
-  background: var(--cool-pill-bg); color: var(--cool-pill-fg); font-size: 10px; font-weight: 400; box-shadow: none; text-align: left; cursor: pointer;
+.cb-panel .cv-hot {
+  position: absolute; left: 6%; right: 6%; padding: 0; border: 1.5px dashed rgba(255, 255, 255, .55); border-radius: var(--r-in);
+  background: transparent; box-shadow: 0 0 0 1px rgba(0, 0, 0, .12); cursor: pointer; transition: background-color .15s, border-color .15s;
 }
-.cb-panel .t-stack .fontb .cbp-ff { flex: 1; min-width: 0; font-size: 11px; color: var(--cool-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.cb-panel .t-stack .fontb .caret { flex: none; display: grid; place-items: center; color: var(--cool-pill-fg); }
-.cb-panel .t-stack .fontb .caret svg { width: 11px; height: 11px; stroke-width: 2.6; }
-.cb-panel .segp { display: flex; gap: 2px; height: 19px; padding: 2px; border-radius: var(--r-in); background: var(--cool-pill-bg); }
-.cb-panel .segp button { flex: 1 1 0; min-width: 0; display: grid; place-items: center; padding: 0 2px; border-radius: 2px; font-size: 8.5px; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; color: var(--cool-pill-fg); }
-.cb-panel .segp button[aria-pressed="true"] { background: var(--cool-tile-fg); color: var(--cool-tile-bg); }
-.cb-panel .segp svg { width: 11px; height: 11px; }
-.cb-panel .segp .seg-ic { display: grid; place-items: center; }
-.cb-panel .segp .seg-ic svg { stroke-width: 2.4; }
-.cb-panel .t-stack.dis button, .cb-panel .t-stack.dis select, .cb-panel .t-mode.dis button { cursor: default; }
-.cb-panel .tile.dis .segp, .cb-panel .tile.dis .t-sws { opacity: .7; }
-/* SÍ / NO dentro de un tile */
-.cb-panel .tg-pill { width: 72px; height: 15px; border-radius: var(--r-in); background: var(--cool-pill-bg); color: var(--cool-pill-fg); --cbp-fs: 9.5px; --cbp-tp: 7px; --cbp-k: 9px; --cbp-kp: 3px; --cbp-kr: 2px; }
+.cb-panel .h-title { top: 5%; height: 21%; } .cb-panel .h-shape { top: 30%; bottom: 21%; } .cb-panel .h-sub { bottom: 3%; height: 12%; }
+.cb-panel .cv-hot:hover, .cb-panel .cv-hot:focus-visible, .cb-panel .cv-hot[aria-expanded="true"] { border: 2px solid var(--cool-accent); background: color-mix(in srgb, var(--cool-accent) 14%, transparent); outline: none; }
+.cb-panel .cv-tag {
+  position: absolute; top: 2px; left: 2px; padding: 1px 4px; border-radius: 2px; background: var(--cool-accent); color: var(--cool-on-accent);
+  font-family: var(--cool-font); font-size: 7.5px; font-weight: 800; line-height: 10px; text-transform: uppercase; white-space: nowrap; opacity: 0; transition: opacity .15s; pointer-events: none;
+}
+.cb-panel .cv-hot:hover .cv-tag, .cb-panel .cv-hot:focus-visible .cv-tag, .cb-panel .cv-hot[aria-expanded="true"] .cv-tag { opacity: 1; }
+/* al lado: FONT (las letras en esa fuente), COLORS (tres portadas pequeñas) y SHAPE (las formas dibujadas) */
+.cb-panel .cv-set { grid-area: cset; align-self: stretch; display: flex; flex-direction: column; gap: var(--sp); min-width: 0; margin-top: 10px; }
+.cb-panel .cv-set .tile { flex: 1 1 auto; min-height: 0; gap: 5px; padding: 6px 7px; cursor: default; }
+.cb-panel .cv-set .tile-l { --tl-fs: 11px; }
+.cb-panel .tile.t-font { cursor: pointer; gap: 2px; }
+.cb-panel .t-font:hover:not(:disabled) { background: var(--cool-tile-hover); }
+.cb-panel .t-font:focus-visible { outline: 2px solid var(--cool-accent); outline-offset: 1px; }
+.cb-panel .t-aa { font-family: var(--sw-ff); font-size: 27px; line-height: 1.05; color: var(--cool-tile-fg); }
+.cb-panel .t-fname { max-width: 100%; font-size: 9px; font-weight: 700; color: var(--cool-tile-fg); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cb-panel .cv-opts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; width: 100%; }
+.cb-panel .cv-opts.shapes { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.cb-panel .cv-opt { display: grid; place-items: center; height: auto; min-height: 22px; padding: 3px; border: 0; border-radius: var(--r-in); background: transparent; color: var(--cool-tile-fg); box-shadow: none; cursor: pointer; }
+.cb-panel .cv-opt:hover:not([aria-checked="true"]) { background: var(--cool-tile-hover); }
+.cb-panel .cv-opt[aria-checked="true"] { background: var(--cool-tile-fg); color: var(--cool-tile-bg); box-shadow: 0 0 0 2px var(--cool-accent); }
+.cb-panel .cv-opt:focus-visible { outline: 2px solid var(--cool-accent); outline-offset: 1px; }
+.cb-panel .cv-opt svg { width: 15px; height: 15px; }
+.cb-panel .cv-ic { display: grid; place-items: center; } .cb-panel .cv-ic svg { stroke-width: 2.4; }
+.cb-panel .cv-sw { display: grid; place-items: center; width: 100%; height: 22px; border-radius: 2px; background: var(--sw-bg); color: var(--sw-fg); font-family: var(--sw-ff); font-size: 11px; line-height: 1; }
+.cb-panel .cv-fan { position: relative; display: block; width: 100%; height: 22px; }
+.cb-panel .cv-fan .cv-sw { position: absolute; top: 0; width: 70%; box-shadow: 0 1px 2px rgba(0, 0, 0, .3); }
+.cb-panel .cv-fan .cv-sw:nth-child(1) { left: 0; transform: rotate(-9deg); } .cb-panel .cv-fan .cv-sw:nth-child(2) { left: 30%; transform: rotate(9deg); }
+.cb-panel .cv-fan .cv-sw:nth-child(3) { left: 15%; }
 .cb-fp .menu [data-src-v] { display: block; width: 100%; text-align: left; }

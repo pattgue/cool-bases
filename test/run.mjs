@@ -261,9 +261,15 @@ const BAR_BTN = '.cool-tool[data-tool="cool-bases"]';
   const f0 = (await model()).img.fit;
   await p.click('.cb-panel [data-fitstep="1"]');
   ok("IMAGE: the arrows change the fit", (await model()).img.fit !== f0 && await p.evaluate(() => document.activeElement.dataset.fitstep === "1"));
-  /* sin imagen: qué se pinta, el visor y, al lado, lo que construye la portada (forma fija y colores propios incluidos) */
+  /* sin imagen: cada opción dibujada; con la portada, el visor (título, forma y texto se tocan ahí) y sus ajustes al lado */
   await p.click('.cb-panel #cbp-img-empty-portada');
-  ok("IMAGE: cover viewer with its settings", await p.isVisible(".cb-panel .cv-view.e-portada") && await p.isVisible('.cb-panel .cv-set select[data-p="img.cvText"]'));
+  ok("IMAGE: cover viewer with its settings", await p.isVisible(".cb-panel .cv-view .h-shape") && await p.isVisible(".cb-panel .cv-set .t-font"));
+  const sh0 = (await model()).img.cvShape;
+  await p.click(".cb-panel .cv-view .h-shape");
+  ok("IMAGE: touching the shape on the cover changes it", (await model()).img.cvShape !== sh0 && await p.evaluate(() => !!document.activeElement.dataset.cvshape));
+  await p.click(".cb-panel .cv-view .h-sub");
+  await p.click('.cb-fp [data-src-v=""]');
+  ok("IMAGE: the bottom text is chosen on the cover", (await model()).img.cvText === "");
   await p.click('.cb-panel #cbp-img-cvShape-2');
   await p.click('.cb-panel #cbp-img-cvColors-own');
   await p.waitForTimeout(100);
@@ -271,7 +277,8 @@ const BAR_BTN = '.cool-tool[data-tool="cool-bases"]';
   const mc = await model();
   ok("IMAGE: a fixed shape and own colors reach the cards", cv.shape === 2 && cv.bg === mc.img.cvBg && cv.fg === mc.img.cvFg, JSON.stringify([cv.shape, cv.bg, cv.fg]));
   await p.click('.cb-panel #cbp-img-empty-nada');
-  ok("IMAGE: «None» disables the cover settings", await p.isDisabled('.cb-panel #cbp-img-cvShape-auto') && await p.isVisible(".cb-panel .cv-view.e-nada"));
+  ok("IMAGE: without the cover, its viewer and settings go away", !(await p.isVisible(".cb-panel .cv-view")) && !(await p.isVisible(".cb-panel .cv-set")));
+  ok("IMAGE: intensity only with an effect", !(await p.isVisible('.cb-panel [data-tile^="img.amt."]')) || (await model()).img.fx !== "color");
 
   await p.click("#addBtn");
   await p.selectOption(".cb-panel #popProp", "note.rating");
