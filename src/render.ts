@@ -310,34 +310,51 @@ const lineNode = (it: Item) => h("div", { cls: "cb-l cb-lp" + (it.fit ? " fit" :
   css: { "--cb-l-pt": +it.spaceT || 0, "--cb-l-pb": +it.spaceB || 0, "--cb-l-fs": "calc(var(--k,1)*" + (it.size == null ? "var(--cb-fs)" : it.size) + "*1cqi)" } });
 function itemSpan(s: Model, it: Item, content: Kid) { return styleItem(h("span", { cls: "cb-i", attr: { "data-prop": it.prop } }, content), s, it); }
 interface Line { it: Item; parts: Node[]; rate?: boolean; st?: boolean }
-function bodyNodes(s: Model, rec: Rec, src: Source, facts: Facts): Node[] {
-  const out: (Node | Line)[] = []; let line: Line | null = null, last: Line | null = null, skipped = false;
+/* un dato (o el título) colocado en uno de los 9 puntos de la tarjeta, como la valoración y los estados */
+export const placed = (it: Item): boolean => textish(it) && !!it.place && it.place !== "entre";
+interface Float { it: Item; img: boolean; lines: Line[] }
+interface PlacedData { it: Item; img: boolean; nodes: Node[] }
+/* Las líneas de datos. Cada dato va a su sitio: entre los datos («entre») o a uno de los 9 puntos (con los demás
+   de ese punto, apilados). Un dato unido se pega a la línea del anterior solo si los dos están en el mismo sitio;
+   si el dato que empezaba la línea no sale en esta nota (vacío, o colocado en otro sitio), el siguiente no se pega
+   a la línea de antes: empieza la suya. Una regla también corta. */
+function bodyNodes(s: Model, rec: Rec, src: Source, facts: Facts, onImg: boolean): { flow: Node[]; floats: PlacedData[] } {
+  const flow: (Node | Line)[] = [], floats = new Map<string, Float>();
+  const open = new Map<string, Line>();            // la línea abierta de cada sitio
+  let chain: string | null = null;                 // el sitio de la línea a la que se pegaría el siguiente dato unido
   const node = (l: Line) => l.rate ? h("div", "cb-rl", l.parts) : l.st ? h("div", "cb-stl", l.parts) : append(lineNode(l.it), l.parts);
-  const flush = () => { if (line) { out.push(line); last = line; line = null; } };
+  const startLine = (g: string, l: Line) => {
+    open.set(g, l); chain = g;
+    if (g === "entre") { flow.push(l); return; }
+    if (!floats.has(g)) floats.set(g, { it: l.it, img: g.endsWith("+img"), lines: [] });
+    floats.get(g)!.lines.push(l);
+  };
   for (const it of s.items) {
-    if (it.kind === "line") { if (s.lines.on) { flush(); out.push(ruleNode(s)); } continue; }
+    if (it.kind === "line") { if (s.lines.on) { open.delete("entre"); chain = null; flow.push(ruleNode(s)); } continue; }
+    const joined = !!(it.join || it.sup);
     if (it.kind === "state" || it.kind === "rating") {       // estado o valoración «entre los datos»: su propia línea
       const st = it.kind === "state" ? stateOf(s, it.sid) : null;
       const on = it.kind === "state" ? s.states.on && st && st.place === "entre" : s.rate.on && s.rate.place === "entre";
-      if (on) {
-        const n = it.kind === "state" ? stateNode(s, st, rec) : rateNode(s, rec, facts), to = line || (skipped && last);
-        if (!n) skipped = true;
-        else { if (it.join && to) to.parts.push(...decoSep(it), n); else { flush(); line = it.kind === "state" ? { it, st: true, parts: [n] } : { it, rate: true, parts: [n] }; } skipped = false; }
-      }
+      if (!on) continue;
+      const n = it.kind === "state" ? stateNode(s, st, rec) : rateNode(s, rec, facts);
+      if (!n) { if (!joined) chain = null; continue; }
+      const to = chain === "entre" ? open.get("entre") : undefined;
+      if (it.join && to) to.parts.push(...decoSep(it), n);
+      else startLine("entre", it.kind === "state" ? { it, st: true, parts: [n] } : { it, rate: true, parts: [n] });
       continue;
     }
-    const c = itemContent(s, it, rec, src); if (c == null) continue;
-    const to = line || (skipped && last);                 // sin valoración en esta nota, se pega a la última línea de texto
+    const g = placed(it) ? it.place + (it.onImg && onImg ? "+img" : "") : "entre";
+    const c = itemContent(s, it, rec, src);
+    if (c == null) { if (!joined) chain = null; continue; }
+    const to = chain === g ? open.get(g) : undefined;
     if (it.sup && to && !to.rate && !to.st) {
       const sup = styleItem(h("sup", { cls: "cb-sup", css: { "--cb-sep-g": it.gap } }, c), s, it, true);
       to.parts[to.parts.length - 1].appendChild(sup);
     }
     else if (it.join && to) to.parts.push(...sepNode(s, it), itemSpan(s, it, c));
-    else { flush(); line = { it, parts: [itemSpan(s, it, c)] }; }
-    skipped = false;
+    else startLine(g, { it, parts: [itemSpan(s, it, c)] });
   }
-  flush();
-  return out.map(x => x instanceof Node ? x : node(x));
+  return { flow: flow.map(x => x instanceof Node ? x : node(x)), floats: [...floats.values()].map(f => ({ it: f.it, img: f.img, nodes: f.lines.map(node) })) };
 }
 const append = <E extends HTMLElement>(el: E, kids: Node[]): E => { el.append(...kids); return el; };
 const initials = (name: string) => String(name).split(/[\s\-_]+/).filter(w => /[\p{L}\d]/u.test(w)).slice(0, 2).map(w => w[0]).join("").toUpperCase();
@@ -371,21 +388,26 @@ export function cardNode(s: Model, rec: Rec, src: Source, facts: Facts): HTMLDiv
     const n = rateNode(s, rec, facts);
     if (n) { floatOnImg = !!(s.rate.onImg && media && fit !== "fondo"); rateFloat = floatBox(s.rate); rateFloat.appendChild(n); }
   }
-  /* estados en uno de los 9 puntos: los de un mismo punto, apilados */
+  const body = bodyNodes(s, rec, src, facts, !!media && fit !== "fondo");
+  /* estados y datos colocados en uno de los 9 puntos: los de un mismo punto, apilados (primero los estados) */
   const stCard: HTMLDivElement[] = [], stImg: HTMLDivElement[] = [];
+  const groups = new Map<string, { at: { place: string; mx: number; my: number }; img: boolean; ns: Node[] }>();
+  const add = (k: string, at: { place: string; mx: number; my: number }, img: boolean, ns: Node[]) => {
+    if (!groups.has(k)) groups.set(k, { at, img, ns: [] });
+    groups.get(k)!.ns.push(...ns);
+  };
   if (s.states.on) {
-    const groups = new Map<string, { st: State; img: boolean; ns: HTMLSpanElement[] }>();
     for (const st of s.states.list) {
       if (st.place === "entre") continue;
       const n = stateNode(s, st, rec); if (!n) continue;
-      const img = !!(st.onImg && media && fit !== "fondo"), k = st.place + (img ? "+img" : "");
-      if (!groups.has(k)) groups.set(k, { st, img, ns: [] });
-      groups.get(k)!.ns.push(n);
+      const img = !!(st.onImg && media && fit !== "fondo");
+      add(st.place + (img ? "+img" : ""), st, img, [n]);
     }
-    for (const g of groups.values()) {
-      const box = append(floatBox(g.st, " cb-stg al-" + g.st.place[1]), g.ns);
-      (g.img ? stImg : stCard).push(box);
-    }
+  }
+  for (const f of body.floats) add(f.it.place + (f.img ? "+img" : ""), f.it, f.img, f.nodes);
+  for (const g of groups.values()) {
+    const box = append(floatBox(g.at, " cb-stg al-" + g.at.place[1]), g.ns);
+    (g.img ? stImg : stCard).push(box);
   }
   if (media) { if (floatOnImg) media.appendChild(rateFloat!); media.append(...stImg); }
   let foot: HTMLDivElement | null = null;
@@ -395,7 +417,7 @@ export function cardNode(s: Model, rec: Rec, src: Source, facts: Facts): HTMLDiv
     if (lines.length) foot = h("div", "cb-foot", lines);
   }
   return h("div", "cb-cell", h("article", { cls: "cb-card f-" + fit + " p-" + pos, attr: { tabindex: 0, "data-path": rec.path } },
-    h("div", "cb-in", h("div", "cb-main", media, h("div", "cb-body", bodyNodes(s, rec, src, facts))), foot),
+    h("div", "cb-in", h("div", "cb-main", media, h("div", "cb-body", body.flow)), foot),
     floatOnImg ? null : rateFloat, stCard));
 }
 

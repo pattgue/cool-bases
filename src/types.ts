@@ -41,6 +41,8 @@ export interface Item {
   font: string | null; upper: boolean; color: Tok; size: number | null; weight: number | null; fit: boolean; spaceT: number; spaceB: number;
   ital: boolean; under: boolean; hl: boolean; hlc: string; strike: boolean; sup: boolean; link: string; hover: boolean;
   before: string; after: string; hide: string; join: boolean; sep: string; gap: number; t: ItemT;
+  place: string; onImg: boolean; mx: number; my: number;   // dónde va: «entre» los datos o uno de los 9 puntos (como la valoración)
+  free?: boolean;                                           // solo el título: sin candado (se puede mover y colocar)
   _foot?: boolean;
 }
 export type TitleStyle = Partial<Item>;

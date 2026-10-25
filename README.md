@@ -70,9 +70,10 @@ At the top: **Undo** (or Ctrl/Cmd+Z), **Cancel** (or Escape: leaves the view as 
 - **Image**: which property holds the image, its position and fit (**Fill**, **Original**, **Framed**, **Background**), effects (B&W, duotone, blur, invert), grain, brightness and a dark gradient. **No image** decides what notes without an image show: nothing, their initials, a blank space or a generated **Cover**.
 
 ### Data
-- The **title** is always the first item, but you can put data above it. In **Show** you choose what it displays: the note name, the first alias, another property, or nothing at all (handy when the cover already shows the title).
+- The **title** comes first and carries a lock 🔒: tap it to move the title like any other item (data can also go above it). In **Show** you choose what it displays: the note name, the first alias, another property, or nothing at all (handy when the cover already shows the title).
 - Drag the other properties into order, remove them with ✕ and add more with **+ Add data**.
-- The chain icon between two items puts them on the **same line**, with a separator.
+- The chain icon between two items puts them on the **same line**, with a separator. If the first one is empty in a note, the second one starts its own line.
+- **Placement**: each item (the title too, once unlocked) goes between the data or in any of the 9 spots of the card, also over the image. Items in the same spot stack, or share a line if they're joined.
 - Each item has its own typeface, uppercase, color, size, weight, **Fit** (one line, shrinks to fit), space above and below, italic, underline, highlight, strikethrough, superscript, link and hover.
 - Types: **Text**, **Number**, **Smart number** (a follower or listener count that links to the profile), **Tags**, **Link** and **Linked notes** (including the notes that link *to* this one).
 
