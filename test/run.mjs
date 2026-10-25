@@ -258,11 +258,14 @@ const BAR_BTN = '.cool-tool[data-tool="cool-bases"]';
   ok("ALIGN justify", (await model()).font.align === "justify");
   /* IMAGE: las flechas de cada muestra pasan por el ajuste y por lo que se pinta sin imagen */
   await p.click('.cb-panel [data-toggle="imagen"]');
-  const f0 = (await model()).img.fit, e0 = (await model()).img.empty;
+  const f0 = (await model()).img.fit;
   await p.click('.cb-panel [data-fitstep="1"]');
   ok("IMAGE: the arrows change the fit", (await model()).img.fit !== f0 && await p.evaluate(() => document.activeElement.dataset.fitstep === "1"));
-  await p.click('.cb-panel [data-emptystep="1"]');
-  ok("IMAGE: the arrows change what shows without an image", (await model()).img.empty !== e0 && await p.isVisible('.cb-panel [data-emptystep="1"]'));
+  /* la portada: un visor y, al lado, lo que la construye; tocarla la elige para las notas sin imagen */
+  ok("IMAGE: cover viewer with its settings", await p.isVisible(".cb-panel .cv-view") && await p.isVisible('.cb-panel .cv-set select[data-p="img.cvText"]'));
+  await p.click('.cb-panel button[data-p="img.cvShape"][data-v="none"]');
+  const mc = await model();
+  ok("IMAGE: a cover setting picks the cover for notes without image", mc.img.cvShape === "none" && mc.img.empty === "portada");
 
   await p.click("#addBtn");
   await p.selectOption(".cb-panel #popProp", "note.rating");

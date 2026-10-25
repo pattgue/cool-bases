@@ -197,7 +197,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     });
     pb.querySelectorAll<HTMLElement>(".tile:not(.t-wide) > .tile-l").forEach(l => {
       const tl = l.parentElement!; if (!tl.offsetWidth) return;
-      const pill = tl.classList.contains("t-line") ? tl.querySelector<HTMLElement>(".tile-pill")!.offsetWidth + 16 : 10;   // en fila: menos el valor
+      const pill = tl.classList.contains("t-wl") ? tl.querySelector<HTMLElement>(".tile-pill")!.offsetWidth + 16 : 10;   // en fila: menos el valor
       fitEl(l, tl.clientWidth - pill, tl);
     });
   }
@@ -288,24 +288,33 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
         h("div", "pv-in", h("div", "pv-media", pic, noImg ? null : pvArrows("data-fitstep", t("c.fit"), false)), pvText())),
       pvLabel(noImg ? t("img.none") : t("fit." + im.fit)));
   }
-  /* sin imagen: siempre la misma tarjeta (lo que sale en lugar de la imagen arriba, el texto debajo); las flechas pasan por
-     nada, iniciales, hueco y portada */
-  const EMPTIES = ["nada", "iniciales", "hueco", "portada"];
-  function emptyCard(s: Model, noImg: boolean) {
-    const im = s.img, nada = im.empty === "nada";
-    const sub = im.empty === "portada" && im.cvText ? pname(im.cvText) : "";
-    const url = nada ? "none" : 'url("' + coverSrc(coverData(s, t("mc.title"), sub), 0.72) + '")';
-    const arrows = pvArrows("data-emptystep", t("c.ifNoImage"), noImg);
-    return h("figure", { cls: "pv pv-empty" + (noImg ? " dis" : ""), attr: { title: t("c.ifNoImage") } },
-      h("div", { cls: "pvc pv-e" + (nada ? " e-nada" : ""), css: pvVars(s, "none", url) },
-        h("div", "pv-in", nada ? null : h("div", "pv-media", h("span", "pv-pic"), arrows), pvText()), nada ? arrows : null),
-      pvLabel(t("empty." + im.empty)));
+  /* sin imagen: el visor de la portada que se genera (y nada más) y, al lado, lo que la construye */
+  function coverView(s: Model, noImg: boolean) {
+    const sub = s.img.cvText ? pname(s.img.cvText) : "";
+    const d = coverData({ ...s, img: { ...s.img, empty: "portada" } }, t("mc.title"), sub);
+    return h("div", { cls: "cv-view" + (noImg ? " dis" : ""), attr: { role: "img", "aria-label": t("c.noImageAria") },
+      css: { "--cv-img": 'url("' + coverSrc(d, 1.5) + '")' } });
   }
-  /* lo que se ajusta en cada tipo de imagen (al lado de «sin imagen», del mismo alto):
+  /* tile en columna con un desplegable, el botón de la fuente o dos opciones en la pastilla */
+  function stackTile(label: string, ctl: Kid, dis: boolean) { return h("div", "tile t-stack" + (dis ? " dis" : ""), h("span", "tile-l", label), h("span", "tile-pill", ctl)); }
+  function segPill(path: string, label: string, opts: [string, string][], dis: boolean) {
+    const v = getP(path);
+    return h("span", { cls: "segp", attr: { role: "group", "aria-label": label } }, opts.map(([val, l]) =>
+      h("button", { attr: { type: "button", id: fid(path + "=" + val), "data-p": path, "data-k": "seg", "data-v": val, "data-vt": "string", "aria-pressed": String(v === val), disabled: D(dis) } }, l)));
+  }
+  function coverSet(s: Model, noImg: boolean) {
+    const tp = coverTextProps(), cur = s.img.cvText; if (cur && !tp.includes(cur)) tp.unshift(cur);
+    return h("div", "cv-set",
+      stackTile(t("c.bottomText"), sel("img.cvText", [["", t("o.none")], ...tp.map((p): Opt => [p, pname(p)])], noImg, cur || ""), noImg),
+      stackTile(t("c.font"), fontBtn("img.cvFont", noImg), noImg),
+      stackTile(t("b.colors"), segPill("img.cvColors", t("b.colors"), [["auto", t("cv.autoS")], ["card", t("cv.cardS")]], noImg), noImg),
+      stackTile(t("c.shape"), segPill("img.cvShape", t("c.shape"), [["auto", t("cv.autoS")], ["none", t("cv.noneS")]], noImg), noImg));
+  }
+  /* lo que se ajusta en cada tipo de imagen, debajo de la muestra (tiles anchos: etiqueta | control):
      ENCAJAR y ORIGINAL: posición · ENMARCADA: posición y margen · FONDO: degradado y su color */
   const POSS: [string, string][] = [["top", "panel-top"], ["bottom", "panel-bottom"], ["left", "panel-left"], ["right", "panel-right"]];
-  function posTile(s: Model, big: boolean, dis: boolean) {
-    return h("div", "tile t-icons t-pos" + (big ? " big" : "") + (dis ? " dis" : ""), h("span", "tile-l", t("c.position")),
+  function posTile(s: Model, dis: boolean) {
+    return h("div", "tile t-wide t-icons" + (dis ? " dis" : ""), h("span", "tile-l", t("c.position")),
       h("span", { cls: "tile-pill icons", attr: { role: "group", "aria-label": t("c.position") } }, POSS.map(([v, ic]) => {
         const b = h("button", { attr: { type: "button", id: fid("img.pos=" + v), "data-p": "img.pos", "data-k": "seg", "data-v": v, "data-vt": "string",
           "aria-pressed": String(s.img.pos === v), "aria-label": t("pos." + v), title: t("pos." + v), disabled: D(dis) } });
@@ -319,13 +328,10 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   }
   function fitCtl(s: Model, noImg: boolean) {
     const im = s.img;
-    const kids = im.fit === "fondo"
-      ? [swTile("img.shade", t("c.shade"), noImg),
-        h("div", "tile t-col" + (noImg || !im.shade ? " dis" : ""), h("span", "tile-l", t("c.shadeColor")), swatch("img.shadeC", noImg || !im.shade))]
-      : im.fit === "enmarcada"
-        ? [posTile(s, false, noImg), tile("img.frame", t("c.margin"), { min: 0, max: 14, step: 0.5, rate: 0.1, unit: "%", axis: "x", dis: noImg })]
-        : [posTile(s, true, noImg)];
-    return h("div", "img-ctl", kids);
+    if (im.fit === "fondo") return [h("div", "tile t-wide t-shade" + (noImg ? " dis" : ""), h("span", "tile-l", t("c.shade")),
+      h("span", "tile-pill", toggle("img.shade", t("o.yes"), t("o.no"), t("c.shade"), "tg-pill", noImg), swatch("img.shadeC", noImg || !im.shade)))];
+    const pos = posTile(s, noImg);
+    return im.fit === "enmarcada" ? [pos, tile("img.frame", t("c.margin"), { min: 0, max: 14, step: 0.5, rate: 0.1, unit: "%", axis: "x", cls: "t-wl", dis: noImg })] : [pos];
   }
   function openSrcMenu(anchor: HTMLElement) {
     const s = S(), cur = imgSrc(s, facts) || "none", ip = imgProps().slice(); if (cur !== "none" && !ip.includes(cur)) ip.unshift(cur);
@@ -337,18 +343,6 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   /* tile ancho: la etiqueta a la izquierda y, en la pastilla, un desplegable o el botón de la fuente */
   function wide(label: string, ctl: Kid, path: string) {
     return h("div", "tile t-wide", h("label", { cls: "tile-l", attr: { for: fid(path) } }, label), h("span", "tile-pill", ctl));
-  }
-  /* opciones como chips (2, 3 o 4 por fila), con su título pequeño encima; con icono, la palabra va de etiqueta accesible */
-  function chips(path: string, label: string, opts: [string, string, string?][], cols: number, dis?: unknown, extra?: Kid) {
-    const v = getP(path);
-    return h("div", "chipg" + (dis ? " dis" : ""), h("span", "chipg-l", label),
-      h("div", { cls: "chipg-b c" + cols, attr: { role: "group", "aria-label": label } },
-        opts.map(([val, l, ic]) => {
-          const b = h("button", { cls: ic ? "ic" : undefined, attr: { type: "button", id: fid(path + "=" + val), "data-p": path, "data-k": "seg", "data-v": val, "data-vt": "string",
-            "aria-pressed": String(v === val), "aria-label": ic ? l : null, title: ic ? l : null, disabled: D(dis) } }, ic ? null : l);
-          if (ic) setIcon(b, ic);
-          return b;
-        }), extra));
   }
   /* tile con iconos en la pastilla (ALIGN) */
   function iconTile(path: string, label: string, opts: [string, string, string][]) {
@@ -415,7 +409,8 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
           tile("font.size", t("c.size"), { min: Math.ceil(c.w * 0.02), max: Math.floor(c.w * 0.1), step: 1, rate: 0.12, unit: "px", axis: "x", x: "cw" }),
           iconTile("font.align", t("c.alignShort"), [["left", "align-left", t("al.left")], ["center", "align-center", t("al.center")], ["right", "align-right", t("al.right")],
             ["justify", "align-justify", t("al.justify")]])))),
-      /* IMAGE: EFFECT | la muestra con imagen (‹ FIT ›) / la muestra sin imagen | lo que se ajusta en ese FIT; debajo, INTENSITY, BRIGHTNESS y GRAIN */
+      /* IMAGE: EFFECT | la muestra con imagen (‹ FIT ›); debajo, lo que se ajusta en ese FIT, INTENSITY, BRIGHTNESS y GRAIN;
+         al final, el visor de la portada (sin imagen) | lo que la construye */
       block("imagen", t("b.image"), h("div", "mod",
         h("div", { cls: "imgmod", css: { "--ic-img": imgVar(sp) } },
           h("div", "img-fx",
@@ -424,26 +419,18 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
                 "aria-pressed": String(im.fx === f), disabled: D(noImg) } }, h("span", "fxb-i fx-" + f), h("span", "fxb-w", t("fx." + f))))),
             im.fx === "duo" && !noImg ? h("div", "duo-row", swatch("img.duo1"), swatch("img.duo2")) : null),
           imgCard(s, sp, noImg),
-          emptyCard(s, noImg),
-          fitCtl(s, noImg)),
-        h("div", "mod-3",
-          tile("img.amt." + fx, t("c.intensity"), { min: 0, max: 100, step: 1, rate: 0.5, unit: "%", axis: "x", dis: noImg || im.fx === "color" }),
-          tile("img.bright", t("c.brightness"), { min: 20, max: 140, step: 1, rate: 0.5, unit: "%", axis: "x", dis: noImg }),
-          swTile("img.grain", t("c.grain"), noImg)),
-        im.empty === "portada" && !noImg ? coverCtl(s) : null)),
+          h("div", "img-adj", fitCtl(s, noImg),
+            h("div", "mod-3",
+              tile("img.amt." + fx, t("c.intensity"), { min: 0, max: 100, step: 1, rate: 0.5, unit: "%", axis: "x", dis: noImg || im.fx === "color" }),
+              tile("img.bright", t("c.brightness"), { min: 20, max: 140, step: 1, rate: 0.5, unit: "%", axis: "x", dis: noImg }),
+              swTile("img.grain", t("c.grain"), noImg))),
+          coverView(s, noImg),
+          coverSet(s, noImg)))),
     ));
   }
 
-  /* «Sin imagen: Portada» */
+  /* «Sin imagen: Portada»: los textos que puede llevar abajo */
   const coverTextProps = () => propsOf().filter(p => !p.startsWith("rel:") && p !== "file.name" && !facts.isImage(p) && !facts.isUrlProp(p));
-  function coverCtl(s: Model) {
-    const tp = coverTextProps(), cur = s.img.cvText; if (cur && !tp.includes(cur)) tp.unshift(cur);
-    return h("div", "mod sub",
-      wide(t("c.bottomText"), sel("img.cvText", [["", t("o.none")], ...tp.map((p): Opt => [p, pname(p)])], false, cur || ""), "img.cvText"),
-      wide(t("c.font"), fontBtn("img.cvFont"), "img.cvFont"),
-      chips("img.cvColors", t("b.colors"), [["auto", t("cv.auto")], ["card", t("cv.card")]], 2),
-      chips("img.cvShape", t("c.shape"), [["auto", t("cv.shapeAuto")], ["none", t("cv.shapeNone")]], 2));
-  }
 
   /* ---------- Datos ---------- */
   function visibleItems(s: Model) {
@@ -764,6 +751,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   function afterChange(path: string, old?: unknown) {
     const s = S();
     /* portada: el texto de abajo empieza con el autor, el director o el año, si la vista los tiene */
+    if (/^img\.cv/.test(path)) s.img.empty = "portada";        // tocar la portada es elegirla para las notas sin imagen
     if (path === "img.empty" && s.img.empty === "portada" && s.img.cvText == null)
       s.img.cvText = ["author", "autor", "director", "creator", "artist", "year", "año"].map(n => "note." + n).find(p => coverTextProps().includes(p)) || "";
     /* estado: si el texto era el nombre de la propiedad (el que pone «+ Añadir estado»), sigue a la nueva */
@@ -830,10 +818,6 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     if (b.dataset.fitstep) {
       const i = FITS.indexOf(S().img.fit), n = FITS[(i + +b.dataset.fitstep + FITS.length) % FITS.length];
       commit("img.fit", n, true); pb.querySelector<HTMLElement>('[data-fitstep="' + b.dataset.fitstep + '"]')?.focus(); return;
-    }
-    if (b.dataset.emptystep) {
-      const i = EMPTIES.indexOf(S().img.empty), n = EMPTIES[(i + +b.dataset.emptystep + EMPTIES.length) % EMPTIES.length];
-      commit("img.empty", n, true); pb.querySelector<HTMLElement>('[data-emptystep="' + b.dataset.emptystep + '"]')?.focus(); return;
     }
     if (b.dataset.src) { if (ui.fp && ui.fp.anchorId === b.id) closeFp(); else openSrcMenu(b); return; }
     if (b.dataset.toggle) {

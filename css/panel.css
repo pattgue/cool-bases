@@ -203,44 +203,18 @@ body.cb-scrubbing-y:not(#cb-imp), body.cb-scrubbing-y *:not(#cb-imp) { cursor: n
 .cb-panel .t-icons .icons button { flex: 1; display: grid; place-items: center; border-radius: 2px; color: var(--cool-pill-fg); }
 .cb-panel .t-icons .icons button svg { width: 12px; height: 12px; stroke-width: 2.6; }
 .cb-panel .t-icons .icons button[aria-pressed="true"] { background: var(--cool-tile-fg); color: var(--cool-tile-bg); }
-/* chips con su título pequeño encima */
-.cb-panel .chipg { display: flex; flex-direction: column; gap: 4px; }
-.cb-panel .chipg-l { font-size: 9.5px; font-weight: 800; text-transform: uppercase; letter-spacing: .01em; color: var(--cool-label); padding-left: 1px; }
-.cb-panel .chipg-b { display: grid; gap: var(--sp); grid-auto-rows: 26px; }
-.cb-panel .chipg-b.c2 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.cb-panel .chipg-b.c3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
-.cb-panel .chipg-b.c4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.cb-panel .chipg-b button {
-  min-width: 0; padding: 0 4px; border-radius: var(--r-el); background: var(--cool-chip-bg); color: var(--cool-text);
-  font-size: 11px; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
-}
-.cb-panel .chipg-b button:hover:not(:disabled) { background: var(--cool-pill-bg); }
-.cb-panel .chipg-b button[aria-pressed="true"] { background: var(--cool-tile-bg); color: var(--cool-tile-fg); }
-.cb-panel .chipg-b button.ic { display: grid; place-items: center; }
-.cb-panel .chipg-b button.ic svg { width: 16px; height: 16px; stroke-width: 2.2; }
-.cb-panel .chipg.dis button { opacity: .45; cursor: default; }
-/* DUOTONE: sus dos colores, en el hueco que queda al lado de los efectos */
-.cb-panel .chipg-b .duo { display: flex; align-items: center; justify-content: center; gap: var(--sp); border-radius: var(--r-el); background: var(--cool-chip-bg); }
-.cb-panel .chipg-b .duo .swc { width: 26px; height: 15px; padding: 0; border: 0; border-radius: var(--r-in); overflow: hidden; }
-.cb-panel .chipg-b .duo .swc .fill { display: block; width: 100%; height: 100%; }
-.cb-panel .chipg-b .duo.dis { opacity: .45; }
 .cb-panel .tgl:disabled { opacity: .45; cursor: default; }
-/* «Sin imagen: Portada»: sus ajustes, metidos un nivel */
-.cb-panel .mod.sub { padding: var(--sp); border-radius: var(--r-el); background: var(--cool-group); }
 
 /* ---------- IMAGE (boceto de Patt): EFFECT | muestra con imagen · ‹ FIT ›
                                       muestra sin imagen | lo que se ajusta en ese FIT
                debajo, INTENSITY · BRIGHTNESS · GRAIN. Columnas 110 : 138, separadas 10 px. ---------- */
 .cb-panel .imgmod {
   display: grid; grid-template-columns: 110fr 138fr; column-gap: 10px; align-items: start;
-  grid-template-areas: "fx main" "fx mainl" "empty ctl" "emptyl .";
+  grid-template-areas: "fx main" "fx mainl" "adj adj" "cov cset";
 }
 .cb-panel .imgmod .pv { display: contents; }
 .cb-panel .pv-main .pvc { grid-area: main; aspect-ratio: 1 / 1; }
 .cb-panel .pv-main .pv-l { grid-area: mainl; }
-.cb-panel .pv-empty .pvc { grid-area: empty; aspect-ratio: 110 / 138; margin-top: 10px; }
-.cb-panel .pv-empty .pv-l { grid-area: emptyl; }
-.cb-panel .pv-empty.dis .pvc, .cb-panel .pv-empty.dis .pv-l { opacity: .45; }
 /* EFFECT: chips de su ancho, con un icono pequeño */
 .cb-panel .img-fx { grid-area: fx; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; min-width: 0; }
 .cb-panel .fxs { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
@@ -289,9 +263,6 @@ body.cb-scrubbing-y:not(#cb-imp), body.cb-scrubbing-y *:not(#cb-imp) { cursor: n
 .cb-panel .pv-plus { font-size: 20px; font-weight: 400; color: var(--cool-label); }
 .cb-panel button.pv-pic:hover { box-shadow: inset 0 0 0 2px var(--cool-accent); }
 .cb-panel button.pv-pic:focus-visible { outline: 2px solid var(--cool-accent); outline-offset: -2px; }
-/* sin imagen: el hueco arriba (con aire alrededor) y el texto debajo */
-.cb-panel .pv-e .pv-media { flex: 0 0 47%; margin: 9cqi 9cqi 0; }
-.cb-panel .pv-e .pv-pic { border-radius: 2px; }
 /* el texto de muestra */
 .cb-panel .pv-txt {
   position: relative; z-index: 1; flex: 1; min-width: 0; min-height: 0; display: flex; flex-direction: column; align-items: center; justify-content: center;
@@ -305,9 +276,6 @@ body.cb-scrubbing-y:not(#cb-imp), body.cb-scrubbing-y *:not(#cb-imp) { cursor: n
 .cb-panel .pv-txt .mc-tags i { font-size: 3.6cqi; line-height: 1.35; padding: 0 2.5cqi; white-space: nowrap; }
 .cb-panel .p-left .pv-txt .mc-t, .cb-panel .p-right .pv-txt .mc-t { font-size: 9cqi; }
 .cb-panel .p-left .pv-txt .mc-tags i:nth-child(n+2), .cb-panel .p-right .pv-txt .mc-tags i:nth-child(n+2) { display: none; }
-.cb-panel .pv-e .pv-txt .mc-t { font-size: 15.5cqi; }
-.cb-panel .pv-e .pv-txt .mc-s { font-size: 6cqi; }
-.cb-panel .pv-e .pv-txt .mc-tags i { font-size: 4cqi; }
 /* las flechas, sobre la imagen */
 .cb-panel .pv-arr {
   position: absolute; z-index: 3; top: 50%; width: 18px; height: 24px; margin-top: -12px; display: grid; place-items: center; padding: 0; border: 0; border-radius: var(--r-in);
@@ -318,23 +286,42 @@ body.cb-scrubbing-y:not(#cb-imp), body.cb-scrubbing-y *:not(#cb-imp) { cursor: n
 .cb-panel .pv-arr:hover:not(:disabled) { background: rgba(0, 0, 0, .25); }
 .cb-panel .pv-arr:focus-visible { outline: 2px solid var(--cool-accent); outline-offset: -2px; }
 .cb-panel .pv-arr:disabled { opacity: 0; cursor: default; }
-.cb-panel .e-nada > .pv-arr { color: var(--mc-text); filter: none; }
-.cb-panel .e-nada .pv-txt { padding: 2cqi 16px; }
 /* debajo, el nombre de lo elegido */
 .cb-panel .pv-l { display: block; height: 14px; margin-top: 6px; text-align: center; font-size: 11px; line-height: 14px; font-weight: 900; text-transform: uppercase; white-space: nowrap; color: var(--cool-text); }
-/* lo que se ajusta en cada FIT: tiles que llenan el alto de la muestra sin imagen */
-.cb-panel .img-ctl { grid-area: ctl; align-self: stretch; display: flex; flex-direction: column; gap: var(--sp); min-width: 0; margin-top: 10px; }
-.cb-panel .img-ctl .tile { flex: 1 1 0; min-height: 0; gap: 6px; padding: 6px 4px; }
-.cb-panel .img-ctl .tile-l { --tl-fs: 13px; }
-.cb-panel .img-ctl .tile input.num { width: 72px; height: 15px; font-size: 9.5px; line-height: 15px; }
-.cb-panel .t-pos, .cb-panel .t-sw, .cb-panel .t-col { cursor: default; }
-.cb-panel .t-pos.dis button { cursor: default; }
-.cb-panel .t-pos.big { gap: 9px; }
-.cb-panel .t-pos.big .tile-pill.icons { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; width: 78%; height: auto; padding: 3px; }
-.cb-panel .t-pos.big .icons button { height: 26px; }
-.cb-panel .t-pos.big .icons button svg { width: 16px; height: 16px; stroke-width: 2.2; }
-.cb-panel .t-col .swc { width: 72px; height: 15px; padding: 0; border: 0; border-radius: var(--r-in); overflow: hidden; }
-.cb-panel .t-col .swc .fill { display: block; width: 100%; height: 100%; }
+/* debajo de la muestra: lo que se ajusta en ese FIT (tiles anchos) y, en fila, INTENSITY · BRIGHTNESS · GRAIN */
+.cb-panel .img-adj { grid-area: adj; display: flex; flex-direction: column; gap: var(--sp); min-width: 0; margin-top: 10px; }
+.cb-panel .tile.t-wl { flex-direction: row; justify-content: space-between; gap: var(--bpad); min-height: 0; padding: var(--sp) var(--sp) var(--sp) var(--bpad); }
+.cb-panel .t-wl .tile-l { --tl-fs: 13px; }
+.cb-panel .t-wl input.num { width: 72px; height: 22px; font-size: 10px; }
+.cb-panel .t-wide.t-icons .tile-pill.icons { height: 22px; flex-basis: 50%; }
+.cb-panel .t-wide.t-icons .icons button svg { width: 14px; height: 14px; stroke-width: 2.2; }
+.cb-panel .t-shade .tile-pill { display: flex; justify-content: flex-end; gap: var(--sp); }
+.cb-panel .t-shade .tg-pill { height: 22px; width: 72px; --cbp-k: 14px; }
+.cb-panel .t-shade .swc { flex: none; width: 44px; height: 22px; padding: 0; border: 0; border-radius: var(--r-in); overflow: hidden; }
+.cb-panel .t-shade .swc .fill { display: block; width: 100%; height: 100%; }
+.cb-panel .t-shade .swc:disabled { opacity: .35; }
+.cb-panel .t-sw { cursor: default; }
+/* al final, sin imagen: el visor de la portada | lo que la construye */
+.cb-panel .cv-view {
+  grid-area: cov; margin-top: 10px; aspect-ratio: 2 / 3; border-radius: var(--r-in);
+  background: var(--cool-letter-bg) var(--cv-img) center / cover no-repeat; box-shadow: 0 0 0 1px var(--cool-border);
+}
+.cb-panel .cv-view.dis { opacity: .45; }
+.cb-panel .cv-set { grid-area: cset; align-self: stretch; display: flex; flex-direction: column; gap: var(--sp); min-width: 0; margin-top: 10px; }
+.cb-panel .tile.t-stack { flex: 1 1 0; min-height: 0; align-items: stretch; gap: 5px; padding: 4px 7px; cursor: default; }
+.cb-panel .t-stack .tile-l { --tl-fs: 11px; text-align: center; }
+.cb-panel .t-stack .tile-pill { display: block; min-width: 0; }
+.cb-panel .t-stack select, .cb-panel .t-stack .fontb {
+  display: flex; align-items: center; justify-content: space-between; gap: 4px; width: 100%; height: 19px; padding: 0 6px; margin: 0; border: 0; border-radius: var(--r-in);
+  background: var(--cool-pill-bg); color: var(--cool-pill-fg); font-size: 10px; font-weight: 400; box-shadow: none; text-align: left; cursor: pointer;
+}
+.cb-panel .t-stack .fontb .cbp-ff { flex: 1; min-width: 0; font-size: 11px; color: var(--cool-text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.cb-panel .t-stack .fontb .caret { flex: none; display: grid; place-items: center; color: var(--cool-pill-fg); }
+.cb-panel .t-stack .fontb .caret svg { width: 11px; height: 11px; stroke-width: 2.6; }
+.cb-panel .segp { display: flex; gap: 2px; height: 19px; padding: 2px; border-radius: var(--r-in); background: var(--cool-pill-bg); }
+.cb-panel .segp button { flex: 1 1 0; min-width: 0; padding: 0 2px; border-radius: 2px; font-size: 9px; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; color: var(--cool-pill-fg); }
+.cb-panel .segp button[aria-pressed="true"] { background: var(--cool-tile-fg); color: var(--cool-tile-bg); }
+.cb-panel .t-stack.dis button, .cb-panel .t-stack.dis select { cursor: default; }
 /* SÍ / NO dentro de un tile */
 .cb-panel .tg-pill { width: 72px; height: 15px; border-radius: var(--r-in); background: var(--cool-pill-bg); color: var(--cool-pill-fg); --cbp-fs: 9.5px; --cbp-tp: 7px; --cbp-k: 9px; --cbp-kp: 3px; --cbp-kr: 2px; }
 .cb-fp .menu [data-src-v] { display: block; width: 100%; text-align: left; }
