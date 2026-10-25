@@ -493,6 +493,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       cells([[t("c.spaceT"), slider(p + ".spaceT", 0, 8, 0.1, "%")], [t("c.spaceB"), slider(p + ".spaceB", 0, 8, 0.1, "%")]], "c-1-1"),
       row(t("c.decorations"), h("div", "chips", deco), null, { stk: true }),
       cells([[t("c.link"), linkCtl, linkDis], [t("b.hover"), sw(p + ".hover", t("b.hover"), hoverDis), hoverDis]], "c-1-a"),
+      foot ? null : [sepH(), placeCtl(p, s, isT && !it.free)],     // el título, solo sin candado
       adv];
   }
   const grip = (id: string, label: string) => h("button", { cls: "grip", attr: { type: "button", "data-grip": "", "data-id": id, "aria-label": label } }, "⋮⋮");
@@ -518,13 +519,16 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     const isT = it.kind === "title", key = "it:" + it.id, open = ui.open.has(key);
     const smp = sample(s, it);
     const body = h("div", "sc-b", open ? itemCtl(s, it, p, ctx, idx, list) : null); body.hidden = !open;
-    return h("div", { cls: "sc" + cls, attr: { "data-id": it.id, "data-list": ctx, "data-fixed": isT ? "" : null } },
+    /* el título lleva candado: tocándolo se quita y el título se puede mover (y colocar) como los demás datos */
+    const locked = isT && !it.free;
+    const lockBtn = (act: string, label: string, icon: string, cls: string) => h("button", { cls, attr: { type: "button", id: "cbp-title-lock", "data-act": act, "data-id": it.id, "aria-label": label, title: label } }, icon);
+    return h("div", { cls: "sc" + cls, attr: { "data-id": it.id, "data-list": ctx, "data-fixed": locked ? "" : null } },
       h("div", "sc-h",
-        isT ? h("span", { cls: "grip lock", attr: { "aria-hidden": "true" } }, "🔒︎") : grip(it.id, t("i.move", { what: pname(it.prop) })),
+        locked ? lockBtn("unlock", t("i.unlock"), "🔒︎", "grip lock") : grip(it.id, t("i.move", { what: isT ? t("i.title") : pname(it.prop) })),
         h("button", { cls: "sc-main", attr: { type: "button", "data-toggle": key, "aria-expanded": String(open) } },
           h("span", "sc-name", h("span", "chev"), h("span", "prop", isT ? t("i.title") : pname(it.prop)), isT ? null : h("span", "tchip", typeName(it.type)), it.sup ? h("span", "tchip", "x²") : null),
           h("span", { cls: "sc-sum", attr: { "data-sum": key } }, sumText(smp))),
-        isT ? null : h("button", { cls: "ib del", attr: { type: "button", "data-act": "del", "data-list": ctx, "data-id": it.id, "aria-label": t("i.remove", { what: pname(it.prop) }) } }, "✕")),
+        isT ? (locked ? null : lockBtn("lock", t("i.lock"), "🔓︎", "ib lockb")) : h("button", { cls: "ib del", attr: { type: "button", "data-act": "del", "data-list": ctx, "data-id": it.id, "aria-label": t("i.remove", { what: pname(it.prop) }) } }, "✕")),
       body);
   }
   const sumText = (smp: string | null) => smp ? quote(smp.length > 52 ? smp.slice(0, 51) + "…" : smp) : "—";
@@ -592,14 +596,15 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   }
 
   /* ---------- Decoraciones ---------- */
-  function placeCtl(base: string, s: Model) {
+  /* dis: todo desactivado (el título con candado) */
+  function placeCtl(base: string, s: Model, dis?: boolean) {
     const path = base + ".place", v = getP(path), pts = ["tl", "tc", "tr", "ml", "mc", "mr", "bl", "bc", "br"];
-    const sp = imgSrc(s, facts), canImg = !!sp && s.img.fit !== "fondo";
+    const sp = imgSrc(s, facts), canImg = !!sp && s.img.fit !== "fondo", off = dis || v === "entre";
     return [row(t("c.placement"), h("div", "place",
-      h("button", { cls: "btn tog", attr: { type: "button", id: fid(path + "=entre"), "data-p": path, "data-k": "seg", "data-v": "entre", "data-vt": "string", "aria-pressed": String(v === "entre") } }, t("place.entre")),
-      h("div", { cls: "pts", attr: { role: "group", "aria-label": t("place.where") } }, pts.map(k => h("button", { attr: { type: "button", id: fid(path + "=" + k), "data-p": path, "data-k": "seg", "data-v": k, "data-vt": "string", "aria-pressed": String(v === k), "aria-label": t("pt." + k) } }))),
-      swl(base + ".onImg", t("place.onImg"), v === "entre" || !canImg)), null),
-    cells([[t("c.mx"), slider(base + ".mx", 0, 20, 0.5, "%", null, v === "entre"), v === "entre"], [t("c.my"), slider(base + ".my", 0, 20, 0.5, "%", null, v === "entre"), v === "entre"]], "c-1-1")];
+      h("button", { cls: "btn tog", attr: { type: "button", id: fid(path + "=entre"), "data-p": path, "data-k": "seg", "data-v": "entre", "data-vt": "string", "aria-pressed": String(v === "entre"), disabled: D(dis) } }, t("place.entre")),
+      h("div", { cls: "pts", attr: { role: "group", "aria-label": t("place.where") } }, pts.map(k => h("button", { attr: { type: "button", id: fid(path + "=" + k), "data-p": path, "data-k": "seg", "data-v": k, "data-vt": "string", "aria-pressed": String(v === k), "aria-label": t("pt." + k), disabled: D(dis) } }))),
+      swl(base + ".onImg", t("place.onImg"), off || !canImg)), null, { dis }),
+    cells([[t("c.mx"), slider(base + ".mx", 0, 20, 0.5, "%", null, off), off], [t("c.my"), slider(base + ".my", 0, 20, 0.5, "%", null, off), off]], "c-1-1")];
   }
   /* ---------- Estados ---------- */
   const boolProps = () => facts.boolProps();
@@ -851,6 +856,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       return;
     }
     if (b.dataset.act === "join") { joinToggle(b.dataset.id!); return; }
+    if (b.dataset.act === "unlock" || b.dataset.act === "lock") { commit("items.#" + b.dataset.id! + ".free", b.dataset.act === "unlock", true); return; }
     if (b.dataset.act === "delst") { const s = S(); snapshot(); lastPath = ""; s.states.list = s.states.list.filter(x => x.id !== b.dataset.id); syncStruct(s); renderPanel(); preview(); return; }
     if (b.id === "addSBtn") { addState(); return; }
     if (b.dataset.act === "del") { delItem(b.dataset.list as ListKey, b.dataset.id!); return; }

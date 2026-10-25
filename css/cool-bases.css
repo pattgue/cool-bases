@@ -85,3 +85,8 @@ body.cb-scrubbing:not(#cb-imp), body.cb-scrubbing *:not(#cb-imp) { cursor: ew-re
 .cb-view .cb-stg { display: flex; flex-direction: column; gap: 1.5cqi; pointer-events: none; }
 /* la casilla, aunque esté en una esquina, se puede pulsar */
 .cb-view .cb-stg .cb-st.f-check { pointer-events: auto; }
+/* datos colocados en uno de los 9 puntos: el interlineado de la tarjeta, alineados hacia su lado; sus enlaces se pueden pulsar */
+.cb-view .cb-stg > .cb-l { line-height: 1.25; }
+.cb-view .cb-stg.al-r > .cb-l { text-align: right; }
+.cb-view .cb-stg.al-c > .cb-l { text-align: center; }
+.cb-view .cb-stg a.cb-a, .cb-view .cb-stg .cb-copy { pointer-events: auto; }
