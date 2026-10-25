@@ -195,11 +195,6 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       const avail = b.clientWidth - k.offsetWidth - kp - tp - 5;          // menos la bola, sus márgenes y un respiro
       b.querySelectorAll<HTMLElement>(".tgl-w").forEach(w => fitEl(w, avail, b));
     });
-    pb.querySelectorAll<HTMLElement>(".fxb-w, .picto-w").forEach(w => {
-      const b = w.parentElement!; if (!b.offsetWidth) return;
-      const other = [...b.children].filter(x => x !== w).reduce((n, x) => n + (x as HTMLElement).offsetWidth, 0);
-      fitEl(w, b.clientWidth - other - 16, b);
-    });
     pb.querySelectorAll<HTMLElement>(".tile:not(.t-wide) > .tile-l").forEach(l => {
       const tl = l.parentElement!; if (!tl.offsetWidth) return;
       const pill = tl.classList.contains("t-line") ? tl.querySelector<HTMLElement>(".tile-pill")!.offsetWidth + 16 : 10;   // en fila: menos el valor
@@ -248,7 +243,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     el = el || pb.querySelector<HTMLElement>(".mini-card"); if (!el) return;
     const s = S(), col = s.col;
     setVars(el, { "--mc-bg": col.grad ? "linear-gradient(" + col.angle + "deg," + col.bg + "," + col.bg2 + ")" : col.bg, "--mc-text": col.text, "--mc-bgc": col.bg, "--mc-det": col.det,
-      "--mc-bw": Math.min(col.bw, 4) + "px", "--mc-bc": col.bc, "--mc-r": Math.min(s.card.radius, 14) + "px", "--mc-ff": fontStack(s.font.family), "--mc-al": ALIGN_FLEX[s.font.align] || "center" });
+      "--mc-bw": Math.min(col.bw, 4) + "px", "--mc-bc": col.bc, "--mc-r": Math.min(s.card.radius, 14) + "px", "--mc-ff": fontStack(s.font.family) });
   }
   /* la mini tarjeta de IMAGE: el ajuste pintado con una imagen de verdad de la vista. La imagen se pulsa para elegir de
      dónde sale; los bordes, para moverla de lado. */
@@ -262,9 +257,8 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       : f === "duo" ? (s.img.fx === "duo" ? "url(#cbduo-" + view.cbUid + ")" : "grayscale(1)") : "none";
     return base;
   }
-  /* las dos muestras de IMAGE: una mini tarjeta como la de COLORS (TITLE, SUBTITLE, raya y TAGS) con la imagen colocada
-     como en las tarjetas. Las flechas, sobre la imagen, pasan por las opciones; el nombre va debajo. */
-  const ALIGN_FLEX: Record<string, string> = { left: "flex-start", center: "center", right: "flex-end", justify: "flex-start" };
+  /* las dos muestras de IMAGE, como en el boceto: una mini tarjeta (TITLE, SUBTITLE, raya y TAGS, con tus colores y tu fuente)
+     con la imagen; las flechas, sobre la imagen, pasan por las opciones y el nombre de la elegida va debajo */
   function pvText() {
     return h("span", "pv-txt", h("span", "mc-t", t("mc.title")), h("span", "mc-s", t("mc.sub")), h("span", "mc-line"),
       h("span", "mc-tags", h("i", "on", t("mc.tags")), h("i", null, t("mc.tags")), h("i", null, t("mc.tags"))));
@@ -279,37 +273,59 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   function pvVars(s: Model, filter: string, img: string): Record<string, string> {
     const col = s.col;
     return { "--mc-bg": col.grad ? "linear-gradient(" + col.angle + "deg," + col.bg + "," + col.bg2 + ")" : col.bg, "--mc-bgc": col.bg, "--mc-text": col.text, "--mc-det": col.det,
-      "--mc-ff": fontStack(s.font.family), "--mc-al": ALIGN_FLEX[s.font.align] || "center", "--mc-r": Math.min(s.card.radius, 14) + "px",
-      "--pv-img": img, "--pv-filter": filter, "--pv-frame": (s.img.frame * 0.9).toFixed(1) + "px", "--pv-shade": s.img.shadeC };
+      "--mc-ff": fontStack(s.font.family), "--pv-img": img, "--pv-filter": filter, "--pv-frame": (s.img.frame * 0.9).toFixed(1) + "px", "--pv-shade": s.img.shadeC };
   }
-  function pvLabel(cap: string, val: string) { return h("span", { cls: "pv-l", attr: { "aria-live": "polite" } }, h("span", "pv-c", cap), h("b", null, val)); }
-  /* con imagen: se pulsa la imagen para elegir de dónde sale; los bordes, para ponerla en ese lado; las flechas cambian el ajuste */
+  const pvLabel = (val: string) => h("span", { cls: "pv-l", attr: { "aria-live": "polite" } }, val);
+  /* con imagen: el ajuste elegido, con tu imagen (al pulsarla se elige de dónde sale) */
   function imgCard(s: Model, sp: string | null, noImg: boolean) {
     const im = s.img, fondo = im.fit === "fondo";
     const pic = h("button", { cls: "pv-pic", attr: { type: "button", "data-src": "1", "aria-haspopup": "menu", "aria-expanded": "false", id: "cbp-imgsrc",
       "aria-label": t("c.source") + ": " + (sp ? pname(sp) : t("img.none")), title: t("c.source") + ": " + (sp ? pname(sp) : t("img.none")) } }, noImg ? h("span", "pv-plus", "+") : null);
-    const edges = ["top", "right", "bottom", "left"].map(p => h("button", { cls: "ic-edge e-" + p, attr: { type: "button", "data-pos": p, "aria-pressed": String(im.pos === p),
-      "aria-label": t("c.position") + ": " + t("pos." + p), title: t("c.position") + ": " + t("pos." + p), disabled: D(noImg || fondo) } }));
     const filter = (im.fx === "color" ? "" : fxFilter(s, im.fx) + " ") + "brightness(" + im.bright / 100 + ")";
     return h("figure", "pv pv-main",
       h("div", { cls: "pvc p-" + (fondo ? "top" : im.pos) + " f-" + im.fit + (noImg ? " no-img" : "") + (im.grain ? " grain" : "") + (fondo && im.shade ? " shade" : ""),
         css: pvVars(s, filter, "var(--ic-img)") },
-        h("div", "pv-in", h("div", "pv-media", pic, noImg ? null : pvArrows("data-fitstep", t("c.fit"), false)), pvText()), edges),
-      pvLabel(t("c.fit"), noImg ? t("img.none") : t("fit." + im.fit)));
+        h("div", "pv-in", h("div", "pv-media", pic, noImg ? null : pvArrows("data-fitstep", t("c.fit"), false)), pvText())),
+      pvLabel(noImg ? t("img.none") : t("fit." + im.fit)));
   }
-  /* sin imagen: lo que la tarjeta pinta en su lugar (la portada con un título de ejemplo), con el mismo ajuste y posición */
+  /* sin imagen: siempre la misma tarjeta (lo que sale en lugar de la imagen arriba, el texto debajo); las flechas pasan por
+     nada, iniciales, hueco y portada */
   const EMPTIES = ["nada", "iniciales", "hueco", "portada"];
   function emptyCard(s: Model, noImg: boolean) {
-    const im = s.img, fondo = im.fit === "fondo", pos = fondo ? "top" : im.pos, nada = im.empty === "nada";
-    const ratio = fondo ? 1.15 : im.fit === "original" ? 1.5 : pos === "left" || pos === "right" ? 1.15 / 0.42 : 1.15 * 0.56;
+    const im = s.img, nada = im.empty === "nada";
     const sub = im.empty === "portada" && im.cvText ? pname(im.cvText) : "";
-    const url = nada ? "none" : 'url("' + coverSrc(coverData(s, t("mc.title"), sub), ratio) + '")';
+    const url = nada ? "none" : 'url("' + coverSrc(coverData(s, t("mc.title"), sub), 0.72) + '")';
     const arrows = pvArrows("data-emptystep", t("c.ifNoImage"), noImg);
-    return h("figure", "pv pv-empty" + (noImg ? " dis" : ""),
-      h("div", { cls: "pvc p-" + pos + " f-" + im.fit + (nada ? " e-nada" : "") + (im.grain && !nada ? " grain" : "") + (fondo && im.shade && !nada ? " shade" : ""),
-        css: pvVars(s, "brightness(" + im.bright / 100 + ")", url) },
+    return h("figure", { cls: "pv pv-empty" + (noImg ? " dis" : ""), attr: { title: t("c.ifNoImage") } },
+      h("div", { cls: "pvc pv-e" + (nada ? " e-nada" : ""), css: pvVars(s, "none", url) },
         h("div", "pv-in", nada ? null : h("div", "pv-media", h("span", "pv-pic"), arrows), pvText()), nada ? arrows : null),
-      pvLabel(t("c.ifNoImage"), t("empty." + im.empty)));
+      pvLabel(t("empty." + im.empty)));
+  }
+  /* lo que se ajusta en cada tipo de imagen (al lado de «sin imagen», del mismo alto):
+     ENCAJAR y ORIGINAL: posición · ENMARCADA: posición y margen · FONDO: degradado y su color */
+  const POSS: [string, string][] = [["top", "panel-top"], ["bottom", "panel-bottom"], ["left", "panel-left"], ["right", "panel-right"]];
+  function posTile(s: Model, big: boolean, dis: boolean) {
+    return h("div", "tile t-icons t-pos" + (big ? " big" : "") + (dis ? " dis" : ""), h("span", "tile-l", t("c.position")),
+      h("span", { cls: "tile-pill icons", attr: { role: "group", "aria-label": t("c.position") } }, POSS.map(([v, ic]) => {
+        const b = h("button", { attr: { type: "button", id: fid("img.pos=" + v), "data-p": "img.pos", "data-k": "seg", "data-v": v, "data-vt": "string",
+          "aria-pressed": String(s.img.pos === v), "aria-label": t("pos." + v), title: t("pos." + v), disabled: D(dis) } });
+        setIcon(b, ic);
+        return b;
+      })));
+  }
+  /* tile con un interruptor SÍ / NO en la pastilla */
+  function swTile(path: string, label: string, dis: boolean) {
+    return h("div", "tile t-sw" + (dis ? " dis" : ""), h("span", "tile-l", label), toggle(path, t("o.yes"), t("o.no"), label, "tg-pill", dis));
+  }
+  function fitCtl(s: Model, noImg: boolean) {
+    const im = s.img;
+    const kids = im.fit === "fondo"
+      ? [swTile("img.shade", t("c.shade"), noImg),
+        h("div", "tile t-col" + (noImg || !im.shade ? " dis" : ""), h("span", "tile-l", t("c.shadeColor")), swatch("img.shadeC", noImg || !im.shade))]
+      : im.fit === "enmarcada"
+        ? [posTile(s, false, noImg), tile("img.frame", t("c.margin"), { min: 0, max: 14, step: 0.5, rate: 0.1, unit: "%", axis: "x", dis: noImg })]
+        : [posTile(s, true, noImg)];
+    return h("div", "img-ctl", kids);
   }
   function openSrcMenu(anchor: HTMLElement) {
     const s = S(), cur = imgSrc(s, facts) || "none", ip = imgProps().slice(); if (cur !== "none" && !ip.includes(cur)) ip.unshift(cur);
@@ -364,7 +380,6 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   /* ---------- Tarjeta ---------- */
   function tarjetaNode(s: Model) {
     const c = s.card, col = s.col, im = s.img, sp = imgSrc(s, facts), noImg = !sp;
-    const fondo = im.fit === "fondo";
     const sideOrig = !noImg && im.fit === "original" && (im.pos === "left" || im.pos === "right");
     const fx = im.fx === "color" ? "bn" : im.fx;
     return h("section", "grp", h("div", "grp-h", h("h3", null, t("g.card"))), h("div", "stack",
@@ -400,22 +415,21 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
           tile("font.size", t("c.size"), { min: Math.ceil(c.w * 0.02), max: Math.floor(c.w * 0.1), step: 1, rate: 0.12, unit: "px", axis: "x", x: "cw" }),
           iconTile("font.align", t("c.alignShort"), [["left", "align-left", t("al.left")], ["center", "align-center", t("al.center")], ["right", "align-right", t("al.right")],
             ["justify", "align-justify", t("al.justify")]])))),
-      /* IMAGE: EFFECT | la muestra con tu imagen (FIT) / la muestra sin imagen (IF NO IMAGE) | MARGIN, INTENSITY, BRIGHTNESS, GRAIN y GRADIENT */
+      /* IMAGE: EFFECT | la muestra con imagen (‹ FIT ›) / la muestra sin imagen | lo que se ajusta en ese FIT; debajo, INTENSITY, BRIGHTNESS y GRAIN */
       block("imagen", t("b.image"), h("div", "mod",
         h("div", { cls: "imgmod", css: { "--ic-img": imgVar(sp) } },
-          h("div", "img-fx", h("span", "chipg-l", t("c.effect")),
+          h("div", "img-fx",
             h("div", { cls: "fxs" + (noImg ? " dis" : ""), attr: { role: "group", "aria-label": t("c.effect") } },
               (["color", "bn", "duo", "blur", "inv"] as const).map(f => h("button", { cls: "fxb", attr: { type: "button", id: fid("img.fx=" + f), "data-p": "img.fx", "data-k": "seg", "data-v": f, "data-vt": "string",
-                "aria-pressed": String(im.fx === f), disabled: D(noImg) } }, h("span", { cls: "fxb-t", css: { "--ic-filter": fxFilter(s, f) } }), h("span", "fxb-w", t("fx." + f))))),
+                "aria-pressed": String(im.fx === f), disabled: D(noImg) } }, h("span", "fxb-i fx-" + f), h("span", "fxb-w", t("fx." + f))))),
             im.fx === "duo" && !noImg ? h("div", "duo-row", swatch("img.duo1"), swatch("img.duo2")) : null),
           imgCard(s, sp, noImg),
           emptyCard(s, noImg),
-          h("div", "img-ctl",
-            tile("img.frame", t("c.margin"), { min: 0, max: 14, step: 0.5, rate: 0.1, unit: "%", axis: "x", cls: "t-line", dis: noImg || im.fit !== "enmarcada" }),
-            tile("img.amt." + fx, t("c.intensity"), { min: 0, max: 100, step: 1, rate: 0.5, unit: "%", axis: "x", cls: "t-line", dis: noImg || im.fx === "color" }),
-            tile("img.bright", t("c.brightness"), { min: 20, max: 140, step: 1, rate: 0.5, unit: "%", axis: "x", cls: "t-line", dis: noImg }),
-            toggle("img.grain", t("c.grain"), t("c.noGrain"), t("c.grain"), "tg-row", noImg),
-            h("div", "tg-sw", toggle("img.shade", t("c.shade"), t("c.noShade"), t("c.shade"), "tg-row", noImg || !fondo), swatch("img.shadeC", noImg || !fondo || !im.shade)))),
+          fitCtl(s, noImg)),
+        h("div", "mod-3",
+          tile("img.amt." + fx, t("c.intensity"), { min: 0, max: 100, step: 1, rate: 0.5, unit: "%", axis: "x", dis: noImg || im.fx === "color" }),
+          tile("img.bright", t("c.brightness"), { min: 20, max: 140, step: 1, rate: 0.5, unit: "%", axis: "x", dis: noImg }),
+          swTile("img.grain", t("c.grain"), noImg)),
         im.empty === "portada" && !noImg ? coverCtl(s) : null)),
     ));
   }
@@ -821,7 +835,6 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       const i = EMPTIES.indexOf(S().img.empty), n = EMPTIES[(i + +b.dataset.emptystep + EMPTIES.length) % EMPTIES.length];
       commit("img.empty", n, true); pb.querySelector<HTMLElement>('[data-emptystep="' + b.dataset.emptystep + '"]')?.focus(); return;
     }
-    if (b.dataset.pos) { commit("img.pos", b.dataset.pos, true); pb.querySelector<HTMLElement>('[data-pos="' + b.dataset.pos + '"]')?.focus(); return; }
     if (b.dataset.src) { if (ui.fp && ui.fp.anchorId === b.id) closeFp(); else openSrcMenu(b); return; }
     if (b.dataset.toggle) {
       const k = b.dataset.toggle, open = !ui.open.has(k);
