@@ -142,6 +142,49 @@ for (const [hash, name] of [["panel=Books|Shelf", "panel-en-dark"], ["panel=Book
   ok("add data", (await model()).items.some(x => x.prop === "note.rating" && x.kind === "dato"));
   ok("…and it shows on the card", await p.evaluate(() => !!document.querySelector('.cb-card .cb-i[data-prop="note.rating"]')));
 
+  /* Colocación de un dato: en uno de los 9 puntos, fuera del texto (y Ctrl+Z lo devuelve) */
+  const rid = (await model()).items.find(x => x.prop === "note.rating" && x.kind === "dato").id;
+  await p.click('.cb-panel [data-p="items.#' + rid + '.place"][data-v="tr"]'); await p.waitForTimeout(60);
+  ok("data placed in a corner", await p.evaluate(() => !!document.querySelector('.cb-card .cb-float.v-t.h-r .cb-i[data-prop="note.rating"]') &&
+    !document.querySelector('.cb-card .cb-body .cb-i[data-prop="note.rating"]')));
+  await p.keyboard.press("Control+z"); await p.waitForTimeout(60);
+  ok("…and back between the data", await p.evaluate(() => !!document.querySelector('.cb-card .cb-body .cb-i[data-prop="note.rating"]')));
+
+  /* el título: con candado no se mueve ni se coloca; tocando el candado, sí */
+  const tid = (await model()).items.find(x => x.kind === "title").id;
+  await p.click('.cb-panel [data-toggle="it:' + tid + '"]'); await p.waitForTimeout(60);
+  const titleState = () => p.evaluate(tid => ({ grip: !!document.querySelector('.cb-panel [data-grip][data-id="' + tid + '"]'),
+    fixed: document.querySelector('.cb-panel .sc[data-id="' + tid + '"]').hasAttribute("data-fixed"),
+    placeOff: document.querySelector('.cb-panel [data-p="items.#' + tid + '.place"][data-v="tl"]').disabled }), tid);
+  const locked = await titleState();
+  ok("the title is locked by default", locked.fixed && !locked.grip && locked.placeOff, JSON.stringify(locked));
+  await p.click("#cbp-title-lock"); await p.waitForTimeout(60);
+  const unlocked = await titleState();
+  ok("tapping the lock frees the title (grip and placement)", (await model()).items.find(x => x.kind === "title").free === true && !unlocked.fixed && unlocked.grip && !unlocked.placeOff, JSON.stringify(unlocked));
+  await p.click('.cb-panel [data-p="items.#' + tid + '.place"][data-v="bl"]'); await p.waitForTimeout(60);
+  ok("the title can be placed too", await p.evaluate(() => !!document.querySelector('.cb-card .cb-float.v-b.h-l .cb-i[data-prop="file.name"]')));
+  await p.click("#cbp-title-lock"); await p.waitForTimeout(60);
+  ok("…and locked again", (await titleState()).fixed);
+  await p.keyboard.press("Control+z"); await p.keyboard.press("Control+z"); await p.keyboard.press("Control+z"); await p.waitForTimeout(60);
+  ok("Ctrl+Z puts the title back", await p.evaluate(tid => { const t = window.__view.panel.model.items.find(x => x.id === tid); return !t.free && t.place === "entre"; }, tid));
+
+  /* un dato unido a otro vacío en la nota no se pega a la línea de antes (#3); si el vacío estaba unido, la cadena sigue */
+  const lineOfC = (bJoined) => p.evaluate(bJoined => {
+    const v = window.__view, m = JSON.parse(JSON.stringify(v.panel.model));
+    const i = m.items.findIndex(x => x.prop === "note.author"), A = m.items[i];
+    const B = Object.assign({}, A, { id: "tB", prop: "note.nothing", join: bJoined, sup: false, before: "" });
+    const C = Object.assign({}, A, { id: "tC", prop: "note.year", join: true, sup: false, before: "§C " });
+    m.items.splice(i + 1, 0, B, C);
+    v.renderCool(m);
+    const line = [...document.querySelectorAll(".cb-card .cb-l")].find(l => l.textContent.includes("§C "));
+    const r = line ? [...line.querySelectorAll(".cb-i")].map(x => x.getAttribute("data-prop")) : null;
+    v.renderCool(v.panel.model);
+    return r;
+  }, bJoined);
+  const alone = await lineOfC(false), chained = await lineOfC(true);
+  ok("joined to an empty item: starts its own line", JSON.stringify(alone) === '["note.year"]', JSON.stringify(alone));
+  ok("joined to an empty joined item: the chain goes on", JSON.stringify(chained) === '["note.author","note.year"]', JSON.stringify(chained));
+
   /* Estados */
   await p.click('.cb-panel [data-toggle="estados"]').catch(() => {});
   await p.waitForTimeout(60);
