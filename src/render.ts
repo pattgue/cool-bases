@@ -366,8 +366,10 @@ export function coverData(s: Model, title: string, sub: string): CoverData {
   const im = s.img;
   if (im.empty === "portada") {
     const hs = hashStr(title);
-    const [bg, fg] = im.cvColors === "card" ? [hex6(tokCol("det", s)), hex6(s.col.bg)] : COVER_PALETTE[hs % COVER_PALETTE.length];
-    return { kind: "portada", title, sub, bg, fg, shape: im.cvShape === "none" ? -1 : (hs >>> 5) % SHAPE_COUNT, font: fontStack(im.cvFont || "Georgia") };
+    const [bg, fg] = im.cvColors === "card" ? [hex6(tokCol("det", s)), hex6(s.col.bg)] : im.cvColors === "own" ? [hex6(im.cvBg), hex6(im.cvFg)] : COVER_PALETTE[hs % COVER_PALETTE.length];
+    /* forma: automática (una por título), ninguna o una fija (0…4) */
+    const shape = im.cvShape === "none" ? -1 : im.cvShape === "auto" || isNaN(+im.cvShape) ? (hs >>> 5) % SHAPE_COUNT : +im.cvShape % SHAPE_COUNT;
+    return { kind: "portada", title, sub, bg, fg, shape, font: fontStack(im.cvFont || "Georgia") };
   }
   return { kind: im.empty, title, bg: blend(s.col.bg, s.col.text, 0.06), fg: hex6(tokCol("det", s)), shape: -1, ini: initials(title) };
 }

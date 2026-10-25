@@ -210,7 +210,7 @@ body.cb-scrubbing-y:not(#cb-imp), body.cb-scrubbing-y *:not(#cb-imp) { cursor: n
                debajo, INTENSITY · BRIGHTNESS · GRAIN. Columnas 110 : 138, separadas 10 px. ---------- */
 .cb-panel .imgmod {
   display: grid; grid-template-columns: 110fr 138fr; column-gap: 10px; align-items: start;
-  grid-template-areas: "fx main" "fx mainl" "adj adj" "cov cset";
+  grid-template-areas: "fx main" "fx mainl" "fx adj" "mode mode" "cov cset"; grid-template-rows: auto auto 1fr auto auto;
 }
 .cb-panel .imgmod .pv { display: contents; }
 .cb-panel .pv-main .pvc { grid-area: main; aspect-ratio: 1 / 1; }
@@ -232,9 +232,6 @@ body.cb-scrubbing-y:not(#cb-imp), body.cb-scrubbing-y *:not(#cb-imp) { cursor: n
 .cb-panel .fx-duo { background: linear-gradient(135deg, #e5332f 50%, #141414 50%); }
 .cb-panel .fx-blur { background: radial-gradient(circle, #9a9a9a 0, rgba(154, 154, 154, .55) 40%, transparent 72%); }
 .cb-panel .fx-inv { background: linear-gradient(90deg, #f0f0f0 50%, #1e1e1e 50%); box-shadow: 0 0 0 .5px #8888; }
-.cb-panel .duo-row { display: flex; gap: 4px; margin-top: 2px; }
-.cb-panel .duo-row .swc { width: 28px; height: 15px; padding: 0; border: 0; border-radius: var(--r-in); overflow: hidden; }
-.cb-panel .duo-row .swc .fill { display: block; width: 100%; height: 100%; }
 /* las muestras: mini tarjetas como la de COLORS */
 .cb-panel .pvc {
   position: relative; overflow: hidden; container-type: inline-size;
@@ -288,27 +285,39 @@ body.cb-scrubbing-y:not(#cb-imp), body.cb-scrubbing-y *:not(#cb-imp) { cursor: n
 .cb-panel .pv-arr:disabled { opacity: 0; cursor: default; }
 /* debajo, el nombre de lo elegido */
 .cb-panel .pv-l { display: block; height: 14px; margin-top: 6px; text-align: center; font-size: 11px; line-height: 14px; font-weight: 900; text-transform: uppercase; white-space: nowrap; color: var(--cool-text); }
-/* debajo de la muestra: lo que se ajusta en ese FIT (tiles anchos) y, en fila, INTENSITY · BRIGHTNESS · GRAIN */
-.cb-panel .img-adj { grid-area: adj; display: flex; flex-direction: column; gap: var(--sp); min-width: 0; margin-top: 10px; }
-.cb-panel .tile.t-wl { flex-direction: row; justify-content: space-between; gap: var(--bpad); min-height: 0; padding: var(--sp) var(--sp) var(--sp) var(--bpad); }
-.cb-panel .t-wl .tile-l { --tl-fs: 13px; }
-.cb-panel .t-wl input.num { width: 72px; height: 22px; font-size: 10px; }
-.cb-panel .t-wide.t-icons .tile-pill.icons { height: 22px; flex-basis: 50%; }
-.cb-panel .t-wide.t-icons .icons button svg { width: 14px; height: 14px; stroke-width: 2.2; }
-.cb-panel .t-shade .tile-pill { display: flex; justify-content: flex-end; gap: var(--sp); }
-.cb-panel .t-shade .tg-pill { height: 22px; width: 72px; --cbp-k: 14px; }
-.cb-panel .t-shade .swc { flex: none; width: 44px; height: 22px; padding: 0; border: 0; border-radius: var(--r-in); overflow: hidden; }
-.cb-panel .t-shade .swc .fill { display: block; width: 100%; height: 100%; }
-.cb-panel .t-shade .swc:disabled { opacity: .35; }
+/* tiles pequeños de las dos columnas (etiqueta arriba, valor debajo): los del efecto, debajo de los chips; los del FIT,
+   debajo de la muestra y estirados hasta abajo */
+.cb-panel .fx-tiles { display: flex; flex-direction: column; gap: var(--sp); align-self: stretch; margin-top: 4px; }
+.cb-panel .img-adj { grid-area: adj; align-self: stretch; display: flex; flex-direction: column; gap: var(--sp); min-width: 0; margin-top: 10px; }
+.cb-panel .fx-tiles .tile, .cb-panel .img-adj .tile { flex: 1 1 auto; min-height: 40px; gap: 5px; padding: 6px 7px; }
+.cb-panel .fx-tiles .tile-l, .cb-panel .img-adj .tile-l { --tl-fs: 11px; }
+.cb-panel .fx-tiles .tile-pill, .cb-panel .img-adj .tile-pill { align-self: stretch; }
+.cb-panel .fx-tiles input.num, .cb-panel .img-adj input.num { width: 100%; height: 17px; font-size: 9.5px; }
+.cb-panel .fx-tiles .tg-pill, .cb-panel .img-adj .tg-pill { align-self: stretch; width: auto; height: 17px; }
+.cb-panel .img-adj .t-sw > .swc, .cb-panel .t-sws .swc { padding: 0; border: 0; border-radius: var(--r-in); overflow: hidden; }
+.cb-panel .img-adj .t-sw > .swc { align-self: stretch; width: auto; height: 17px; }
+.cb-panel .img-adj .swc .fill, .cb-panel .t-sws .swc .fill { display: block; width: 100%; height: 100%; }
+.cb-panel .swc:disabled { opacity: .35; }
+.cb-panel .t-sws { display: flex; gap: 4px; align-self: stretch; }
+.cb-panel .t-sws .swc { flex: 1 1 0; height: 17px; }
+.cb-panel .t-head .t-sws { flex: none; align-self: center; }
+.cb-panel .t-head .t-sws .swc { width: 20px; height: 11px; flex: none; }
 .cb-panel .t-sw { cursor: default; }
-/* al final, sin imagen: el visor de la portada | lo que la construye */
+/* POSICIÓN: cuatro iconos en la pastilla */
+.cb-panel .t-stack.t-icons .tile-pill.icons { display: flex; width: auto; height: 22px; }
+.cb-panel .t-stack.t-icons .icons button svg { width: 14px; height: 14px; stroke-width: 2.2; }
+/* SIN IMAGEN: qué se pinta (fila ancha); debajo, el visor | lo que construye la portada */
+.cb-panel .t-mode { grid-area: mode; margin-top: 10px; }
 .cb-panel .cv-view {
-  grid-area: cov; margin-top: 10px; aspect-ratio: 2 / 3; border-radius: var(--r-in);
+  grid-area: cov; align-self: start; margin-top: var(--sp); aspect-ratio: 1 / 1.62; border-radius: var(--r-in);
   background: var(--cool-letter-bg) var(--cv-img) center / cover no-repeat; box-shadow: 0 0 0 1px var(--cool-border);
 }
+.cb-panel .cv-view.e-nada { background: transparent; box-shadow: none; border: 1.5px dashed var(--cool-border); }
 .cb-panel .cv-view.dis { opacity: .45; }
-.cb-panel .cv-set { grid-area: cset; align-self: stretch; display: flex; flex-direction: column; gap: var(--sp); min-width: 0; margin-top: 10px; }
-.cb-panel .tile.t-stack { flex: 1 1 0; min-height: 0; align-items: stretch; gap: 5px; padding: 4px 7px; cursor: default; }
+.cb-panel .cv-set { grid-area: cset; align-self: stretch; display: flex; flex-direction: column; gap: var(--sp); min-width: 0; margin-top: var(--sp); }
+.cb-panel .tile.t-stack { flex: 1 1 auto; min-height: 0; align-items: stretch; justify-content: center; gap: 5px; padding: 5px 7px; cursor: default; }
+.cb-panel .t-head { display: flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; }
+.cb-panel .t-head:has(.t-sws) { justify-content: space-between; }
 .cb-panel .t-stack .tile-l { --tl-fs: 11px; text-align: center; }
 .cb-panel .t-stack .tile-pill { display: block; min-width: 0; }
 .cb-panel .t-stack select, .cb-panel .t-stack .fontb {
@@ -319,9 +328,13 @@ body.cb-scrubbing-y:not(#cb-imp), body.cb-scrubbing-y *:not(#cb-imp) { cursor: n
 .cb-panel .t-stack .fontb .caret { flex: none; display: grid; place-items: center; color: var(--cool-pill-fg); }
 .cb-panel .t-stack .fontb .caret svg { width: 11px; height: 11px; stroke-width: 2.6; }
 .cb-panel .segp { display: flex; gap: 2px; height: 19px; padding: 2px; border-radius: var(--r-in); background: var(--cool-pill-bg); }
-.cb-panel .segp button { flex: 1 1 0; min-width: 0; padding: 0 2px; border-radius: 2px; font-size: 9px; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; color: var(--cool-pill-fg); }
+.cb-panel .segp button { flex: 1 1 0; min-width: 0; display: grid; place-items: center; padding: 0 2px; border-radius: 2px; font-size: 8.5px; font-weight: 800; text-transform: uppercase; white-space: nowrap; overflow: hidden; color: var(--cool-pill-fg); }
 .cb-panel .segp button[aria-pressed="true"] { background: var(--cool-tile-fg); color: var(--cool-tile-bg); }
-.cb-panel .t-stack.dis button, .cb-panel .t-stack.dis select { cursor: default; }
+.cb-panel .segp svg { width: 11px; height: 11px; }
+.cb-panel .segp .seg-ic { display: grid; place-items: center; }
+.cb-panel .segp .seg-ic svg { stroke-width: 2.4; }
+.cb-panel .t-stack.dis button, .cb-panel .t-stack.dis select, .cb-panel .t-mode.dis button { cursor: default; }
+.cb-panel .tile.dis .segp, .cb-panel .tile.dis .t-sws { opacity: .7; }
 /* SÍ / NO dentro de un tile */
 .cb-panel .tg-pill { width: 72px; height: 15px; border-radius: var(--r-in); background: var(--cool-pill-bg); color: var(--cool-pill-fg); --cbp-fs: 9.5px; --cbp-tp: 7px; --cbp-k: 9px; --cbp-kp: 3px; --cbp-kr: 2px; }
 .cb-fp .menu [data-src-v] { display: block; width: 100%; text-align: left; }

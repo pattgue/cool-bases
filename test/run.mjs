@@ -261,11 +261,17 @@ const BAR_BTN = '.cool-tool[data-tool="cool-bases"]';
   const f0 = (await model()).img.fit;
   await p.click('.cb-panel [data-fitstep="1"]');
   ok("IMAGE: the arrows change the fit", (await model()).img.fit !== f0 && await p.evaluate(() => document.activeElement.dataset.fitstep === "1"));
-  /* la portada: un visor y, al lado, lo que la construye; tocarla la elige para las notas sin imagen */
-  ok("IMAGE: cover viewer with its settings", await p.isVisible(".cb-panel .cv-view") && await p.isVisible('.cb-panel .cv-set select[data-p="img.cvText"]'));
-  await p.click('.cb-panel button[data-p="img.cvShape"][data-v="none"]');
+  /* sin imagen: qué se pinta, el visor y, al lado, lo que construye la portada (forma fija y colores propios incluidos) */
+  await p.click('.cb-panel #cbp-img-empty-portada');
+  ok("IMAGE: cover viewer with its settings", await p.isVisible(".cb-panel .cv-view.e-portada") && await p.isVisible('.cb-panel .cv-set select[data-p="img.cvText"]'));
+  await p.click('.cb-panel #cbp-img-cvShape-2');
+  await p.click('.cb-panel #cbp-img-cvColors-own');
+  await p.waitForTimeout(100);
+  const cv = await p.evaluate(() => JSON.parse(document.querySelector('.cb-card[data-path="Books/Don Quixote.md"] img.cb-ph').dataset.cv));
   const mc = await model();
-  ok("IMAGE: a cover setting picks the cover for notes without image", mc.img.cvShape === "none" && mc.img.empty === "portada");
+  ok("IMAGE: a fixed shape and own colors reach the cards", cv.shape === 2 && cv.bg === mc.img.cvBg && cv.fg === mc.img.cvFg, JSON.stringify([cv.shape, cv.bg, cv.fg]));
+  await p.click('.cb-panel #cbp-img-empty-nada');
+  ok("IMAGE: «None» disables the cover settings", await p.isDisabled('.cb-panel #cbp-img-cvShape-auto') && await p.isVisible(".cb-panel .cv-view.e-nada"));
 
   await p.click("#addBtn");
   await p.selectOption(".cb-panel #popProp", "note.rating");

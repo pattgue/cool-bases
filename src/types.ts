@@ -10,7 +10,7 @@ export interface FontStyle { family: string; weight: number; size: number; align
 export interface ImgStyle {
   src: string; pos: string; fit: string; frame: number; fx: string; amt: Record<string, number>; duo1: string; duo2: string;
   grain: boolean; bright: number; shade: boolean; shadeC: string; empty: string;
-  cvText: string | null; cvColors: string; cvShape: string; cvFont: string;
+  cvText: string | null; cvColors: string; cvShape: string; cvFont: string; cvBg: string; cvFg: string;
 }
 export interface FootStyle { on: boolean; bg: string; lw: number; lc: string; filled?: boolean }
 export interface RateStyle {
