@@ -95,7 +95,7 @@ export const BASE_STYLE: Style & { states: Model["states"] } = {
   col: { bg: "#141414", grad: false, bg2: "#2b2b2b", angle: 180, text: "#f2f2f2", det: "#e5332f", bw: 0, bc: "#ffffff29" },
   font: { family: "Interfaz", weight: 400, size: 3.6, align: "left" },
   img: { src: "auto", pos: "top", fit: "encajar", frame: 5, fx: "color", amt: { bn: 100, duo: 100, blur: 35, inv: 100 }, duo1: "#141414", duo2: "#e5332f",
-    grain: false, bright: 100, shade: false, shadeC: "#000000", empty: "nada",
+    grain: false, grainAmt: 32, bright: 100, shade: false, shadeC: "#000000", empty: "nada",
     /* «Sin imagen: Portada»: texto de abajo (propiedad; null = aún sin elegir), colores (auto, de la tarjeta o propios: cvBg y cvFg),
        forma (auto, none o 0…4) y letra del título */
     cvText: null, cvColors: "auto", cvShape: "auto", cvFont: "Georgia", cvBg: "#e07a5f", cvFg: "#fdf0d5" },

@@ -447,7 +447,7 @@ export function gridSetup(grid: HTMLElement, s: Model, uid: string) {
     "--cb-bw": col.bw + "px", "--cb-bc": col.bc, "--cb-rad": c.radius + "px", "--cb-irad": Math.max(0, c.radius - col.bw) + "px", "--cb-pad": c.pad,
     "--cb-minp": r && r[0] ? (r[1] / r[0] * 100).toFixed(3) + "%" : null, "--cb-minh": r && r[0] ? null : c.h + "px",
     "--cb-font": fontStack(s.font.family), "--cb-w": s.font.weight, "--cb-fs": s.font.size, "--cb-align": al,
-    "--cb-frame": im.frame, "--cb-filter": filt, "--cb-imgtf": im.fx === "blur" ? "scale(1.08)" : "none", "--cb-noise": NOISE,
+    "--cb-frame": im.frame, "--cb-filter": filt, "--cb-imgtf": im.fx === "blur" ? "scale(1.08)" : "none", "--cb-noise": NOISE, "--cb-grain-o": (im.grainAmt ?? 32) / 100,
     "--cb-shc": im.shadeC, "--cb-hc": tokCol(hv.color, s), "--cb-hb": hexA(hv.bg, hv.bgOp / 100),
     "--cb-ln-h": L.w + "px", "--cb-ln-c": tokCol(L.color, s), "--cb-ln-w": L.width === "full" ? "100%" : L.width === "pct" ? L.pct + "%" : "0",
     "--cb-ln-mt": L.mt == null ? 1.6 : L.mt, "--cb-ln-mb": L.mb == null ? 1.6 : L.mb,
