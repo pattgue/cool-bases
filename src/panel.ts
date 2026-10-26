@@ -285,7 +285,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     return h("figure", "pv pv-main",
       h("div", { cls: "pvc p-" + (fondo ? "top" : im.pos) + " f-" + im.fit + (noImg ? " no-img" : "") + (im.grain ? " grain" : "") + (fondo && im.shade ? " shade" : ""),
         css: pvVars(s, filter, "var(--ic-img)") },
-        h("div", "pv-in", h("div", "pv-media", pic, noImg ? null : pvArrows("data-fitstep", t("c.fit"), false)), pvText())),
+        h("div", "pv-in", h("div", "pv-media", pic), pvText()), noImg ? null : pvArrows("data-fitstep", t("c.fit"), false)),
       pvLabel(noImg ? t("img.none") : t("fit." + im.fit)));
   }
   /* ---------- IMAGE (boceto de Patt): chips pequeños, filas de etiqueta y deslizador, una fila ancha para el FIT ---------- */
@@ -300,6 +300,13 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     return h("span", { cls: "ichip dots" + (getP(path) === v ? " on" : "") }, h("span", "ich-dots", swatch(c1, dis), swatch(c2, dis)),
       h("button", { attr: { type: "button", role: "radio", id: fid(path + "=" + v), "data-p": path, "data-k": "seg", "data-v": v, "data-vt": "string",
         "aria-checked": String(getP(path) === v), disabled: D(dis) } }, label));
+  }
+  /* segmentado: partes iguales que llenan el ancho (palabras o iconos) */
+  function segs(path: string, label: string, opts: [string, Kid, string?][]) {
+    const v = getP(path);
+    return h("span", { cls: "iseg", attr: { role: "radiogroup", "aria-label": label } }, opts.map(([val, kid, aria]) =>
+      h("button", { attr: { type: "button", role: "radio", id: fid(path + "=" + val), "data-p": path, "data-k": "seg", "data-v": val, "data-vt": "string",
+        "aria-checked": String(v === val), "aria-label": aria || null, title: aria || null } }, kid)));
   }
   /* fila: la etiqueta en su cajita y, al lado, el control */
   function lrow(label: string, forId: string | null, ctl: Kid, dis?: boolean) {
@@ -326,8 +333,12 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       return b;
     })));
     if (im.fit !== "enmarcada") return [pos];
-    return [pos, fitRow(t("c.margin"), h("input", { cls: "num big", attr: { type: "text", id: fid("img.frame"), "data-p": "img.frame", "data-k": "scrub", "data-min": 0, "data-max": 14,
-      "data-step": 0.5, "data-rate": 0.1, "data-axis": "x", "data-unit": "%", "data-tight": "1", value: fmt(im.frame) + "%", spellcheck: "false", inputmode: "decimal", "aria-label": t("c.margin") } }), null, "t-scrub")];
+    /* ENMARCADA: posición y margen en la misma franja, separadas por un trazo; el margen se arrastra solo en su mitad */
+    const kids = [...pos.childNodes];
+    return [h("div", "tile t-wide fitrow pair", kids, h("span", { cls: "fr-div", attr: { "aria-hidden": "true" } }),
+      h("span", "tile fr-part", h("label", { cls: "tile-l", attr: { for: fid("img.frame") } }, t("c.margin")),
+        h("input", { cls: "num big", attr: { type: "text", id: fid("img.frame"), "data-p": "img.frame", "data-k": "scrub", "data-min": 0, "data-max": 14, "data-step": 0.5, "data-rate": 0.1, "data-axis": "x",
+          "data-unit": "%", "data-tight": "1", value: fmt(im.frame) + "%", spellcheck: "false", inputmode: "decimal" } })))];
   }
   /* SIN IMAGEN: la portada (o lo que se pinte) a la izquierda y, al lado, sus opciones en el mismo formato que los efectos */
   const EMPTIES = ["nada", "iniciales", "hueco", "portada"];
@@ -339,25 +350,29 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       svg("g", fl, ...[[5, 13], [8.5, 9.5], [12, 13], [15.5, 6.5]].map(([y, w]) => svg("rect", { x: 3.5, y, width: w, height: 1.8 }))), svg("path", { d: "M4 13.5A6 6 0 0 1 16 13.5Z", ...fl })][k];
     return svg("svg", { viewBox: "0 0 20 20", "aria-hidden": "true" }, kids);
   }
-  function coverView(s: Model) {
-    const im = s.img, sub = im.empty === "portada" && im.cvText ? pname(im.cvText) : "";
-    const url = im.empty === "nada" ? "none" : 'url("' + coverSrc(coverData(s, t("mc.title"), sub), 1.22) + '")';
-    return h("div", { cls: "cv-view e-" + im.empty, attr: { role: "img", "aria-label": t("c.noImageAria") + ": " + t("empty." + im.empty) }, css: { "--cv-img": url } });
+  /* SIN IMAGEN: una fila con las cuatro opciones; con la portada, debajo, el visor y, al lado, cuatro filas que suman su alto
+     (los colores propios se eligen con los dos puntos del propio visor) */
+  function coverRows(s: Model) {
+    const im = s.img, tp = coverTextProps(), cur = im.cvText; if (cur && !tp.includes(cur)) tp.unshift(cur);
+    const ic = (n: string) => { const x = h("span", "seg-i"); setIcon(x, n); return x; };
+    const view = h("div", { cls: "cv-view", attr: { role: "img", "aria-label": t("c.noImageAria") + ": " + t("empty.portada") },
+      css: { "--cv-img": 'url("' + coverSrc(coverData(s, t("mc.title"), cur ? pname(cur) : ""), 1.22) + '")' } });
+    /* COLORS: elegidos los propios, su parte del segmentado pasa a ser sus dos colores */
+    const cols = segs("img.cvColors", t("b.colors"), [["auto", t("cv.autoS")], ["card", t("cv.cardS")], ["own", t("cv.ownS")]]);
+    if (im.cvColors === "own") cols.lastElementChild!.replaceWith(h("span", { cls: "seg-own", attr: { role: "radio", "aria-checked": "true", "aria-label": t("cv.ownS") } },
+      swatch("img.cvBg"), swatch("img.cvFg")));
+    return h("div", "cv-row", view, h("div", "lrows cv-rows",
+      lrow(t("c.textS"), fid("img.cvText"), sel("img.cvText", [["", t("o.none")], ...tp.map((p): Opt => [p, pname(p)])], false, cur || "")),
+      lrow(t("c.font"), fid("img.cvFont"), fontBtn("img.cvFont")),
+      lrow(t("b.colors"), null, cols),
+      lrow(t("c.shape"), null, segs("img.cvShape", t("c.shape"), SHAPES.map((v): [string, Kid, string] =>
+        [v, v === "auto" ? ic("shuffle") : v === "none" ? ic("ban") : shapeIcon(+v), shapeName(v)])))));
   }
-  function coverCtl(s: Model) {
-    const im = s.img, port = im.empty === "portada";
-    const tp = coverTextProps(), cur = im.cvText; if (cur && !tp.includes(cur)) tp.unshift(cur);
-    const ic = (n: string) => { const x = h("span", "ich-i"); setIcon(x, n); return x; };
-    return h("div", "cv-ctl",
-      h("div", { cls: "ichips", attr: { role: "radiogroup", "aria-label": t("c.ifNoImage") } }, EMPTIES.map(e => chip("img.empty", e, t("empty." + e)))),
-      port ? [
-        lrow(t("c.bottomText"), fid("img.cvText"), sel("img.cvText", [["", t("o.none")], ...tp.map((p): Opt => [p, pname(p)])], false, cur || "")),
-        lrow(t("c.font"), fid("img.cvFont"), fontBtn("img.cvFont")),
-        lrow(t("b.colors"), null, h("span", { cls: "ichips", attr: { role: "radiogroup", "aria-label": t("b.colors") } },
-          chip("img.cvColors", "auto", t("cv.autoS")), chip("img.cvColors", "card", t("cv.cardS")), dotChip("img.cvColors", "own", t("cv.ownS"), "img.cvBg", "img.cvFg", false))),
-        lrow(t("c.shape"), null, h("span", { cls: "ichips", attr: { role: "radiogroup", "aria-label": t("c.shape") } },
-          SHAPES.map(v => chip("img.cvShape", v, null, { aria: shapeName(v), icon: v === "auto" ? ic("shuffle") : v === "none" ? ic("ban") : shapeIcon(+v), cls: "sq" }))))] : null);
+  function emptyCtl(s: Model) {
+    return [h("div", "lrows cv-mode", lrow(t("c.noImage"), null, segs("img.empty", t("c.ifNoImage"), EMPTIES.map((e): [string, Kid] => [e, t("empty." + e)])))),
+      s.img.empty === "portada" ? coverRows(s) : null];
   }
+
   function openSrcMenu(anchor: HTMLElement) {
     const s = S(), cur = imgSrc(s, facts) || "none", ip = imgProps().slice(); if (cur !== "none" && !ip.includes(cur)) ip.unshift(cur);
     const pick = (v: string) => { closeFp(); commit("img.src", v, true); byId("cbp-imgsrc")?.focus(); };
@@ -445,11 +460,10 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
               chip("img.fx", "blur", t("fx.blur"), { icon: h("span", "fxb-i fx-blur"), dis: noImg }), chip("img.fx", "inv", t("fx.inv"), { icon: h("span", "fxb-i fx-inv"), dis: noImg })),
             noImg ? null : h("div", "lrows",
               lrow(t("c.grain"), fid("img.grainAmt"), range("img.grainAmt", 0, 100, 1, t("c.grain"), im.grain ? im.grainAmt : 0)),
-              lrow(t("c.intensity"), fid("img.amt." + fx), range("img.amt." + fx, 0, 100, 1, t("c.intensity"), im.amt[fx] ?? 100, im.fx === "color"), im.fx === "color"),
-              lrow(t("c.brightness"), fid("img.bright"), range("img.bright", 20, 140, 1, t("c.brightness"), im.bright)))),
+              lrow(t("c.intensity"), fid("img.amt." + fx), range("img.amt." + fx, 0, 100, 1, t("c.intensity"), im.amt[fx] ?? 100, im.fx === "color"), im.fx === "color"))),
           imgCard(s, sp, noImg),
           noImg ? null : h("div", "img-fit", fitCtl(s)),
-          noImg ? null : h("div", "cv-row", coverView(s), coverCtl(s))))),
+          noImg ? null : h("div", "img-empty", emptyCtl(s))))),
     ));
   }
 

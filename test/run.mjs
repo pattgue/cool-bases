@@ -263,16 +263,16 @@ const BAR_BTN = '.cool-tool[data-tool="cool-bases"]';
   ok("IMAGE: the arrows change the fit", (await model()).img.fit !== f0 && await p.evaluate(() => document.activeElement.dataset.fitstep === "1"));
   /* sin imagen: la portada y, al lado, sus opciones (chips y filas como los efectos) */
   await p.click('.cb-panel #cbp-img-empty-portada');
-  ok("IMAGE: cover viewer with its options", await p.isVisible(".cb-panel .cv-view.e-portada") && await p.isVisible('.cb-panel .cv-ctl select[data-p="img.cvText"]'));
+  ok("IMAGE: cover viewer with its options", await p.isVisible(".cb-panel .cv-row .cv-view") && await p.isVisible('.cb-panel .cv-rows select[data-p="img.cvText"]'));
   await p.click('.cb-panel #cbp-img-cvShape-2');
   await p.click('.cb-panel #cbp-img-cvColors-own');
   await p.waitForTimeout(100);
   const cv = await p.evaluate(() => JSON.parse(document.querySelector('.cb-card[data-path="Books/Don Quixote.md"] img.cb-ph').dataset.cv));
   const mc = await model();
   ok("IMAGE: a fixed shape and own colors reach the cards", cv.shape === 2 && cv.bg === mc.img.cvBg && cv.fg === mc.img.cvFg, JSON.stringify([cv.shape, cv.bg, cv.fg]));
-  ok("IMAGE: own colors show their two dots in the chip", await p.isVisible('.cb-panel .ichip.dots.on #cbp-img-cvBg-sw'));
+  ok("IMAGE: own colors show their two colors in the segment", await p.isVisible('.cb-panel .seg-own #cbp-img-cvBg-sw'));
   await p.click('.cb-panel #cbp-img-empty-nada');
-  ok("IMAGE: without the cover, its options go away", !(await p.isVisible('.cb-panel .cv-ctl select[data-p="img.cvText"]')) && await p.isVisible(".cb-panel .cv-view.e-nada"));
+  ok("IMAGE: without the cover, its viewer and options go away", !(await p.isVisible(".cb-panel .cv-view")) && !(await p.isVisible('.cb-panel select[data-p="img.cvText"]')));
   /* GRAIN es un deslizador: a 0, sin grano */
   await setRange("img.grainAmt", 60);
   const g1 = (await model()).img;
