@@ -96,6 +96,20 @@ For anything else. It only applies to this view. Useful classes: `.cb-card`, `.c
 - **Several data on one line.** Click the chain between two items: `1927 · Germany · 153 min`. Ratings and states can join a line too.
 - **Superscripts.** Turn on **Superscript** in an item to place it small and high after the one before, like a year next to a title.
 
+## Updates
+**Update 1.0.2**:
+→ Covers saved as a plain file path (like "image.jpg" without the [[ ]]) now show up correctly.
+
+**Update 1.1.0**:
+→ You can now choose what the Title shows: the note name, the first alias, any other property, or nothing at all.
+
+**Update 1.1.1**:
+→ Any data field can now be placed in any of the 9 spots of the card, like the rating.
+→ (Fixed) A field joined to an empty one no longer jumps onto the line above.
+
+**Update 1.1.2**:
+→ Formulas that return an Obsidian icon (icon("…")) now show the icon on the card. 
+
 ## FAQ
 
 **Where is my design saved?**
