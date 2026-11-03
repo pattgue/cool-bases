@@ -65,8 +65,9 @@ export const FMTS: [string, string | null][] = [["1/1", "1:1"], ["4/5", "4:5"], 
 export const T_DEF: ItemT = { multi: "inline", nfmt: "full", dec: 0, src: "manual", short: true, tagStyle: "text", max: 3, tsep: " · ",
   yes: "Sí", no: "", stStyle: "pill", show: "value", fixed: "", arrow: true, sort: "orig", dir: "desc", nlay: "lines", head: "", headColor: "#8a8a8a", more: "" };
 export const ITEM_DEF: Omit<Item, "id" | "kind" | "prop" | "type" | "t"> = { font: null, upper: false, color: "tx", size: null, weight: null, fit: false, spaceT: 0.6, spaceB: 0.6, ital: false, under: false,
-  hl: false, hlc: "#e5332f59", strike: false, sup: false, link: "none", hover: false, before: "", after: "", hide: "", join: false, sep: "·", gap: 1 };
-export const TITLE_KEYS: (keyof Item)[] = ["font", "upper", "color", "size", "weight", "fit", "spaceT", "spaceB", "ital", "under", "hl", "hlc", "strike", "link", "hover"];
+  hl: false, hlc: "#e5332f59", strike: false, sup: false, link: "none", hover: false, before: "", after: "", hide: "", join: false, sep: "·", gap: 1,
+  place: "entre", onImg: false, mx: 5, my: 5 };
+export const TITLE_KEYS: (keyof Item)[] = ["font", "upper", "color", "size", "weight", "fit", "spaceT", "spaceB", "ital", "under", "hl", "hlc", "strike", "link", "hover", "place", "onImg", "mx", "my"];
 
 /* separación de un dato: arriba y abajo por separado; lo guardado con una sola «space» vale para las dos */
 export function splitSpace<T>(o: T): T {

@@ -34,6 +34,9 @@
 .cb-view .cb-grid.hv-on .cb-card a.cb-a.hv:hover:not(#cb-imp) { color: var(--cb-hc); }
 .cb-view .cb-grid.hv-on.hv-u .cb-card a.cb-a.hv:hover:not(#cb-imp) { text-decoration: underline; }
 .cb-view .cb-card .cb-copy:not(#cb-imp) { text-decoration: none; }
+/* un icono de Obsidian que devuelve una fórmula (icon("…")): del tamaño y el color del texto */
+.cb-view .cb-icon { display: inline-block; line-height: 0; vertical-align: -.125em; }
+.cb-view .cb-icon svg.svg-icon, .cb-view .cb-icon svg { width: 1em; height: 1em; }
 .cb-view .cb-head { display: block; font-size: .72em; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .2em; }
 
 /* panel lateral montado sobre la vista */
@@ -85,3 +88,8 @@ body.cb-scrubbing:not(#cb-imp), body.cb-scrubbing *:not(#cb-imp) { cursor: ew-re
 .cb-view .cb-stg { display: flex; flex-direction: column; gap: 1.5cqi; pointer-events: none; }
 /* la casilla, aunque esté en una esquina, se puede pulsar */
 .cb-view .cb-stg .cb-st.f-check { pointer-events: auto; }
+/* datos colocados en uno de los 9 puntos: el interlineado de la tarjeta, alineados hacia su lado; sus enlaces se pueden pulsar */
+.cb-view .cb-stg > .cb-l { line-height: 1.25; }
+.cb-view .cb-stg.al-r > .cb-l { text-align: right; }
+.cb-view .cb-stg.al-c > .cb-l { text-align: center; }
+.cb-view .cb-stg a.cb-a, .cb-view .cb-stg .cb-copy { pointer-events: auto; }

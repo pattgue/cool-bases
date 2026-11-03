@@ -70,11 +70,13 @@ At the top: **Undo** (or Ctrl/Cmd+Z), **Cancel** (or Escape: leaves the view as 
 - **Image**: which property holds the image, its position and fit (**Fill**, **Original**, **Framed**, **Background**), effects (B&W, duotone, blur, invert), grain, brightness and a dark gradient. **No image** decides what notes without an image show: nothing, their initials, a blank space or a generated **Cover**.
 
 ### Data
-- The **title** is always the first item, but you can put data above it. In **Show** you choose what it displays: the note name, the first alias, another property, or nothing at all (handy when the cover already shows the title).
+- The **title** comes first and carries a lock 🔒: tap it to move the title like any other item (data can also go above it). In **Show** you choose what it displays: the note name, the first alias, another property, or nothing at all (handy when the cover already shows the title).
 - Drag the other properties into order, remove them with ✕ and add more with **+ Add data**.
-- The chain icon between two items puts them on the **same line**, with a separator.
+- The chain icon between two items puts them on the **same line**, with a separator. If the first one is empty in a note, the second one starts its own line.
+- **Placement**: each item (the title too, once unlocked) goes between the data or in any of the 9 spots of the card, also over the image. Items in the same spot stack, or share a line if they're joined.
 - Each item has its own typeface, uppercase, color, size, weight, **Fit** (one line, shrinks to fit), space above and below, italic, underline, highlight, strikethrough, superscript, link and hover.
 - Types: **Text**, **Number**, **Smart number** (a follower or listener count that links to the profile), **Tags**, **Link** and **Linked notes** (including the notes that link *to* this one).
+- Formulas from the base work too, including Obsidian icons: a formula with `icon("star")` shows the icon, at the size and color of its item.
 
 ### Decorations
 - **Footer**: a strip at the bottom of the card for links (website, social profiles…).
@@ -93,6 +95,20 @@ For anything else. It only applies to this view. Useful classes: `.cb-card`, `.c
 - **Generated covers.** Image → No image → **Cover**. Choose the text at the bottom (the author, the director, the year…), automatic or card colors, and a shape.
 - **Several data on one line.** Click the chain between two items: `1927 · Germany · 153 min`. Ratings and states can join a line too.
 - **Superscripts.** Turn on **Superscript** in an item to place it small and high after the one before, like a year next to a title.
+
+## Updates
+**Update 1.0.2**:
+→ Covers saved as a plain file path (like "image.jpg" without the [[ ]]) now show up correctly.
+
+**Update 1.1.0**:
+→ You can now choose what the Title shows: the note name, the first alias, any other property, or nothing at all.
+
+**Update 1.1.1**:
+→ Any data field can now be placed in any of the 9 spots of the card, like the rating.
+→ (Fixed) A field joined to an empty one no longer jumps onto the line above.
+
+**Update 1.1.2**:
+→ Formulas that return an Obsidian icon (icon("…")) now show the icon on the card. 
 
 ## FAQ
 
