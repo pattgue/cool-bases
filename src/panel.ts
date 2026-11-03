@@ -1,6 +1,6 @@
 /* Panel «Editar tarjeta». Edita una copia del modelo; las tarjetas de la vista cambian al momento.
    No se escribe nada en la vista hasta pulsar «Listo». Todo se construye con el DOM; los textos, en i18n.js. */
-import { Notice } from "obsidian";
+import { Notice, setIcon } from "obsidian";
 import { clone, clamp, fmt, merge, hex6, hexToHsva, hsvaToHex, fmtNum, str } from "./util";
 import { TYPES, FONTS, fontStack, fontName, WEIGHTS, SEPS, FMTS, ITEM_DEF, TITLE_KEYS, splitSpace, BASE_STYLE, STYLE_KEYS, PRESETS,
   mkItem, syncStruct, getStyle, textish, ST_FMTS, ST_ICONS, mkState, framed } from "./model";
@@ -8,6 +8,7 @@ import { itemContent, rateNode, rateProp, imgSrc, tokCol, plainSample, nodeText,
 import { h, svg, append, setVars } from "./dom";
 import type { AttrVal, Kid } from "./dom";
 import { t, fontLabel } from "./i18n";
+import { KIT_VERSION } from "./cool-kit/kit";
 import type { Hsva } from "./util";
 import type { CoolBasesView } from "./view";
 import type { Item, Model, Rec, State, Style } from "./types";
@@ -42,17 +43,19 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   const undoBtn = btn("cbp-undo", t("p.undo"), { attr: { disabled: true } });
   const cancelBtn = btn("cbp-cancel", t("p.cancel"), { attr: { "aria-haspopup": "dialog", "aria-expanded": "false" } });
   const doneBtn = btn("cbp-done", t("p.done"), { primary: true });
-  const presetsBtn = btn("cbp-presets", [t("p.presets") + " ", h("span", "caret", "▼")], { attr: { "aria-haspopup": "menu", "aria-expanded": "false" } });
-  const saveBtn = btn("cbp-save", t("p.saveStyle"), { attr: { "aria-haspopup": "dialog", "aria-expanded": "false" } });
-  const copyBtn = btn("cbp-copy", [t("p.copyFrom") + " ", h("span", "caret", "▼")], { attr: { "aria-haspopup": "menu", "aria-expanded": "false" } });
+  const presetsBtn = btn("cbp-presets", t("p.presets"), { attr: { "aria-haspopup": "menu", "aria-expanded": "false" } });
+  const saveBtn = btn("cbp-save", t("p.saveShort"), { attr: { "aria-haspopup": "dialog", "aria-expanded": "false", "aria-label": t("p.saveStyle") } });
+  const copyBtn = btn("cbp-copy", t("p.copyShort"), { attr: { "aria-haspopup": "menu", "aria-expanded": "false", "aria-label": t("p.copyFrom") } });
   const pb = h("div", { cls: "pb", attr: { id: "cbp-pb" } });
-  const root = h("aside", { cls: "cb-panel", attr: { "aria-label": t("p.title") } },
-    h("header", "ph", h("div", "ph-top", h("h2", null, t("p.title")), h("div", "ph-actions", undoBtn, cancelBtn, doneBtn)),
-      h("p", "ph-sub", t("p.view") + " ", h("b", null, view.config.name || ""))),
-    h("div", { cls: "stylebar", attr: { role: "toolbar", "aria-label": t("p.styles") } }, presetsBtn, saveBtn, copyBtn),
+  /* cabecera en tres columnas: Cancelar · Deshacer · Listo | EDIT CARD y la vista | Predeterminados · Guardar · Copiar vista */
+  const root = h("aside", { cls: "cb-panel cool-ui", attr: { "aria-label": t("p.title"), "data-ck": KIT_VERSION } },
+    h("header", "ph cbp-head",
+      h("div", "ph-l", cancelBtn, undoBtn, doneBtn),
+      h("div", "ph-c", h("h2", null, t("p.title")), h("p", "ph-sub", h("b", null, t("p.view")), " ", h("span", null, view.config.name || ""))),
+      h("div", { cls: "ph-r", attr: { role: "toolbar", "aria-label": t("p.styles") } }, presetsBtn, saveBtn, copyBtn)),
     pb);
   host.appendChild(root);
-  const fp = document.body.createDiv({ cls: "cb-fp" });
+  const fp = document.body.createDiv({ cls: "cb-fp cool-ui", attr: { "data-ck": KIT_VERSION } });
   fp.hidden = true;
   const $ = (sel: string) => (root.querySelector(sel) || fp.querySelector(sel)) as HTMLElement;
   const byId = (id: string) => $("#" + CSS.escape(id));
@@ -143,6 +146,165 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     return h("span", "numw", h("input", { cls: "num", attr: { type: "text", id: fid(path), "data-p": path, "data-k": "scrub", "data-min": min, "data-max": max, "data-step": step, "data-unit": unit,
       value: fmt(shown) + " " + unit, spellcheck: "false", inputmode: "decimal", disabled: D(dis) } }));
   }
+  /* tile de SIZE: un número grande que se cambia arrastrando (en horizontal o vertical), escribiendo o con las flechas */
+  interface TileOpts { min: number; max: number; step: number; rate: number; unit: string; axis: "x" | "y"; icon?: string; dis?: boolean; cls?: string }
+  function tile(path: string, label: string, o: TileOpts) {
+    const v = tileVal(path);
+    const icon = o.icon ? h("span", "tile-i") : null;
+    if (icon && o.icon) {
+      setIcon(icon, o.icon);
+      /* el recuadro del icono, justo lo que se ve de la flecha (Lucide deja mucho aire): así se centra a ojo */
+      const crop: Record<string, string> = { "move-horizontal": "0.6 6.6 22.8 10.8", "move-vertical": "6.6 0.6 10.8 22.8" };
+      icon.querySelector("svg")?.setAttribute("viewBox", crop[o.icon] || "0 0 24 24");
+    }
+    const inner = [h("label", { cls: "tile-l", attr: { for: fid(path) } }, label),
+      h("span", "tile-pill", h("input", { cls: "num", attr: { type: "text", id: fid(path), "data-p": path, "data-k": "scrub", "data-min": o.min, "data-max": o.max, "data-step": o.step,
+        "data-rate": o.rate, "data-axis": o.axis, "data-unit": o.unit, "data-tight": "1", value: fmt(v) + o.unit, spellcheck: "false", inputmode: "decimal", disabled: D(o.dis) } })),
+      icon];
+    return h("div", { cls: "tile" + (o.cls ? " " + o.cls : "") + (o.dis ? " dis" : ""), attr: { "data-tile": path }, css: tileVars(path, v) },
+      path === "card.pad" ? [h("span", { cls: "tile-guide", attr: { "aria-hidden": "true" } }), inner] : inner);
+  }
+  /* RADIUS enseña su esquina y PADDING su guía, según el valor (con un tope) */
+  function tileVars(path: string, v: number): Record<string, string> | undefined {
+    if (path === "card.radius") return { "--cbp-r": Math.min(v, 18) + "px" };
+    if (path === "font.weight") return { "--tl-w": String(clamp(v, 400, 900)) };   // la fuente del panel va de 400 a 900
+    if (path === "card.pad") return { "--cbp-inset": (12 * Math.sqrt(Math.max(0, v) / 14)).toFixed(1) + "px" };   // 0 % = sin margen; 5 % ≈ 7 px; 14 % = 12 px
+    return undefined;
+  }
+  /* interruptor con palabra: encendido, en acento y con la bola a la derecha; apagado, en gris, con la otra palabra */
+  let animTgl: string | null = null;                 // el interruptor recién pulsado: se pinta en su estado anterior y se anima al nuevo
+  function toggle(path: string, on: string, off: string, label: string, cls: string, dis?: unknown) {
+    const v = !!getP(path), id = fid(path), shown = animTgl === id ? !v : v;
+    return h("button", { cls: "tgl " + cls, attr: { type: "button", role: "switch", id, "data-p": path, "data-k": "bool", "aria-checked": String(shown), "data-v": String(v), "aria-label": label, disabled: D(dis) } },
+      h("span", "tgl-w w-on", on), h("span", "tgl-w w-off", off), h("span", "tgl-k"));
+  }
+  /* cada palabra del interruptor cabe en su hueco (el botón no cambia de ancho): si no cabe, encoge */
+  /* los textos que no caben (palabras de los interruptores, etiquetas de los tiles) encogen; las cajas no cambian */
+  function fitEl(w: HTMLElement, avail: number, ref: HTMLElement) {
+    setVars(w, { "--cbp-tk": null });
+    const rg = document.createRange(); rg.selectNodeContents(w);
+    const need = rg.getBoundingClientRect().width / (ref.getBoundingClientRect().width / ref.offsetWidth || 1);   // el ancho del texto (sin el zoom)
+    if (avail > 0 && need > avail) setVars(w, { "--cbp-tk": (avail / need).toFixed(3) });
+  }
+  function fitText() {
+    pb.querySelectorAll<HTMLElement>(".tgl").forEach(b => {
+      const k = b.querySelector<HTMLElement>(".tgl-k"); if (!k || !b.offsetWidth) return;
+      const cs = getComputedStyle(b), kp = parseFloat(cs.getPropertyValue("--cbp-kp")) || 0, tp = parseFloat(cs.getPropertyValue("--cbp-tp")) || 0;
+      const avail = b.clientWidth - k.offsetWidth - kp - tp - 5;          // menos la bola, sus márgenes y un respiro
+      b.querySelectorAll<HTMLElement>(".tgl-w").forEach(w => fitEl(w, avail, b));
+    });
+    pb.querySelectorAll<HTMLElement>(".fxb-w, .picto-w").forEach(w => {
+      const b = w.parentElement!; if (!b.offsetWidth) return;
+      const other = [...b.children].filter(x => x !== w).reduce((n, x) => n + (x as HTMLElement).offsetWidth, 0);
+      fitEl(w, b.clientWidth - other - 16, b);
+    });
+    pb.querySelectorAll<HTMLElement>(".tile:not(.t-wide) > .tile-l").forEach(l => {
+      const tl = l.parentElement!; if (!tl.offsetWidth) return;
+      fitEl(l, tl.clientWidth - 10, tl);
+    });
+  }
+  /* el valor de un tile; HEIGHT con una proporción enseña el alto calculado */
+  function tileVal(path: string): number {
+    const c = S().card;
+    if (path === "card.h" && c.fmt !== "libre") { const [a, b] = c.fmt.split("/").map(Number); return a && b ? Math.round(c.w * b / a) : c.h; }
+    return getP(path) as number;
+  }
+  /* GAP: la separación entre las letras es la separación real entre tarjetas (a escala); se arrastra en horizontal */
+  const GAP_K = 0.5, GAP_MAX = 48;
+  function gapCtl() {
+    const g = S().card.gap;
+    const L = (x: string) => h("span", { cls: "gap-l", attr: { "aria-hidden": "true" } }, x);
+    const M = (n?: boolean) => h("span", { cls: "gap-m", attr: { "aria-hidden": "true" } }, n ? h("span", "gap-v", String(g)) : null);
+    return h("div", { cls: "gapc", attr: { role: "slider", tabindex: 0, id: fid("card.gap"), "data-gap": "card.gap", "aria-label": t("c.gap"), "aria-valuemin": 0, "aria-valuemax": GAP_MAX,
+      "aria-valuenow": g, "aria-valuetext": g + " px" }, css: { "--cbp-gap": (g * GAP_K) + "px" } },
+      L("G"), M(true), L("A"), M(), L("P"));
+  }
+  function syncTiles() {
+    pb.querySelectorAll<HTMLElement>("[data-tile]").forEach(tl => {
+      const p = tl.dataset.tile!, v = tileVal(p), inp = tl.querySelector<HTMLInputElement>("input.num");
+      if (inp && document.activeElement !== inp) inp.value = numTxt(inp, v);
+      const tv = tileVars(p, v); if (tv) setVars(tl, tv);
+    });
+  }
+  function syncGap() {
+    const el = pb.querySelector<HTMLElement>(".gapc"); if (!el) return;
+    const g = S().card.gap;
+    setVars(el, { "--cbp-gap": (g * GAP_K) + "px" });
+    el.setAttribute("aria-valuenow", String(g)); el.setAttribute("aria-valuetext", g + " px");
+    const v = el.querySelector(".gap-v"); if (v) v.textContent = String(g);
+  }
+  /* la mini tarjeta de COLORS: fondo (o degradado), borde, texto y detalles del modelo, en vivo */
+  function colorPreview() {
+    const el = h("div", { cls: "mini-card", attr: { role: "img", "aria-label": t("c.preview") } },
+      h("span", "mc-t", t("mc.title")), h("span", "mc-s", t("mc.sub")), h("span", "mc-line"),
+      h("span", "mc-tags", h("i", "on", t("mc.tags")), h("i", null, t("mc.tags")), h("i", null, t("mc.tags"))));
+    syncMini(el);
+    return el;
+  }
+  function syncMini(el?: HTMLElement | null) {
+    el = el || pb.querySelector<HTMLElement>(".mini-card"); if (!el) return;
+    const s = S(), col = s.col;
+    setVars(el, { "--mc-bg": col.grad ? "linear-gradient(" + col.angle + "deg," + col.bg + "," + col.bg2 + ")" : col.bg, "--mc-text": col.text, "--mc-bgc": col.bg, "--mc-det": col.det,
+      "--mc-bw": Math.min(col.bw, 4) + "px", "--mc-bc": col.bc, "--mc-r": Math.min(s.card.radius, 14) + "px", "--mc-ff": fontStack(s.font.family) });
+  }
+  /* la mini tarjeta de IMAGE: el ajuste pintado con una imagen de verdad de la vista. La imagen se pulsa para elegir de
+     dónde sale; los bordes, para moverla de lado. */
+  const FITS = ["encajar", "original", "enmarcada", "fondo"];
+  const firstImg = (p: string | null) => p ? ents().map(r => src.imageUrl(r, p)).find(Boolean) || null : null;
+  /* la imagen de muestra (la primera de la vista), para la mini tarjeta y las miniaturas de los efectos */
+  function imgVar(sp: string | null) { const url = firstImg(sp); return url ? 'url("' + url.replace(/"/g, "%22") + '")' : "none"; }
+  function fxFilter(s: Model, f: string): string {
+    const a = ((s.img.amt && s.img.amt[f]) ?? 100) / 100;
+    const base = f === "bn" ? "grayscale(" + a + ")" : f === "inv" ? "invert(" + a + ")" : f === "blur" ? "blur(" + (a * 2.5).toFixed(1) + "px)"
+      : f === "duo" ? (s.img.fx === "duo" ? "url(#cbduo-" + view.cbUid + ")" : "grayscale(1)") : "none";
+    return base;
+  }
+  function imgCard(s: Model, sp: string | null, noImg: boolean) {
+    const im = s.img, col = s.col;
+    const pic = h("button", { cls: "ic-img", attr: { type: "button", "data-src": "1", "aria-haspopup": "menu", "aria-expanded": "false", id: "cbp-imgsrc",
+      "aria-label": t("c.source") + ": " + (sp ? pname(sp) : t("img.none")), title: sp ? pname(sp) : t("img.none") } }, noImg ? h("span", "ic-plus", "+") : null);
+    const edges = ["top", "right", "bottom", "left"].map(p => h("button", { cls: "ic-edge e-" + p, attr: { type: "button", "data-pos": p, "aria-pressed": String(im.pos === p),
+      "aria-label": t("c.position") + ": " + t("pos." + p), title: t("pos." + p), disabled: D(noImg || im.fit === "fondo") } }));
+    return h("div", { cls: "imgcard p-" + im.pos + " f-" + im.fit + (noImg ? " no-img" : "") + (im.grain ? " grain" : "") + (im.fit === "fondo" && im.shade ? " shade" : ""),
+      css: { "--ic-bg": col.bg, "--ic-text": col.text, "--ic-det": col.det,
+        "--ic-filter": (im.fx === "color" ? "" : fxFilter(s, im.fx) + " ") + "brightness(" + im.bright / 100 + ")", "--ic-frame": (im.frame * 0.9).toFixed(1) + "px", "--ic-shade": im.shadeC } },
+      h("div", "ic-in", pic, h("span", "ic-txt", h("i", "l1"), h("i", "l2"), h("i", "l3"))), edges);
+  }
+  function openSrcMenu(anchor: HTMLElement) {
+    const s = S(), cur = imgSrc(s, facts) || "none", ip = imgProps().slice(); if (cur !== "none" && !ip.includes(cur)) ip.unshift(cur);
+    const pick = (v: string) => { closeFp(); commit("img.src", v, true); byId("cbp-imgsrc")?.focus(); };
+    openFp("src", anchor, h("div", { cls: "menu", attr: { role: "menu", "aria-label": t("c.source") } },
+      [...ip.map((p): [string, string] => [p, pname(p)]), ["none", t("img.none")] as [string, string]].map(([v, l]) =>
+        h("button", { attr: { type: "button", role: "menuitemradio", "aria-checked": String(v === cur), "data-src-v": v }, on: { click: () => pick(v) } }, l))));
+  }
+  /* tile ancho: la etiqueta a la izquierda y, en la pastilla, un desplegable o el botón de la fuente */
+  function wide(label: string, ctl: Kid, path: string) {
+    return h("div", "tile t-wide", h("label", { cls: "tile-l", attr: { for: fid(path) } }, label), h("span", "tile-pill", ctl));
+  }
+  /* opciones como chips (2, 3 o 4 por fila), con su título pequeño encima; con icono, la palabra va de etiqueta accesible */
+  function chips(path: string, label: string, opts: [string, string, string?][], cols: number, dis?: unknown, extra?: Kid) {
+    const v = getP(path);
+    return h("div", "chipg" + (dis ? " dis" : ""), h("span", "chipg-l", label),
+      h("div", { cls: "chipg-b c" + cols, attr: { role: "group", "aria-label": label } },
+        opts.map(([val, l, ic]) => {
+          const b = h("button", { cls: ic ? "ic" : undefined, attr: { type: "button", id: fid(path + "=" + val), "data-p": path, "data-k": "seg", "data-v": val, "data-vt": "string",
+            "aria-pressed": String(v === val), "aria-label": ic ? l : null, title: ic ? l : null, disabled: D(dis) } }, ic ? null : l);
+          if (ic) setIcon(b, ic);
+          return b;
+        }), extra));
+  }
+  /* tile con iconos en la pastilla (ALIGN) */
+  function iconTile(path: string, label: string, opts: [string, string, string][]) {
+    const v = getP(path);
+    return h("div", "tile t-icons", h("span", "tile-l", label),
+      h("span", { cls: "tile-pill icons", attr: { role: "group", "aria-label": label } }, opts.map(([val, ic, l]) => {
+        const b = h("button", { attr: { type: "button", id: fid(path + "=" + val), "data-p": path, "data-k": "seg", "data-v": val, "data-vt": "string", "aria-pressed": String(v === val), "aria-label": l, title: l } });
+        setIcon(b, ic);
+        return b;
+      })));
+  }
+  /* una fila de COLORS: etiqueta (o un interruptor) y su muestra */
+  function crow(label: Kid, ctl: Kid, chip?: boolean) { return h("div", "crow", chip ? label : h("span", "crow-l", label), h("div", "crow-c", ctl)); }
   /* ↺ solo cuando el dato tiene un valor propio distinto del de la tarjeta */
   function capR(label: string, path: string, cardVal: unknown): Kid[] {
     const v = getP(path);
@@ -163,42 +325,64 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     const c = s.card, col = s.col, im = s.img, sp = imgSrc(s, facts), noImg = !sp;
     const fondo = im.fit === "fondo";
     const sideOrig = !noImg && im.fit === "original" && (im.pos === "left" || im.pos === "right");
-    const ip = imgProps().slice(); if (sp && !ip.includes(sp)) ip.unshift(sp);
     const fx = im.fx === "color" ? "bn" : im.fx;
     return h("section", "grp", h("div", "grp-h", h("h3", null, t("g.card"))), h("div", "stack",
-      block("tamano", t("b.size"), [
-        row(t("c.width"), slider("card.w", 140, 700, 10, "px", 0), "card.w"),
-        row(t("c.height"), slider("card.h", 40, 700, 10, "px", 0, c.fmt !== "libre" || sideOrig), "card.h", { dis: c.fmt !== "libre" || sideOrig }),
-        row("", [h("div", { cls: "seg" + (sideOrig ? " dis" : ""), attr: { role: "group", "aria-label": t("c.format") } }, FMTS.map(([v, l]) =>
-          h("button", { attr: { type: "button", id: fid("card.fmt=" + v), "data-p": "card.fmt", "data-k": "seg", "data-v": v, "data-vt": "string", "aria-pressed": String(c.fmt === v), disabled: D(sideOrig) } }, l || t("fmt.free")))),
-          swl("card.fill", t("c.fillWidth"))], null, { full: true }),
-        row(t("c.padding"), slider("card.pad", 0, 14, 0.5, "%"), "card.pad"),
-        row(t("c.radius"), slider("card.radius", 0, 40, 1, "px", 0), "card.radius"),
-        row(t("c.gap"), slider("card.gap", 0, 48, 1, "px", 0), "card.gap")]),
-      block("colores", t("b.colors"), [
-        row(t("c.background"), [color("col.bg"), swl("col.grad", t("c.gradient"), false, true)], "col.bg"),
-        row(t("c.secondColor"), color("col.bg2", !col.grad), "col.bg2", { dis: !col.grad }),
-        row(t("c.angle"), slider("col.angle", 0, 360, 5, "°", 0, !col.grad), "col.angle", { dis: !col.grad }),
-        row(t("c.text"), color("col.text"), "col.text"),
-        row(t("c.details"), color("col.det"), "col.det"),
-        row(t("c.border"), [slider("col.bw", 0, 20, 1, "px", 0), swatch("col.bc", col.bw === 0)], "col.bw")]),
-      block("fuente", t("b.font"), [
-        row(t("c.typeface"), fontBtn("font.family"), "font.family"),
-        cells([[t("c.weight"), sel("font.weight", weightOpts())], [t("c.size"), slider("font.size", 2, 8, 0.1, "%")]], "c-1-13"),
-        row(t("c.align"), seg("font.align", [["left", t("al.left")], ["center", t("al.center")], ["right", t("al.right")]], t("c.align")))]),
-      block("imagen", t("b.image"), [
-        row(t("c.source"), sel("img.src", [...ip.map((p): Opt => [p, pname(p)]), ["none", t("img.none")]], false, sp || "none"), "img.src"),
-        row(t("c.position"), seg("img.pos", [["top", t("pos.top")], ["bottom", t("pos.bottom")], ["left", t("pos.left")], ["right", t("pos.right")]], t("c.position"), noImg || fondo), null, { dis: noImg || fondo }),
-        row(t("c.fit"), seg("img.fit", [["encajar", t("fit.encajar")], ["original", t("fit.original")], ["enmarcada", t("fit.enmarcada")], ["fondo", t("fit.fondo")]], t("c.fit"), noImg), null, { stk: true, dis: noImg }),
-        row(t("c.noImage"), seg("img.empty", [["nada", t("empty.nada")], ["iniciales", t("empty.iniciales")], ["hueco", t("empty.hueco")], ["portada", t("empty.portada")]], t("c.noImageAria"), noImg), null, { stk: true, dis: noImg }),
+      /* SIZE: WIDTH y HEIGHT | FILL y proporciones | PADDING y RADIUS; debajo, GAP */
+      block("tamano", t("b.size"), h("div", "size-grid",
+        h("div", "sz-c1",
+          tile("card.w", t("c.width"), { min: 140, max: 700, step: 1, rate: 2, unit: "px", axis: "x", icon: "move-horizontal", cls: "t-w" }),
+          tile("card.h", t("c.height"), { min: 40, max: 700, step: 1, rate: 2, unit: "px", axis: "y", icon: "move-vertical", cls: "t-h", dis: c.fmt !== "libre" || sideOrig })),
+        h("div", "sz-c2",
+          toggle("card.fill", t("c.fill"), t("c.fixed"), t("c.fillWidth"), "tg-fill"),
+          h("div", { cls: "fmts" + (sideOrig ? " dis" : ""), attr: { role: "group", "aria-label": t("c.format") } }, FMTS.map(([v, l]) =>
+            h("button", { attr: { type: "button", id: fid("card.fmt=" + v), "data-p": "card.fmt", "data-k": "seg", "data-v": v, "data-vt": "string", "aria-pressed": String(c.fmt === v), disabled: D(sideOrig) } }, l || t("fmt.free"))))),
+        h("div", "sz-c3",
+          tile("card.pad", t("c.padShort"), { min: 0, max: 14, step: 0.5, rate: 0.25, unit: "%", axis: "x", cls: "t-pad" }),
+          tile("card.radius", t("c.radiusShort"), { min: 0, max: 40, step: 1, rate: 0.5, unit: "px", axis: "x", cls: "t-radius" })),
+        gapCtl())),
+      /* COLORS: la mini tarjeta en vivo y, al lado, las muestras */
+      block("colores", t("b.colors"), h("div", "colors",
+        colorPreview(),
+        h("div", "crows",
+          crow(t("c.background"), swatch("col.bg")),
+          crow(toggle("col.grad", t("c.gradient"), t("c.solid"), t("c.gradient"), "tg-grad"), swatch("col.bg2", !col.grad), true),
+          crow(t("c.text"), swatch("col.text")),
+          crow(t("c.details"), swatch("col.det")),
+          crow(t("c.border"), [h("span", "numw bw", h("input", { cls: "num pill-in", attr: { type: "text", id: fid("col.bw"), "data-p": "col.bw", "data-k": "scrub", "data-min": 0, "data-max": 20,
+            "data-step": 1, "data-rate": 0.25, "data-unit": "px", "data-tight": "1", value: fmt(col.bw) + "px", spellcheck: "false", inputmode: "decimal", "aria-label": t("c.border") } })),
+            swatch("col.bc", col.bw === 0)])))),
+      /* TEXT STYLE: la fuente (ancha) | WEIGHT, SIZE y ALIGN */
+      block("fuente", t("b.font"), h("div", "mod",
+        wide(t("c.typeface"), fontBtn("font.family"), "font.family"),
+        h("div", "mod-3",
+          tile("font.weight", t("c.weight"), { min: 300, max: 900, step: 100, rate: 0.05, unit: "", axis: "x" }),
+          tile("font.size", t("c.size"), { min: 2, max: 8, step: 0.1, rate: 0.02, unit: "%", axis: "x" }),
+          iconTile("font.align", t("c.alignShort"), [["left", "align-left", t("al.left")], ["center", "align-center", t("al.center")], ["right", "align-right", t("al.right")]])))),
+      /* IMAGE: origen | posición y ajuste | sin imagen | MARGIN, INTENSITY y BRIGHTNESS | efecto | grano y degradado */
+      block("imagen", t("b.image"), h("div", "mod",
+        h("div", { cls: "imgmod", css: { "--ic-img": imgVar(sp) } },
+          h("div", "img-side", h("span", "chipg-l", t("c.ifNoImage")),
+            h("div", { cls: "pictos" + (noImg ? " dis" : ""), attr: { role: "group", "aria-label": t("c.noImageAria") } },
+              (["nada", "iniciales", "hueco", "portada"] as const).map(e => h("button", { cls: "picto", attr: { type: "button", id: fid("img.empty=" + e), "data-p": "img.empty", "data-k": "seg",
+                "data-v": e, "data-vt": "string", "aria-pressed": String(im.empty === e), disabled: D(noImg) } }, h("span", "pic pic-" + e, e === "iniciales" ? "AB" : null), h("span", "picto-w", t("empty." + e)))))),
+          h("div", "img-mid", imgCard(s, sp, noImg),
+            h("div", { cls: "fit-nav" + (noImg ? " dis" : ""), attr: { role: "group", "aria-label": t("c.fit") } },
+              h("button", { cls: "fit-arr", attr: { type: "button", "data-fitstep": "-1", "aria-label": t("c.fit") + " ‹", disabled: D(noImg) } }, h("span", null, "‹")),
+              h("span", { cls: "fit-name", attr: { "aria-live": "polite" } }, t("fit." + im.fit)),
+              h("button", { cls: "fit-arr", attr: { type: "button", "data-fitstep": "1", "aria-label": t("c.fit") + " ›", disabled: D(noImg) } }, h("span", null, "›")))),
+          h("div", "img-side r", h("span", "chipg-l", t("c.effect")),
+            h("div", { cls: "fxs" + (noImg ? " dis" : ""), attr: { role: "group", "aria-label": t("c.effect") } },
+              (["color", "bn", "duo", "blur", "inv"] as const).map(f => h("button", { cls: "fxb", attr: { type: "button", id: fid("img.fx=" + f), "data-p": "img.fx", "data-k": "seg", "data-v": f, "data-vt": "string",
+                "aria-pressed": String(im.fx === f), disabled: D(noImg) } }, h("span", "fxb-w", t("fx." + f)), h("span", { cls: "fxb-t", css: { "--ic-filter": fxFilter(s, f) } })))),
+            im.fx === "duo" && !noImg ? h("div", "duo-row", swatch("img.duo1"), swatch("img.duo2")) : null)),
         im.empty === "portada" && !noImg ? coverCtl(s) : null,
-        row(t("c.margin"), slider("img.frame", 0, 14, 0.5, "%", null, noImg || im.fit !== "enmarcada"), "img.frame", { dis: noImg || im.fit !== "enmarcada" }),
-        row(t("c.effect"), seg("img.fx", [["color", t("fx.color")], ["bn", t("fx.bn")], ["duo", t("fx.duo")], ["blur", t("fx.blur")], ["inv", t("fx.inv")]], t("c.effect"), noImg), null, { stk: true, dis: noImg }),
-        row(t("c.intensity"), slider("img.amt." + fx, 0, 100, 1, "%", 0, noImg || im.fx === "color"), "img.amt." + fx, { dis: noImg || im.fx === "color" }),
-        row(t("fx.duo"), [swatch("img.duo1", noImg || im.fx !== "duo"), swatch("img.duo2", noImg || im.fx !== "duo")], null, { dis: noImg || im.fx !== "duo" }),
-        row(t("c.grain"), sw("img.grain", t("c.grain"), noImg), "img.grain", { dis: noImg }),
-        cells([[t("c.brightness"), slider("img.bright", 20, 140, 1, "%", 0, noImg), noImg],
-          [t("c.shade"), [sw("img.shade", t("c.shade"), noImg || !fondo), swatch("img.shadeC", noImg || !fondo || !im.shade)], noImg || !fondo]], "c-1-a")]),
+        h("div", "mod-3",
+          tile("img.frame", t("c.margin"), { min: 0, max: 14, step: 0.5, rate: 0.1, unit: "%", axis: "x", dis: noImg || im.fit !== "enmarcada" }),
+          tile("img.amt." + fx, t("c.intensity"), { min: 0, max: 100, step: 1, rate: 0.5, unit: "%", axis: "x", dis: noImg || im.fx === "color" }),
+          tile("img.bright", t("c.brightness"), { min: 20, max: 140, step: 1, rate: 0.5, unit: "%", axis: "x", dis: noImg })),
+        h("div", "mod-2",
+          toggle("img.grain", t("c.grain"), t("c.noGrain"), t("c.grain"), "tg-row", noImg),
+          h("div", "tg-sw", toggle("img.shade", t("c.shade"), t("c.noShade"), t("c.shade"), "tg-row", noImg || !fondo), swatch("img.shadeC", noImg || !fondo || !im.shade))))),
     ));
   }
 
@@ -206,10 +390,11 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   const coverTextProps = () => propsOf().filter(p => !p.startsWith("rel:") && p !== "file.name" && !facts.isImage(p) && !facts.isUrlProp(p));
   function coverCtl(s: Model) {
     const tp = coverTextProps(), cur = s.img.cvText; if (cur && !tp.includes(cur)) tp.unshift(cur);
-    return [row(t("c.bottomText"), sel("img.cvText", [["", t("o.none")], ...tp.map((p): Opt => [p, pname(p)])], false, cur || ""), "img.cvText"),
-      row(t("b.colors"), seg("img.cvColors", [["auto", t("cv.auto")], ["card", t("cv.card")]], t("b.colors"))),
-      row(t("c.shape"), seg("img.cvShape", [["auto", t("cv.shapeAuto")], ["none", t("cv.shapeNone")]], t("c.shape"))),
-      row(t("c.typeface"), fontBtn("img.cvFont"), "img.cvFont")];
+    return h("div", "mod sub",
+      wide(t("c.bottomText"), sel("img.cvText", [["", t("o.none")], ...tp.map((p): Opt => [p, pname(p)])], false, cur || ""), "img.cvText"),
+      wide(t("c.typeface"), fontBtn("img.cvFont"), "img.cvFont"),
+      chips("img.cvColors", t("b.colors"), [["auto", t("cv.auto")], ["card", t("cv.card")]], 2),
+      chips("img.cvShape", t("c.shape"), [["auto", t("cv.shapeAuto")], ["none", t("cv.shapeNone")]], 2));
   }
 
   /* ---------- Datos ---------- */
@@ -485,6 +670,11 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     const st = pb.scrollTop, s = S(), act = document.activeElement, aid = act && root.contains(act) && act.id;
     pb.empty();
     pb.append(tarjetaNode(s), datosNode(s), decoNode(s), cssNode(s));
+    fitText();
+    if (animTgl) {
+      const b = byId(animTgl); animTgl = null;
+      if (b) window.requestAnimationFrame(() => window.requestAnimationFrame(() => b.setAttribute("aria-checked", b.dataset.v!)));
+    }
     pb.scrollTop = st;
     if (aid) { const el = byId(aid); if (el && el !== document.activeElement) el.focus({ preventScroll: true }); }
     updateSums();
@@ -493,7 +683,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   function setSum(key: string, kids: Kid) { const el = pb.querySelector('[data-sum="' + key + '"]'); if (el) { el.empty(); append(el, [kids]); } }
   function updateSums() {
     const s = S(), c = s.card, im = s.img, sp = imgSrc(s, facts);
-    setSum("tamano", c.w + " px · " + (FMT_L[c.fmt] || t("fmt.free")));
+    setSum("tamano", c.w + " px · " + (FMT_L[c.fmt] || t("fmt.free")).toUpperCase());
     setSum("colores", (["bg", "text", "det"] as const).map(k => h("span", { cls: "dot", css: { "--cbp-dot": s.col[k] } })));
     setSum("fuente", fontLabel(fontName(s.font.family)) + " · " + s.font.weight);
     setSum("imagen", !sp ? t("sum.noImage") : pname(sp) + " · " + t("fit." + im.fit).toLowerCase() + (im.fit === "fondo" ? "" : " · " + t("pos." + im.pos).toLowerCase()));
@@ -505,8 +695,22 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     setSum("css", s.css.trim() ? t("sum.cssLines", { n: s.css.trim().split("\n").length }) : "");
     pb.querySelectorAll<HTMLElement>("[data-fill]").forEach(f => { setVars(f, { "--cbp-fill": tokCol(getP(f.dataset.fill!), s) }); });
     pb.querySelectorAll<HTMLInputElement>("input.hex").forEach(hx => { if (document.activeElement !== hx) hx.value = getP(hx.dataset.p!) as string; });
+    syncTiles(); syncMini();
     s.items.concat(s.fitems).forEach(it => { if (textish(it)) setSum("it:" + it.id, sumText(sample(s, it))); });
     undoBtn.disabled = !hist.length;
+  }
+  /* tamaños que solo cambian variables de la rejilla (arrastrar): sin repintar las tarjetas, que va lento con muchas */
+  const LIVE = new Set(["card.w", "card.h", "card.gap", "card.pad", "card.radius", "col.bw", "font.size", "font.weight", "img.bright", "img.frame"]);
+  let liveRaf = 0;
+  function commitLive(path: string, val: unknown) {
+    if (!LIVE.has(path) && !path.startsWith("img.amt.")) { commit(path, val); return; }
+    pushFor(path); setP(path, val);
+    window.cancelAnimationFrame(liveRaf); liveRaf = window.requestAnimationFrame(() => { view.restyle(model); liveSums(); });
+  }
+  function liveSums() {
+    const c = S().card;
+    setSum("tamano", c.w + " px · " + (FMT_L[c.fmt] || t("fmt.free")).toUpperCase());
+    syncTiles(); syncMini(); undoBtn.disabled = !hist.length;
   }
   function commit(path: string, val: unknown, re?: boolean) { pushFor(path); const old = getP(path); setP(path, val); afterChange(path, old); preview(); re ? renderPanel() : updateSums(); }
   function afterChange(path: string, old?: unknown) {
@@ -540,6 +744,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       case "txt": commit(p, el.value); break;
       case "hex": { const v = el.value.trim(); if (/^#([0-9a-f]{6}|[0-9a-f]{8})$/i.test(v)) commit(p, v.toLowerCase()); break; }
       case "int": { const v = parseInt(el.value, 10); if (v > 0) commit(p, v); break; }
+      case "scrub": el.dataset.dirty = "1"; break;       // se está escribiendo un número
     }
   });
   pb.addEventListener("change", ev => {
@@ -552,6 +757,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     if (k === "num" || k === "int") renderPanel();
     if (k === "hex") el.value = getP(p) as string;
     if (k === "scrub") {
+      delete el.dataset.dirty;
       const raw = el.value.replace(",", ".").trim(), n = parseFloat(raw);
       commit(p, raw === "" || !isFinite(n) ? null : clamp(n, +el.dataset.min!, +el.dataset.max!), true);
     }
@@ -561,7 +767,11 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     if (el.dataset && el.dataset.k === "scrub" && (ev.key === "ArrowUp" || ev.key === "ArrowDown")) {
       ev.preventDefault(); const s = S(), st = +el.dataset.step! * (ev.shiftKey ? 10 : 1);
       const v = (getP(el.dataset.p!) as number | null) ?? s.font.size; const n = clamp(+(v + (ev.key === "ArrowUp" ? st : -st)).toFixed(2), +el.dataset.min!, +el.dataset.max!);
-      commit(el.dataset.p!, n); (el as HTMLInputElement).value = fmt(n) + " " + el.dataset.unit;
+      commit(el.dataset.p!, n); (el as HTMLInputElement).value = numTxt(el as HTMLInputElement, n);
+    }
+    if (el.dataset && el.dataset.gap) {
+      const by = ev.key === "ArrowRight" || ev.key === "ArrowUp" ? 1 : ev.key === "ArrowLeft" || ev.key === "ArrowDown" ? -1 : 0;
+      if (by) { ev.preventDefault(); commit("card.gap", clamp(S().card.gap + by * (ev.shiftKey ? 10 : 1), 0, GAP_MAX)); syncGap(); }
     }
     if (el.dataset && el.dataset.k === "scrub" && ev.key === "Enter") el.blur();
     if (el.matches && el.matches("[data-grip]") && (ev.key === "ArrowUp" || ev.key === "ArrowDown")) { ev.preventDefault(); moveItem((el.closest(".sc") as HTMLElement).dataset.list as ListKey, el.dataset.id!, ev.key === "ArrowUp" ? -1 : 1); }
@@ -569,12 +779,19 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   pb.addEventListener("toggle", ev => { const d = (ev.target as HTMLDetailsElement); if (!d.dataset || !d.dataset.adv) return; const k = "adv:" + d.dataset.adv; d.open ? ui.open.add(k) : ui.open.delete(k); }, true);
   pb.addEventListener("click", ev => {
     const b = ((ev.target as HTMLElement).closest("button") as HTMLButtonElement); if (!b || b.disabled) return;
+    if (b.dataset.fitstep) {
+      const i = FITS.indexOf(S().img.fit), n = FITS[(i + +b.dataset.fitstep + FITS.length) % FITS.length];
+      commit("img.fit", n, true); pb.querySelector<HTMLElement>('[data-fitstep="' + b.dataset.fitstep + '"]')?.focus(); return;
+    }
+    if (b.dataset.pos) { commit("img.pos", b.dataset.pos, true); pb.querySelector<HTMLElement>('[data-pos="' + b.dataset.pos + '"]')?.focus(); return; }
+    if (b.dataset.src) { if (ui.fp && ui.fp.anchorId === b.id) closeFp(); else openSrcMenu(b); return; }
     if (b.dataset.toggle) {
       const k = b.dataset.toggle, open = !ui.open.has(k);
       open ? ui.open.add(k) : ui.open.delete(k);
       if (k.startsWith("it:") || k.startsWith("st:")) { renderPanel(); return; }     // los ajustes de un dato o un estado se pintan al abrirlo
       b.setAttribute("aria-expanded", String(open));
       const body = (b.closest(".blk,.sc")!.querySelector(":scope > .blk-b, :scope > .sc-b") as HTMLElement); body.hidden = !open;
+      if (open) fitText();                          // en un bloque cerrado no se puede medir: al abrirlo
       return;
     }
     const p = b.dataset.p;
@@ -583,6 +800,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       if (k === "seg") { const v = b.dataset.vt === "number" ? +b.dataset.v! : b.dataset.v; commit(p, v, true); }
       else if (k === "bool") {
         const v = !getP(p);
+        if (b.classList.contains("tgl")) animTgl = b.id;
         if (p === "foot.on" && v && !S().foot.filled) { const s = S(); snapshot(); lastPath = ""; fillFoot(s); s.foot.on = true; ui.open.add("pie"); preview(); renderPanel(); return; }
         if (/^(foot|rate|states|lines|hover)\.on$/.test(p) && v) ui.open.add(({ foot: "pie", rate: "valoracion", states: "estados", lines: "lineas", hover: "hover" } as Record<string, string>)[p.split(".")[0]]);
         if (/\.sup$/.test(p) && !v) setP(p.replace(/sup$/, "join"), false);
@@ -615,24 +833,49 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   });
   /* arrastrar en horizontal sobre un número para cambiarlo */
   let scrubMoved = false;
+  /* (también los tiles de SIZE, enteros: en horizontal o en vertical, con su ritmo; y el GAP) */
+  const numTxt = (el: HTMLInputElement, n: number) => fmt(n) + (el.dataset.tight ? "" : " ") + el.dataset.unit;
   pb.addEventListener("pointerdown", ev => {
-    const el = ((ev.target as HTMLElement).closest("input.num") as HTMLInputElement); if (!el || el.disabled || document.activeElement === el) return;
-    const sx = ev.clientX, p = el.dataset.p!, s = S();
-    const start = (getP(p) as number | null) ?? s.font.size, step = +el.dataset.step!;
+    const tg = ev.target as HTMLElement;
+    if (tg.closest(".gapc")) { gapDrag(ev); return; }
+    const el = (tg.closest("input.num") || tg.closest(".tile")?.querySelector("input.num")) as HTMLInputElement | null;
+    if (!el || el.disabled || document.activeElement === el) return;
+    const sx = ev.clientX, sy = ev.clientY, p = el.dataset.p!, s = S(), y = el.dataset.axis === "y";
+    const start = (getP(p) as number | null) ?? s.font.size, step = +el.dataset.step!, rate = +(el.dataset.rate || 0) || step / 3;
     let moved = false; scrubMoved = false;
     const mv = (e: PointerEvent) => {
-      const dx = e.clientX - sx;
-      if (!moved && Math.abs(dx) < 4) return;
-      if (!moved) { moved = true; scrubMoved = true; document.body.addClass("cb-scrubbing"); }
+      const d = y ? e.clientY - sy : e.clientX - sx;
+      if (!moved && Math.abs(d) < 4) return;
+      if (!moved) { moved = true; scrubMoved = true; document.body.addClass(y ? "cb-scrubbing-y" : "cb-scrubbing"); }
       e.preventDefault();
-      const n = clamp(+(start + Math.round(dx / 3) * step).toFixed(2), +el.dataset.min!, +el.dataset.max!);
-      commit(p, n); el.value = fmt(n) + " " + el.dataset.unit;
+      const n = clamp(+(start + Math.round(d * rate / step) * step).toFixed(2), +el.dataset.min!, +el.dataset.max!);
+      commitLive(p, n); el.value = numTxt(el, n);
     };
-    const up = () => { document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.body.removeClass("cb-scrubbing"); if (moved) renderPanel(); };
+    const up = () => { document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.body.removeClass("cb-scrubbing", "cb-scrubbing-y"); if (moved) { preview(); renderPanel(); } };
     document.addEventListener("pointermove", mv); document.addEventListener("pointerup", up);
     ev.preventDefault();
   });
-  pb.addEventListener("click", ev => { const el = ((ev.target as HTMLElement).closest("input.num") as HTMLInputElement); if (!el || el.disabled) return; if (scrubMoved) { scrubMoved = false; return; } el.focus(); el.select(); });
+  function gapDrag(ev: PointerEvent) {
+    const el = ev.target instanceof HTMLElement ? ev.target.closest<HTMLElement>(".gapc") : null; if (!el) return;
+    const sx = ev.clientX, start = S().card.gap;
+    let moved = false;
+    el.focus(); el.addClass("is-drag");
+    const mv = (e: PointerEvent) => {
+      const d = e.clientX - sx;
+      if (!moved && Math.abs(d) < 3) return;
+      if (!moved) { moved = true; document.body.addClass("cb-scrubbing"); }
+      e.preventDefault();
+      commitLive("card.gap", clamp(Math.round(start + d), 0, GAP_MAX)); syncGap();
+    };
+    const up = () => { document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.body.removeClass("cb-scrubbing"); el.removeClass("is-drag"); if (moved) preview(); };
+    document.addEventListener("pointermove", mv); document.addEventListener("pointerup", up);
+    ev.preventDefault();
+  }
+  pb.addEventListener("click", ev => {
+    const tg = ev.target as HTMLElement;
+    const el = (tg.closest("input.num") || tg.closest(".tile")?.querySelector("input.num")) as HTMLInputElement | null;
+    if (!el || el.disabled) return; if (scrubMoved) { scrubMoved = false; return; } el.focus(); el.select();
+  });
 
   function joinToggle(id: string) {
     const s = S(), it = s.items.find(x => x.id === id); if (!it) return;
@@ -753,7 +996,8 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       ev.preventDefault(); ev.stopPropagation(); askCancel(); return;   // Escape = Cancelar
     }
     const ae = document.activeElement;
-    const typing = ae && ((ae.tagName === "INPUT" && !/^(range|checkbox|radio|color|button)$/.test((ae as HTMLInputElement).type)) ||
+    /* en un número (tile) que no se está escribiendo, Ctrl+Z también es nuestro */
+    const typing = ae && ((ae.tagName === "INPUT" && !/^(range|checkbox|radio|color|button)$/.test((ae as HTMLInputElement).type) && !(ae.matches("input.num") && !(ae as HTMLElement).dataset.dirty)) ||
       /TEXTAREA|SELECT/.test(ae.tagName) || (ae as HTMLElement).isContentEditable);   // en un deslizador, Ctrl+Z es nuestro
     const ours = inPanel || view.containsFocus() || ae === document.body;
     if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === "z" && !ev.shiftKey && !typing && ours) { ev.preventDefault(); ev.stopPropagation(); undo(); }
@@ -773,7 +1017,15 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     const prev = h("span", "fill");
     const hex = h("input", { cls: "hex", attr: { type: "text", spellcheck: "false", maxlength: 9, "aria-label": t("p.colorCode") } });
     const sws = h("div", "cp-sws", quick.map(c => h("button", { attr: { type: "button", "aria-label": c }, on: { click: () => { F().st = hexToHsva(c); apply(); } } }, h("i", { css: { "--cbp-q": c } }))));
-    openFp("color", anchor, h("div", { cls: "cp", attr: { role: "dialog", "aria-label": t("c.color") } }, sv, hb, ab, h("div", "cp-row", h("span", "swc cbp-static", prev), hex), sws), { path, st });
+    /* el segundo color del degradado lleva también el ángulo */
+    let angle: Kid = null;
+    if (path === "col.bg2") {
+      const out = h("output", null, s.col.angle + "°");
+      const rng = h("input", { attr: { type: "range", id: "cbp-angle", min: 0, max: 360, step: 5, value: s.col.angle, "aria-label": t("c.angle") } });
+      rng.addEventListener("input", () => { const v = +rng.value; out.textContent = v + "°"; commit("col.angle", v); });
+      angle = h("div", "cp-angle", h("label", { attr: { for: "cbp-angle" } }, t("c.angle")), rng, out);
+    }
+    openFp("color", anchor, h("div", { cls: "cp", attr: { role: "dialog", "aria-label": t("c.color") } }, sv, hb, ab, h("div", "cp-row", h("span", "swc cbp-static", prev), hex), sws, angle), { path, st });
     const paint = () => {
       const o = F().st, hx = hsvaToHex(o);
       setVars(sv, { "--h": o.h });
@@ -914,9 +1166,9 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   /* Cancelar: cierra y vuelve la vista a como estaba al abrir el panel, sin escribir nada (con cambios, pregunta antes) */
   function askCancel() {
     closeAdd(); closeAddF();
-    if (JSON.stringify(model) === atOpen) { view.closePanel(); view.editBtn.focus(); return; }
+    if (JSON.stringify(model) === atOpen) { view.closePanel(); view.focusBarButton(); return; }
     const keep = h("button", { cls: "btn", attr: { type: "button", "data-cf": "keep" }, on: { click: () => { closeFp(); cancelBtn.focus(); } } }, t("p.keepEditing"));
-    const discard = h("button", { cls: "btn primary", attr: { type: "button", "data-cf": "discard" }, on: { click: () => { closeFp(); view.closePanel(); view.editBtn.focus(); } } }, t("p.discard"));
+    const discard = h("button", { cls: "btn primary", attr: { type: "button", "data-cf": "discard" }, on: { click: () => { closeFp(); view.closePanel(); view.focusBarButton(); } } }, t("p.discard"));
     openFp("cancel", cancelBtn, h("div", { cls: "cbconfirm", attr: { role: "alertdialog", "aria-label": t("p.discardQ") } }, h("p", null, t("p.discardQ")), h("div", "pop-act", keep, discard)));
     discard.focus();
   }
@@ -934,6 +1186,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   function onData() { src = view.source(); facts = view.factsFor(src); renderPanel(); }
 
   renderPanel();
+  if (document.fonts) void document.fonts.ready.then(() => fitText());   // Inter Tight cargada: se mide de nuevo
   view.renderCool(model);
   return { get model() { return model; }, destroy, onData, root, undo };
 }

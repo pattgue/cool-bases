@@ -81,8 +81,47 @@
   class Plugin extends Component {
     constructor(app, manifest) { super(); this.app = app; this.manifest = manifest; }
     registerBasesView(id, reg) { (window.__basesViews ||= {})[id] = reg; return true; }
-    async loadData() { return window.__pluginData || null; }
-    async saveData(d) { window.__pluginData = JSON.parse(JSON.stringify(d)); }
+    get dataKey() { return this.manifest.id === "cool-bases" ? "__pluginData" : "__pluginData_" + this.manifest.id; }
+    async loadData() { return window[this.dataKey] || null; }
+    async saveData(d) { window[this.dataKey] = JSON.parse(JSON.stringify(d)); }
+    addCommand(c) { (window.__commands ||= {})[this.manifest.id + ":" + c.id] = c; return c; }
+    removeCommand(id) { delete (window.__commands || {})[this.manifest.id + ":" + id]; }
+    addSettingTab(tab) { (window.__settingTabs ||= {})[this.manifest.id] = tab; }
+  }
+  /* ajustes: lo justo de PluginSettingTab y Setting (desplegables, interruptores y botones pequeños) */
+  class PluginSettingTab { constructor(app, plugin) { this.app = app; this.plugin = plugin; this.containerEl = document.createElement("div"); this.containerEl.className = "vertical-tab-content"; } }
+  class Setting {
+    constructor(el) {
+      this.settingEl = el.createDiv({ cls: "setting-item" });
+      const info = this.settingEl.createDiv({ cls: "setting-item-info" });
+      this.nameEl = info.createDiv({ cls: "setting-item-name" }); this.descEl = info.createDiv({ cls: "setting-item-description" });
+      this.controlEl = this.settingEl.createDiv({ cls: "setting-item-control" });
+    }
+    setName(t) { this.nameEl.textContent = t; return this; }
+    setDesc(t) { this.descEl.textContent = t; return this; }
+    setClass(c) { this.settingEl.addClass(c); return this; }
+    setHeading() { this.settingEl.addClass("setting-item-heading"); return this; }
+    addDropdown(cb) {
+      const sel = this.controlEl.createEl("select", { cls: "dropdown" }); let fn = null;
+      sel.addEventListener("change", () => fn && fn(sel.value));
+      const dd = { selectEl: sel, addOption: (v, t) => { sel.createEl("option", { text: t, attr: { value: v } }); return dd; },
+        addOptions: o => { for (const [v, t] of Object.entries(o)) dd.addOption(v, t); return dd; },
+        setValue: v => { sel.value = v; return dd; }, onChange: f => { fn = f; return dd; } };
+      cb(dd); return this;
+    }
+    addToggle(cb) {
+      const el = this.controlEl.createEl("input", { cls: "checkbox-container", attr: { type: "checkbox" } }); let fn = null;
+      el.addEventListener("change", () => fn && fn(el.checked));
+      const tg = { toggleEl: el, setValue: v => { el.checked = !!v; return tg; }, onChange: f => { fn = f; return tg; } };
+      cb(tg); return this;
+    }
+    addExtraButton(cb) {
+      const el = this.controlEl.createEl("button", { cls: "clickable-icon extra-setting-button" }); let fn = null;
+      el.addEventListener("click", () => fn && !el.disabled && fn());
+      const b = { extraSettingsEl: el, setIcon: i => { el.setAttribute("data-icon", i); return b; }, setTooltip: t => { el.setAttribute("aria-label", t); return b; },
+        setDisabled: d => { el.disabled = !!d; return b; }, onClick: f => { fn = f; return b; } };
+      cb(b); return this;
+    }
   }
   class Notice {
     constructor(msg, ms) {
@@ -96,8 +135,19 @@
   const Keymap = { isModEvent: e => !!(e && (e.metaKey || e.ctrlKey)) };
   const MarkdownRenderer = { render: async (app, md, el) => { el.appendText(md); } };
   const getLanguage = () => window.__lang || "en";
+  const Platform = { get isPhone() { return !!window.__phone; }, get isMobile() { return !!window.__phone; }, isDesktop: true };
   const moment = { locale: () => window.__lang || "en" };
-  window.__obsidian = { Plugin, BasesView, Component, Events, ListValue, NullValue, StringValue, IconValue, Value, TFile, Notice, Keymap, MarkdownRenderer,
-    parseYaml: s => window.jsyaml.load(s), setIcon: () => {}, getIcon, toValue, getLanguage, moment };
+  window.__obsidian = { Plugin, PluginSettingTab, Setting, BasesView, Component, Events, ListValue, NullValue, StringValue, IconValue, Value, TFile, Notice, Keymap, MarkdownRenderer,
+    parseYaml: s => window.jsyaml.load(s), Platform, getIcon,
+    setIcon: (el, name) => {
+      el.empty();
+      const R = "M5 3h14a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2z";   // iconos de Lucide que usa el panel
+      const paths = { "move-horizontal": ["m18 8 4 4-4 4", "M2 12h20", "m6 8-4 4 4 4"], "move-vertical": ["M12 2v20", "m8 18 4 4 4-4", "m8 6 4-4 4 4"],
+        "align-left": ["M15 12H3", "M17 18H3", "M21 6H3"], "align-center": ["M17 12H7", "M19 18H5", "M21 6H3"], "align-right": ["M21 12H9", "M21 18H7", "M21 6H3"],
+        "panel-top": [R, "M3 9h18"], "panel-bottom": [R, "M3 15h18"], "panel-left": [R, "M9 3v18"], "panel-right": [R, "M15 3v18"] }[name];
+      if (!paths) { el.createSpan({ cls: "icon-" + name, text: /up/.test(name) ? "⌃" : /down/.test(name) ? "⌄" : "•" }); return; }
+      const s = el.createSvg("svg", { attr: { viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", "stroke-width": "2", "stroke-linecap": "round", "stroke-linejoin": "round", width: "24", height: "24" } });
+      for (const d of paths) s.appendChild(window.createSvg("path", { attr: { d } }));
+    }, toValue, getLanguage, moment };
   window.require = name => { if (name === "obsidian") return window.__obsidian; throw new Error("módulo desconocido: " + name); };
 })();
