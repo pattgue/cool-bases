@@ -5,7 +5,7 @@ import { BasesView, IconValue, Keymap, ListValue, NullValue, parseYaml, Platform
 import type { BasesEntry, BasesPropertyId, Events, QueryController, Value, View } from "obsidian";
 import { clean, clone, str, ICON_MARK } from "./util";
 import { normalizeModel, storable, getStyle, defaultModel } from "./model";
-import { Facts, renderModel, postRender, gridSetup } from "./render";
+import { Facts, renderModel, postRender } from "./render";
 import { createPanel } from "./panel";
 import type { Panel } from "./panel";
 import { setVars } from "./dom";
@@ -35,8 +35,6 @@ export class CoolBasesView extends BasesView {
   declare cbResize: ResizeObserver;
   declare unloading: boolean;
   declare _postRaf: number;
-  declare _postAt: number;
-  declare _postTimer: number;
   declare editBtn: HTMLButtonElement | null;
 
   constructor(controller: QueryController, scrollEl: HTMLElement, plugin: CoolBasesPlugin) {
@@ -120,7 +118,6 @@ export class CoolBasesView extends BasesView {
     this.closePanel();
     this.cbResize?.disconnect();
     window.cancelAnimationFrame(this._postRaf);
-    window.clearTimeout(this._postTimer);
     this.setCss("");
     this.plugin.views.delete(this);
     this.plugin.refreshBar();
@@ -163,14 +160,6 @@ export class CoolBasesView extends BasesView {
     }
     try { this.sheet.css.replaceSync(text); } catch { this.sheet.css.replaceSync(""); }
     if (!text) { const css = this.sheet.css; doc.adoptedStyleSheets = doc.adoptedStyleSheets.filter(x => x !== css); this.sheet = null; }
-  }
-  /* solo las variables de la rejilla (tamaño, separación, márgenes, esquinas, borde): para arrastrar sin repintar */
-  restyle(model: Model) {
-    this.containerEl.querySelectorAll<HTMLElement>(":scope > .cb-grid").forEach(g => gridSetup(g, model, this.cbUid));
-    /* los ajustes que miden (títulos que encogen…) son lo caro: mientras se arrastra, como mucho cada 120 ms */
-    const now = Date.now();
-    if (now - (this._postAt || 0) > 120) { this._postAt = now; this.schedulePost(); }
-    else { window.clearTimeout(this._postTimer); this._postTimer = window.setTimeout(() => { this._postAt = Date.now(); this.schedulePost(); }, 130); }
   }
   schedulePost() {
     window.cancelAnimationFrame(this._postRaf);

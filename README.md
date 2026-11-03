@@ -74,7 +74,7 @@ At the top: **Undo** (or Ctrl/Cmd+Z), **Cancel** (or Escape: leaves the view as 
 ### Card
 - **Size**: width, height or a fixed format (1:1, 4:5, 3:4, 2:3, 16:9), fill width, padding, corner radius and gap between cards.
 - **Colors**: background (with an optional gradient), text, details (the accent color) and border.
-- **Text style**: typeface, weight, size and alignment. You can pick any font installed on your computer, or type its name.
+- **Font**: typeface, weight, size and alignment. You can pick any font installed on your computer, or type its name.
 - **Image**: which property holds the image, its position and fit (**Fill**, **Original**, **Framed**, **Background**), effects (B&W, duotone, blur, invert), grain, brightness and a dark gradient. **No image** decides what notes without an image show: nothing, their initials, a blank space or a generated **Cover**.
 
 ### Data
@@ -120,7 +120,6 @@ For anything else. It only applies to this view. Useful classes: `.cb-card`, `.c
 
 **Update 1.2.0**:
 → The **Cool Bar**: the bar shared by the Cool plugins. Its **COOL BASES** button opens the edit panel, which now hangs from it. Its settings are in Settings → Cool Bases.
-→ A redesigned edit panel: Size, Colors, Text style and Image with tiles, chips and switches, and a live mini card.
 → On phones, the bar is hidden for now and **✎ Edit card** stays in the view.
 
 ## FAQ
