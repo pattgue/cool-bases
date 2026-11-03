@@ -15,6 +15,7 @@ this.bar = joinCoolKit(this, {
   label: () => "Cool Trip",
   appliesTo: leaf => /* does this tab show something of mine? */,
   isOpen: leaf => /* is my panel open in this tab? */,
+  kind: "panel",   // or "view" when the tool is the whole tab (active = selected in the accent color, no tab hanging from the bar)
   toggle: (leaf, anchor) => /* open or close my panel */,
   saveShared: async data => { this.data.coolBar = data; await this.saveData(this.data); },
   loadShared: async () => this.data.coolBar,

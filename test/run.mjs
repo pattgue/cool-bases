@@ -73,6 +73,14 @@ for (const [hash, name] of [["views", "views-dark"], ["views|light", "views-ligh
   ok("Cool Bar: demo buttons locked, in order", JSON.stringify(b0[0].tools) === JSON.stringify(["cool-markdown:locked", "cool-trip:locked", "cool-properties:locked", "cool-bases:available"]), b0[0].tools.join(" "));
   ok("Cool Bar: a locked button can't be pressed", await p.evaluate(() => { const b = window.__leaves[4].view.containerEl.querySelector('.cool-tool[data-tool="cool-bases"]'); return b.disabled && b.getAttribute("aria-disabled") === "true"; }));
   await p.locator(".cool-bar").first().screenshot({ path: join(out, "cool-bar.png") });
+  ok("Cool Bar: COOL BASES opens a panel (data-kind=panel), the kit draws v" + b0[0].ck, await p.evaluate(() => window.__leaves[0].view.containerEl.querySelector('.cool-tool[data-tool="cool-bases"]').getAttribute("data-kind") === "panel"));
+  /* en el móvil, por ahora sin barra (el kit la quita) y vuelve al salir */
+  const phone = await p.evaluate(async () => { window.__phone = true; window.__plugin.refreshBar(); await new Promise(r => setTimeout(r, 40));
+    const n = document.querySelectorAll(".cool-bar").length, has = document.querySelectorAll(".cool-has-bar").length;
+    window.__phone = false; window.__plugin.refreshBar(); await new Promise(r => setTimeout(r, 40));
+    return { n, has, back: document.querySelectorAll(".cool-bar").length }; });
+  ok("Cool Bar: no bar on a phone (for now), back on desktop", phone.n === 0 && phone.has === 0 && phone.back === 5, JSON.stringify(phone));
+  ok("Cool Bar: on desktop, no «Edit card» button in the view (the bar has it)", await p.evaluate(() => !document.querySelector(".cb-edit-btn")));
   /* pulsar COOL BASES: abre el panel y el botón pasa a Activo */
   await p.click('.workspace-leaf-content >> nth=0 >> .cool-tool[data-tool="cool-bases"]');
   await p.waitForTimeout(80);
@@ -95,15 +103,18 @@ for (const [hash, name] of [["views", "views-dark"], ["views|light", "views-ligh
   /* otro plugin Cool con un kit más nuevo: toma el relevo, pinta él, y al irse vuelve el primero */
   await p.evaluate(async () => {
     const module = { exports: {} };
-    new Function("module", "exports", "require", window.__mainSrc.replace("var KIT_VERSION = 1;", "var KIT_VERSION = 2;"))(module, module.exports, window.require);
+    const v = +window.__mainSrc.match(/var KIT_VERSION = (\d+);/)[1];                      // el kit de Cool Bases, y el gemelo uno más nuevo
+    window.__kitV = v;
+    new Function("module", "exports", "require", window.__mainSrc.replace("var KIT_VERSION = " + v + ";", "var KIT_VERSION = " + (v + 1) + ";"))(module, module.exports, window.require);
     const Twin = module.exports.default || module.exports;
     window.__twin = new Twin(window.__app, { id: "cool-twin" });
     await window.__twin.onload();
     await new Promise(r => setTimeout(r, 60));
   });
+  const kitV = await p.evaluate(() => window.__kitV);
   const t1 = await p.evaluate(() => ({ leader: window.__coolKit.leader, cks: [...new Set([...document.querySelectorAll(".cool-bar")].map(b => b.getAttribute("data-ck")))],
     n: document.querySelectorAll(".cool-bar").length, tools: document.querySelector(".cool-bar").querySelectorAll(".cool-tool").length }));
-  ok("Cool Kit: the newest kit becomes the leader and repaints", t1.leader === "cool-twin" && t1.cks.join() === "2" && t1.n === 5 && t1.tools === 5, JSON.stringify(t1));
+  ok("Cool Kit: the newest kit becomes the leader and repaints", t1.leader === "cool-twin" && t1.cks.join() === String(kitV + 1) && t1.n === 5 && t1.tools === 5, JSON.stringify(t1));
   await p.click(".cool-bar >> nth=0 >> .cool-fold");
   await p.waitForTimeout(80);
   ok("Cool Kit: settings are written to every Cool plugin", await p.evaluate(() => window.__pluginData.coolBar.desktop.collapsed === true && window["__pluginData_cool-twin"].coolBar.desktop.collapsed === true));
@@ -111,10 +122,25 @@ for (const [hash, name] of [["views", "views-dark"], ["views|light", "views-ligh
   await p.waitForTimeout(80);
   await p.evaluate(async () => { window.__twin.unload(); await new Promise(r => setTimeout(r, 60)); });
   const t2 = await p.evaluate(() => ({ leader: window.__coolKit.leader, cks: [...new Set([...document.querySelectorAll(".cool-bar")].map(b => b.getAttribute("data-ck")))], n: document.querySelectorAll(".cool-bar").length }));
-  ok("Cool Kit: when the leader leaves, the other one takes over", t2.leader === "cool-bases" && t2.cks.join() === "1" && t2.n === 5, JSON.stringify(t2));
+  ok("Cool Kit: when the leader leaves, the other one takes over", t2.leader === "cool-bases" && t2.cks.join() === String(kitV) && t2.n === 5, JSON.stringify(t2));
   /* al descargar Cool Bases no queda nada */
   await p.evaluate(async () => { window.__plugin.unload(); await new Promise(r => setTimeout(r, 60)); });
   ok("Cool Kit: unloading the last plugin removes every bar", await p.evaluate(() => !document.querySelector(".cool-bar") && !document.querySelector(".cool-has-bar") && window.__coolKit.leader === null));
+  await p.close();
+}
+
+/* ---------- 1b'. en el móvil: sin Cool Bar, el botón «✎ Edit card» en la vista ---------- */
+{
+  const { p, errs } = await page("views|phone", { width: 400, height: 800 });
+  errors.push(...errs);
+  const m = await p.evaluate(() => ({ bars: document.querySelectorAll(".cool-bar").length, views: document.querySelectorAll(".cb-view").length,
+    btns: [...document.querySelectorAll(".cb-edit-btn")].map(b => b.textContent) }));
+  ok("phone: no Cool Bar, an «Edit card» button in each Cool Bases view", m.bars === 0 && m.views > 0 && m.btns.length === m.views && m.btns.every(x => x === "✎ Edit card"), JSON.stringify(m));
+  await p.click(".cb-edit-btn >> nth=0"); await p.waitForTimeout(80);
+  ok("phone: the button opens the panel", await p.evaluate(() => !!document.querySelector(".cb-panel") && document.querySelector(".cb-edit-btn").getAttribute("aria-expanded") === "true"));
+  await p.click("#cbp-cancel"); await p.waitForTimeout(80);
+  ok("phone: Cancel closes and focus goes back to the button", await p.evaluate(() => !document.querySelector(".cb-panel") && document.activeElement === document.querySelector(".cb-edit-btn") &&
+    document.activeElement.getAttribute("aria-expanded") === "false"));
   await p.close();
 }
 
@@ -171,6 +197,78 @@ for (const lang of ["en", "es"]) {
   await wait();
   ok("settings: Collapsed", await p.evaluate(() => document.querySelector(".cool-bar").classList.contains("is-collapsed")));
   await p.close();
+}
+
+/* ---------- 1d. con Cool Trip de verdad: una sola barra, los dos botones y los mismos ajustes ----------
+   Carga el main.js compilado de Cool Trip (COOL_TRIP=/ruta/a/cool-trip, o ../cool-trip junto a este repo) al lado de Cool Bases.
+   Sin Cool Trip compilado, se salta. */
+{
+  const tripDir = process.env.COOL_TRIP || join(here, "..", "..", "cool-trip");
+  let tripSrc = null, tripCss = "";
+  try { tripSrc = readFileSync(join(tripDir, "main.js"), "utf8"); } catch { /* sin Cool Trip */ }
+  try { tripCss = readFileSync(join(tripDir, "styles.css"), "utf8"); } catch { /* sin estilos */ }
+  if (!tripSrc) results.push("· Cool Trip + Cool Bases: skipped (no " + join(tripDir, "main.js") + "; COOL_TRIP=/path/to/cool-trip after npm run build there)");
+  else {
+    const { p, errs } = await page("views", { width: 1300, height: 900 });
+    errors.push(...errs);
+    await p.evaluate(async ([src, css]) => {
+      /* lo poco más de la API que Cool Trip necesita para cargar (sus vistas no se abren aquí) */
+      const O = window.__obsidian, C = O.Component;
+      class ItemView extends C { constructor(leaf) { super(); this.leaf = leaf; this.app = window.__app; this.containerEl = document.createElement("div"); } }
+      class Modal { constructor(app) { this.app = app; this.contentEl = document.createElement("div"); } open() {} close() {} }
+      Object.assign(O, { TextFileView: class extends ItemView {}, MarkdownView: class extends ItemView {}, Modal, FuzzySuggestModal: class extends Modal {},
+        TFolder: class {}, normalizePath: x => x, requestUrl: async () => ({ json: {}, text: "" }), stringifyYaml: x => window.jsyaml.dump(x) });
+      O.Plugin.prototype.registerView = function () {};
+      const app = window.__app, ws = app.workspace;
+      ws.onLayoutReady = cb => setTimeout(cb, 0);
+      ws.getLeavesOfType = () => [];
+      app.metadataCache.on = () => ({ off() {} });
+      app.vault.on = () => ({ off() {} });
+      if (css) document.head.appendChild(Object.assign(document.createElement("style"), { textContent: css }));
+      const module = { exports: {} };
+      new Function("module", "exports", "require", src)(module, module.exports, window.require);
+      const Trip = module.exports.default || module.exports;
+      window.__trip = new Trip(app, { id: "cool-trip" });
+      await window.__trip.onload();
+      await new Promise(r => setTimeout(r, 200));
+    }, [tripSrc, tripCss]);
+    /* las barras de las pestañas (la vista previa de los ajustes de Cool Trip también es una .cool-bar) */
+    await p.evaluate(() => { window.__tabBars = () => window.__leaves.flatMap(l => [...l.view.containerEl.querySelectorAll(":scope > .cool-bar")]); });
+    const look = () => p.evaluate(() => ({
+      kits: Object.fromEntries(Object.entries(window.__coolKit.kits).map(([id, k]) => [id, k.version])), leader: window.__coolKit.leader,
+      perLeaf: window.__leaves.map(l => l.view.containerEl.querySelectorAll(":scope > .cool-bar").length),
+      cks: [...new Set(window.__tabBars().map(b => b.getAttribute("data-ck")))],
+      tools: [...window.__tabBars()[0].querySelectorAll(".cool-tool")].map(b => b.getAttribute("data-tool") + ":" + b.getAttribute("data-kind")) }));
+    const j = await look();
+    ok("Cool Trip + Cool Bases: the same kit version in both", j.kits["cool-bases"] === j.kits["cool-trip"], JSON.stringify(j.kits));
+    ok("Cool Trip + Cool Bases: one bar per tab, with both buttons", j.perLeaf.every(n => n === 1) && j.cks.length === 1 &&
+      JSON.stringify(j.tools) === JSON.stringify(["cool-trip:view", "cool-bases:panel"]), JSON.stringify({ perLeaf: j.perLeaf, tools: j.tools, leader: j.leader }));
+    await p.locator(".workspace-leaf-content > .cool-bar").first().screenshot({ path: join(out, "cool-bar-trip.png") });
+    /* COOL BASES sigue abriendo su panel con Cool Trip al lado */
+    await p.click('.workspace-leaf-content >> nth=0 >> .cool-tool[data-tool="cool-bases"]'); await p.waitForTimeout(80);
+    ok("Cool Trip + Cool Bases: COOL BASES opens its panel", await p.evaluate(() => !!document.querySelector(".cb-panel") &&
+      window.__tabBars()[0].querySelector('.cool-tool[data-tool="cool-bases"]').getAttribute("data-state") === "active"));
+    await p.click("#cbp-cancel"); await p.waitForTimeout(80);
+    /* lo que cambias en los ajustes de uno cambia en el otro */
+    const loc = () => p.evaluate(() => ({ bases: window.__pluginData.coolBar?.desktop.location, trip: window["__pluginData_cool-trip"]?.coolBar?.desktop.location,
+      bars: [...new Set(window.__tabBars().map(b => b.getAttribute("data-loc")))].join() }));
+    await p.evaluate(() => { const tab = window.__settingTabs["cool-bases"]; tab.display(); tab.containerEl.id = "settings"; document.body.prepend(tab.containerEl);
+      const it = [...document.querySelectorAll("#settings .setting-item")].find(x => x.querySelector(".setting-item-name").textContent === "Location");
+      const sel = it.querySelector("select"); sel.value = "bottom"; sel.dispatchEvent(new Event("change")); });
+    await p.waitForTimeout(120);
+    const l1 = await loc();
+    ok("Cool Trip + Cool Bases: a change in Cool Bases' settings is saved in Cool Trip too", l1.bases === "bottom" && l1.trip === "bottom" && l1.bars === "bottom", JSON.stringify(l1));
+    await p.evaluate(() => { document.getElementById("settings").remove(); const tab = window.__settingTabs["cool-trip"]; tab.containerEl.id = "trip-settings"; document.body.prepend(tab.containerEl); tab.go(6);
+      const sel = [...tab.containerEl.querySelectorAll("select")].find(x => x.getAttribute("aria-label") === "Location"); sel.value = "top"; sel.dispatchEvent(new Event("change")); });
+    await p.waitForTimeout(120);
+    const l2 = await loc();
+    ok("Cool Trip + Cool Bases: …and a change in Cool Trip's settings in Cool Bases", l2.bases === "top" && l2.trip === "top" && l2.bars === "top", JSON.stringify(l2));
+    /* si Cool Trip se va, la barra sigue con Cool Bases */
+    await p.evaluate(async () => { document.getElementById("trip-settings").remove(); window.__trip.unload(); await new Promise(r => setTimeout(r, 80)); });
+    const k = await look();
+    ok("Cool Trip + Cool Bases: unloading Cool Trip leaves one bar with COOL BASES", k.leader === "cool-bases" && k.perLeaf.every(n => n === 1) && JSON.stringify(k.tools) === '["cool-bases:panel"]', JSON.stringify(k));
+    await p.close();
+  }
 }
 
 /* ---------- 2. el panel, en inglés y en español ---------- */

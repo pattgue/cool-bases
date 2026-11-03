@@ -1,7 +1,7 @@
 /* La vista «cool-bases».
    - Si la vista tiene `coolbases`, se pinta con ese modelo (el que guarda el panel).
    - Si no, con el modelo de fábrica: el título y las propiedades marcadas en «Propiedades» de Bases. */
-import { BasesView, IconValue, Keymap, ListValue, NullValue, parseYaml, TFile } from "obsidian";
+import { BasesView, IconValue, Keymap, ListValue, NullValue, parseYaml, Platform, TFile } from "obsidian";
 import type { BasesEntry, BasesPropertyId, Events, QueryController, Value, View } from "obsidian";
 import { clean, clone, str, ICON_MARK } from "./util";
 import { normalizeModel, storable, getStyle, defaultModel } from "./model";
@@ -9,6 +9,7 @@ import { Facts, renderModel, postRender, gridSetup } from "./render";
 import { createPanel } from "./panel";
 import type { Panel } from "./panel";
 import { setVars } from "./dom";
+import { t } from "./i18n";
 import type CoolBasesPlugin from "./main";
 import type { Frontmatter, Model, Rec, RecValue, Source, Style } from "./types";
 
@@ -36,6 +37,7 @@ export class CoolBasesView extends BasesView {
   declare _postRaf: number;
   declare _postAt: number;
   declare _postTimer: number;
+  declare editBtn: HTMLButtonElement | null;
 
   constructor(controller: QueryController, scrollEl: HTMLElement, plugin: CoolBasesPlugin) {
     super(controller);
@@ -53,6 +55,14 @@ export class CoolBasesView extends BasesView {
     /* el panel se abre desde el botón COOL BASES de la Cool Bar (o con el comando «Editar tarjeta») */
     plugin.views.add(this);
     plugin.refreshBar();
+    /* en el móvil, por ahora sin Cool Bar (el kit la quita): el botón «✎ Editar tarjeta» de antes, arriba a la derecha de la vista */
+    this.editBtn = null;
+    if (Platform.isPhone) {
+      const bar = createDiv({ cls: "cb-editbar" });
+      this.editBtn = bar.createEl("button", { cls: "cb-edit-btn", text: t("edit"), attr: { type: "button", "aria-expanded": "false" } });
+      scrollEl.prepend(bar);
+      this.registerDomEvent(this.editBtn, "click", () => this.editCard());
+    }
 
     /* clics: enlaces, datos para copiar, casillas y la tarjeta (abre la nota) */
     const el = this.containerEl;
@@ -114,6 +124,7 @@ export class CoolBasesView extends BasesView {
     this.setCss("");
     this.plugin.views.delete(this);
     this.plugin.refreshBar();
+    this.editBtn?.parentElement?.remove();
   }
 
   /* casilla de un estado: cambia la propiedad sí/no en la nota */
@@ -279,7 +290,7 @@ export class CoolBasesView extends BasesView {
   /* al cerrar con «Cancelar», el foco vuelve al botón COOL BASES de la barra de esta pestaña */
   focusBarButton() {
     const leafEl = this.scrollEl.closest(".workspace-leaf-content") || this.scrollEl.parentElement;
-    leafEl?.querySelector<HTMLElement>('.cool-tool[data-tool="' + this.plugin.manifest.id + '"]')?.focus();
+    (leafEl?.querySelector<HTMLElement>('.cool-tool[data-tool="' + this.plugin.manifest.id + '"]') || this.editBtn)?.focus();
   }
   /* el panel se monta en la pestaña entera (.workspace-leaf-content) para colgar del botón de la Cool Bar */
   openPanel() {
@@ -288,6 +299,7 @@ export class CoolBasesView extends BasesView {
     if (getComputedStyle(host).position === "static") host.addClass("cb-panel-host");
     this.panel = createPanel(this, host);
     this.scrollEl.addClass("cb-editing");
+    this.editBtn?.setAttribute("aria-expanded", "true");
     this.placePanel();
     this.plugin.refreshBar();
   }
@@ -320,6 +332,7 @@ export class CoolBasesView extends BasesView {
     this.panel.destroy();
     this.panel = null;
     this.scrollEl.removeClass("cb-editing");
+    this.editBtn?.setAttribute("aria-expanded", "false");
     setVars(this.scrollEl, { "--cbp-right": null });
     this.plugin.refreshBar();
     if (!saving && !this.unloading) this.onDataUpdated();

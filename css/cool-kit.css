@@ -1,11 +1,11 @@
 /* ===== Cool Kit: la Cool Bar (común a todos los plugins Cool) =====
-   Cada plugin trae su copia de este archivo: todo va acotado a la versión del kit ([data-ck="1"]) para que
+   Cada plugin trae su copia de este archivo: todo va acotado a la versión del kit ([data-ck="2"]) para que
    dos versiones cargadas a la vez no se pisen. Solo variables del tema: nada de colores fijos. */
 
 /* ---------- sistema visual «Cool»: variables derivadas del tema activo (claro u oscuro) ----------
    Los grises del diseño son mezclas del color del texto con el fondo del tema (en Things oscuro dan #cecece, #6c6c6c,
    #444649, #313436…). .cool-ui: cualquier interfaz Cool (paneles, ventanitas, ajustes), con el mismo data-ck que la barra. */
-:is(.cool-bar, .cool-ui, .cool-settings)[data-ck="1"] {
+:is(.cool-bar, .cool-ui, .cool-settings)[data-ck="2"] {
   --cool-font: "Cool Inter Tight", var(--font-interface);
   --cool-mix: var(--text-normal);
   --cool-surface-0: var(--background-secondary);                 /* la barra */
@@ -30,7 +30,7 @@
   font-family: var(--cool-font);
 }
 /* en claro, el texto de los tiles es el del tema (oscuro) para que se lea sobre el gris */
-.theme-light :is(.cool-bar, .cool-ui, .cool-settings)[data-ck="1"] {
+.theme-light :is(.cool-bar, .cool-ui, .cool-settings)[data-ck="2"] {
   --cool-tile-bg: color-mix(in srgb, var(--cool-mix) 34%, var(--background-primary));
   --cool-tile-hover: color-mix(in srgb, var(--cool-mix) 42%, var(--background-primary));
   --cool-tile-fg: var(--text-normal);
@@ -38,49 +38,54 @@
 }
 
 /* ---------- la barra ---------- */
-.cool-bar[data-ck="1"] {
+.cool-bar[data-ck="2"] {
   box-sizing: border-box; flex: none; display: flex; align-items: center; gap: 8px;
   min-height: 40px; padding: 6px 12px; background: var(--cool-surface-0);
   position: relative; z-index: 40;   /* por encima de los paneles que cuelgan de ella */
 }
-.cool-bar[data-ck="1"] *, .cool-bar[data-ck="1"] *::before, .cool-bar[data-ck="1"] *::after { box-sizing: border-box; }
-.cool-bar[data-ck="1"] .cool-tools { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
-.cool-bar[data-ck="1"][data-align="right"] .cool-tools { justify-content: flex-end; }
-.cool-bar[data-ck="1"][data-align="center"] .cool-tools { justify-content: center; }
-.cool-bar[data-ck="1"] .cool-tools[hidden] { display: none; }
+.cool-bar[data-ck="2"] *, .cool-bar[data-ck="2"] *::before, .cool-bar[data-ck="2"] *::after { box-sizing: border-box; }
+.cool-bar[data-ck="2"] .cool-tools { flex: 1; display: flex; align-items: center; gap: 6px; min-width: 0; }
+.cool-bar[data-ck="2"][data-align="right"] .cool-tools { justify-content: flex-end; }
+.cool-bar[data-ck="2"][data-align="center"] .cool-tools { justify-content: center; }
+.cool-bar[data-ck="2"] .cool-tools[hidden] { display: none; }
 /* los botones de Obsidian traen su estilo: aquí se parte de cero */
-.cool-bar[data-ck="1"] button { box-shadow: none; margin: 0; border: 0; font: inherit; cursor: pointer; }
-.cool-bar[data-ck="1"] .cool-fold {
+.cool-bar[data-ck="2"] button { box-shadow: none; margin: 0; border: 0; font: inherit; cursor: pointer; }
+.cool-bar[data-ck="2"] .cool-fold {
   flex: none; width: 26px; height: 26px; padding: 0; display: grid; place-items: center; border-radius: 4px;
   background: var(--cool-tile-bg); color: var(--cool-tile-fg);
 }
-.cool-bar[data-ck="1"] .cool-fold svg { width: 16px; height: 16px; stroke-width: 3; }
-.cool-bar[data-ck="1"] .cool-tool {
+.cool-bar[data-ck="2"] .cool-fold svg { width: 16px; height: 16px; stroke-width: 3; }
+.cool-bar[data-ck="2"] .cool-tool {
   height: 28px; padding: 0 9px; border-radius: 4px; white-space: nowrap;
   background: var(--cool-tile-bg); color: var(--cool-tile-fg);
   font-size: 13px; font-weight: 900; letter-spacing: .01em; text-transform: uppercase;
 }
-.cool-bar[data-ck="1"] .cool-tool[data-state="available"]:hover, .cool-bar[data-ck="1"] .cool-fold:hover { background: var(--cool-tile-hover); }
+.cool-bar[data-ck="2"] .cool-tool[data-state="available"]:hover, .cool-bar[data-ck="2"] .cool-fold:hover { background: var(--cool-tile-hover); }
 /* activo: una pestaña del color del panel que baja hasta el borde de la barra y se une con el panel que cuelga de ella */
-.cool-bar[data-ck="1"] .cool-tool[data-state="active"] {
+.cool-bar[data-ck="2"] .cool-tool[data-state="active"] {
   background: var(--cool-surface-1); color: var(--cool-accent);
   box-shadow: inset 1px 1px 0 var(--cool-border), inset -1px 0 0 var(--cool-border);
   border-radius: 6px 6px 0 0; align-self: flex-end; height: 35px; margin-bottom: -7px; padding-bottom: 7px;
 }
-.cool-bar[data-ck="1"][data-loc="bottom"] .cool-tool[data-state="active"], .cool-bar[data-ck="1"][data-loc="float"] .cool-tool[data-state="active"] {
+.cool-bar[data-ck="2"][data-loc="bottom"] .cool-tool[data-state="active"], .cool-bar[data-ck="2"][data-loc="float"] .cool-tool[data-state="active"] {
   box-shadow: inset 1px -1px 0 var(--cool-border), inset -1px 0 0 var(--cool-border);
   border-radius: 0 0 6px 6px; align-self: flex-start; margin: -7px 0 0; padding: 7px 9px 0;
 }
-.cool-bar[data-ck="1"] .cool-tool[data-state="locked"] { opacity: .35; cursor: default; }
-.cool-bar[data-ck="1"] button:focus-visible { outline: 2px solid var(--cool-accent); outline-offset: 1px; }
+/* una herramienta que es la pestaña entera (la nota de un viaje): seleccionada, sin pestaña que cuelgue */
+.cool-bar[data-ck="2"] .cool-tool[data-state="active"][data-kind="view"] {
+  background: var(--cool-accent); color: var(--text-on-accent); box-shadow: none;
+  border-radius: 4px; align-self: auto; height: 28px; margin: 0; padding: 0 9px;
+}
+.cool-bar[data-ck="2"] .cool-tool[data-state="locked"] { opacity: .35; cursor: default; }
+.cool-bar[data-ck="2"] button:focus-visible { outline: 2px solid var(--cool-accent); outline-offset: 1px; }
 /* plegada: solo el botón ⌃ */
-.cool-bar[data-ck="1"].is-collapsed { background: transparent; min-height: 0; padding-block: 4px; }
+.cool-bar[data-ck="2"].is-collapsed { background: transparent; min-height: 0; padding-block: 4px; }
 /* flotante: en una esquina de la pestaña */
-.cool-has-bar:has(> .cool-bar[data-ck="1"][data-loc="float"]) { position: relative; }
-.cool-bar[data-ck="1"][data-loc="float"] { position: absolute; right: 12px; bottom: 12px; z-index: 20; border-radius: 6px; box-shadow: 0 4px 16px rgba(0, 0, 0, .25); }
+.cool-has-bar:has(> .cool-bar[data-ck="2"][data-loc="float"]) { position: relative; }
+.cool-bar[data-ck="2"][data-loc="float"] { position: absolute; right: 12px; bottom: 12px; z-index: 20; border-radius: 6px; box-shadow: 0 4px 16px rgba(0, 0, 0, .25); }
 /* la pestaña: el contenido ocupa lo que deja la barra (sin desbordarse) */
 .cool-has-bar > .view-content { flex: 1 1 0; min-height: 0; }
 /* ajustes: pestañas Ordenador / Móvil */
-.cool-settings[data-ck="1"] .cool-settings-tabs { display: flex; gap: 6px; margin: 4px 0 8px; }
-.cool-settings[data-ck="1"] .cool-settings-tabs button { font-weight: 700; text-transform: uppercase; letter-spacing: .02em; font-size: var(--font-ui-smaller); }
-.cool-settings[data-ck="1"] .cool-settings-tabs button[aria-selected="true"] { background: var(--interactive-accent); color: var(--text-on-accent); }
+.cool-settings[data-ck="2"] .cool-settings-tabs { display: flex; gap: 6px; margin: 4px 0 8px; }
+.cool-settings[data-ck="2"] .cool-settings-tabs button { font-weight: 700; text-transform: uppercase; letter-spacing: .02em; font-size: var(--font-ui-smaller); }
+.cool-settings[data-ck="2"] .cool-settings-tabs button[aria-selected="true"] { background: var(--interactive-accent); color: var(--text-on-accent); }

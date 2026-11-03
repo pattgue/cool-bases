@@ -7,7 +7,7 @@ import { Component, Platform, setIcon } from "obsidian";
 import type { Plugin, WorkspaceLeaf } from "obsidian";
 import { kt } from "./i18n";
 
-export const KIT_VERSION = 1;           // sube con cada cambio del kit
+export const KIT_VERSION = 2;           // sube con cada cambio del kit
 export const PROTOCOL = 1;
 
 /* lo que registra cada plugin: su botón */
@@ -18,6 +18,7 @@ export interface CoolTool {
   order?: number;                                   // orden por defecto
   appliesTo(leaf: WorkspaceLeaf): boolean;          // ¿aplica a esta pestaña? (si no: Bloqueado)
   isOpen(leaf: WorkspaceLeaf): boolean;             // ¿su panel está abierto aquí? (Activo)
+  kind?: "panel" | "view";                          // "view": no abre un panel, es la pestaña entera (activo = seleccionado, sin pestaña)
   toggle(leaf: WorkspaceLeaf, anchor: HTMLElement): void;
   afterPaint?(): void;                              // tras pintar las barras (para recolocar un panel que cuelga de su botón)
   saveShared?(data: BarSettings): Promise<void>;    // ajustes de la barra, compartidos por todos los plugins Cool
@@ -167,6 +168,8 @@ class BarPainter {
 
   paint() {
     if (!this.comp) return;
+    /* en el móvil, por ahora sin barra (pendiente: un diseño más sutil que no tape la cabecera de Obsidian) */
+    if (Platform.isPhone) { for (const el of this.bars.values()) { el.parentElement?.removeClass("cool-has-bar"); el.remove(); } this.bars.clear(); return; }
     const reg = registry(), prefs = devicePrefs(), ws = this.plugin.app.workspace;
     const vis = (t: CoolTool): ToolVisibility => prefs.tools[t.id]?.visibility || "always";
     const tools = sortedTools(prefs).filter(t => vis(t) !== "never");
@@ -241,6 +244,7 @@ class BarPainter {
       const label = t.label();
       if (b.textContent !== label) b.textContent = label;
       b.setAttribute("data-state", s);
+      b.setAttribute("data-kind", t.kind || "panel");
       b.disabled = s === "locked";
       b.setAttribute("aria-disabled", String(s === "locked"));
       b.setAttribute("aria-pressed", String(s === "active"));

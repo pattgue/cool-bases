@@ -31,6 +31,7 @@ export default class CoolBasesPlugin extends Plugin {
       label: () => "Cool Bases",
       icon: "lucide-id-card",
       order: 40,
+      kind: "panel",                                                         // abre el panel de la tarjeta (no es la pestaña entera)
       appliesTo: leaf => !!this.viewIn(leaf),
       isOpen: leaf => !!this.viewIn(leaf)?.panel,
       toggle: leaf => this.viewIn(leaf)?.editCard(),

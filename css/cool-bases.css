@@ -39,6 +39,11 @@
 .cb-view .cb-icon svg.svg-icon, .cb-view .cb-icon svg { width: 1em; height: 1em; }
 .cb-view .cb-head { display: block; font-size: .72em; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; margin-bottom: .2em; }
 
+/* en el móvil (por ahora sin Cool Bar): botón «Editar tarjeta», arriba a la derecha de la vista */
+.cb-editbar { display: flex; justify-content: flex-end; padding: var(--size-4-2) var(--size-4-3) 0; }
+.cb-editbar .cb-edit-btn { font-size: var(--font-ui-small); height: auto; padding: var(--size-2-2) var(--size-4-2); }
+.cb-editbar .cb-edit-btn[aria-expanded="true"] { background: var(--interactive-accent); color: var(--text-on-accent); }
+
 /* panel lateral montado sobre la vista */
 .cb-panel-host { position: relative; }
 .cb-editing:not(#cb-imp) { padding-right: calc(min(389px, 50%) + var(--cbp-right, 0px)); }

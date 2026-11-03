@@ -59,7 +59,7 @@ const main = read(arg("--main") || join(root, "main.js")), css = read(arg("--css
 const html = "<!doctype html><meta charset=\"utf-8\"><title>Cool Bases harness</title>\n" +
   "<style>\n" + theme + "</style>\n<style>\n" + css + "</style>\n" +
   "<body><div id=\"out\"></div>\n" +
-  script("window.__lang = /(^|[|#])es(\\||$)/.test(decodeURIComponent(location.hash)) ? 'es' : 'en';\nif (location.hash.indexOf('#panel=') === 0) document.documentElement.classList.add('panel-page');") +
+  script("window.__lang = /(^|[|#])es(\\||$)/.test(decodeURIComponent(location.hash)) ? 'es' : 'en';\nwindow.__phone = /(^|[|#])phone(\\||$)/.test(decodeURIComponent(location.hash));\nif (location.hash.indexOf('#panel=') === 0) document.documentElement.classList.add('panel-page');") +
   script(read(join(here, "node_modules", "js-yaml", "dist", "js-yaml.min.js"))) +
   script(read(join(here, "obsidian-mock.js"))) +
   script("window.DATOS = " + JSON.stringify(datos) + ";") +

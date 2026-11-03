@@ -3,7 +3,7 @@
 import { getLanguage, moment } from "obsidian";
 
 const en: Record<string, string> = {
-  "cmd.edit": "Edit card",
+  "cmd.edit": "Edit card", "edit": "✎ Edit card",
   "p.title": "Edit card", "p.view": "View:", "p.undo": "Undo", "p.cancel": "Cancel", "p.done": "Done",
   "p.styles": "Styles", "p.presets": "Presets", "p.myStyles": "My styles", "p.saveStyle": "Save style", "p.copyFrom": "Copy from another view", "p.saveShort": "Save", "p.copyShort": "Copy view",
   "c.fill": "Fill", "c.alignShort": "Align", "c.noGrain": "No grain", "c.noShade": "No gradient", "c.ifNoImage": "If no image", "c.fixed": "Fixed", "c.solid": "Flat color", "c.radiusShort": "Radius", "c.padShort": "Padding", "c.preview": "Preview", "mc.title": "Title", "mc.sub": "Subtitle", "mc.tags": "Tags",
@@ -70,7 +70,7 @@ const en: Record<string, string> = {
 };
 
 const es: Record<string, string> = {
-  "cmd.edit": "Editar tarjeta",
+  "cmd.edit": "Editar tarjeta", "edit": "✎ Editar tarjeta",
   "p.title": "Editar tarjeta", "p.view": "Vista:", "p.undo": "Deshacer", "p.cancel": "Cancelar", "p.done": "Listo",
   "p.styles": "Estilos", "p.presets": "Predeterminados", "p.myStyles": "Mis estilos", "p.saveStyle": "Guardar estilo", "p.copyFrom": "Copiar de otra vista", "p.saveShort": "Guardar", "p.copyShort": "Copiar vista",
   "c.fill": "Llenar", "c.alignShort": "Alinear", "c.noGrain": "Sin grano", "c.noShade": "Sin degradado", "c.ifNoImage": "Si no hay imagen", "c.fixed": "Fijo", "c.solid": "Color plano", "c.radiusShort": "Esquinas", "c.padShort": "Margen", "c.preview": "Vista previa", "mc.title": "Título", "mc.sub": "Subtítulo", "mc.tags": "Etiquetas",

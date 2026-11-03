@@ -1,7 +1,7 @@
 /* Arnés: carga Cool Bases (main.js) con la API simulada y pinta las vistas de las bases de window.DATOS.
    #views[|es][|light]               todas las vistas, una debajo de otra
    #panel=<base>|<vista>[|es][|light] una vista con el panel abierto
-   window.__lang lo pone la página antes de cargar el plugin (es / en). */
+   window.__lang lo pone la página antes de cargar el plugin (es / en); |phone hace de móvil (window.__phone). */
 (async function () {
   "use strict";
   const { TFile, toValue, NullValue, StringValue, Events } = window.__obsidian;
