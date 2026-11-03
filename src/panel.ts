@@ -4,7 +4,8 @@ import { Notice, setIcon } from "obsidian";
 import { clone, clamp, fmt, merge, hex6, hexToHsva, hsvaToHex, fmtNum, str } from "./util";
 import { TYPES, FONTS, fontStack, fontName, WEIGHTS, SEPS, FMTS, ITEM_DEF, TITLE_KEYS, splitSpace, BASE_STYLE, STYLE_KEYS, PRESETS,
   mkItem, syncStruct, getStyle, textish, ST_FMTS, ST_ICONS, mkState, framed } from "./model";
-import { itemContent, rateNode, rateProp, imgSrc, tokCol, plainSample, nodeText, stateNode, stateOf } from "./render";
+import { itemContent, rateNode, rateProp, imgSrc, tokCol, plainSample, nodeText, stateNode, stateOf, coverData } from "./render";
+import { coverSrc } from "./cover";
 import { h, svg, append, setVars } from "./dom";
 import type { AttrVal, Kid } from "./dom";
 import { t, fontLabel } from "./i18n";
@@ -139,17 +140,18 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   function fontBtn(path: string, dis?: unknown) {
     const v = getP(path) as string | null, label = v == null ? S().font.family : v;
     return h("button", { cls: "fontb", attr: { type: "button", id: fid(path), "data-p": path, "data-k": "font", "aria-haspopup": "listbox", "aria-expanded": "false", disabled: D(dis), title: fontStack(label) } },
-      ffSpan(label), h("span", "caret cbp-none", "▼"));
+      ffSpan(label), chevron());
   }
+  function chevron() { const c = h("span", { cls: "caret", attr: { "aria-hidden": "true" } }); setIcon(c, "chevron-down"); return c; }
   function scrub(path: string, min: number, max: number, step: number, unit: string, dis?: unknown) {
     const v = getP(path) as number | null, shown = v == null ? S().font.size : v;
     return h("span", "numw", h("input", { cls: "num", attr: { type: "text", id: fid(path), "data-p": path, "data-k": "scrub", "data-min": min, "data-max": max, "data-step": step, "data-unit": unit,
       value: fmt(shown) + " " + unit, spellcheck: "false", inputmode: "decimal", disabled: D(dis) } }));
   }
   /* tile de SIZE: un número grande que se cambia arrastrando (en horizontal o vertical), escribiendo o con las flechas */
-  interface TileOpts { min: number; max: number; step: number; rate: number; unit: string; axis: "x" | "y"; icon?: string; dis?: boolean; cls?: string }
+  interface TileOpts { min: number; max: number; step: number; rate: number; unit: string; axis: "x" | "y"; icon?: string; dis?: boolean; cls?: string; x?: "cw" }
   function tile(path: string, label: string, o: TileOpts) {
-    const v = tileVal(path);
+    const v = tileVal(path) * (o.x ? xOf(o.x) : 1), shown = o.x ? Math.round(v / o.step) * o.step : v;
     const icon = o.icon ? h("span", "tile-i") : null;
     if (icon && o.icon) {
       setIcon(icon, o.icon);
@@ -159,9 +161,9 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     }
     const inner = [h("label", { cls: "tile-l", attr: { for: fid(path) } }, label),
       h("span", "tile-pill", h("input", { cls: "num", attr: { type: "text", id: fid(path), "data-p": path, "data-k": "scrub", "data-min": o.min, "data-max": o.max, "data-step": o.step,
-        "data-rate": o.rate, "data-axis": o.axis, "data-unit": o.unit, "data-tight": "1", value: fmt(v) + o.unit, spellcheck: "false", inputmode: "decimal", disabled: D(o.dis) } })),
+        "data-rate": o.rate, "data-axis": o.axis, "data-unit": o.unit, "data-tight": "1", "data-x": o.x || null, value: fmt(shown) + o.unit, spellcheck: "false", inputmode: "decimal", disabled: D(o.dis) } })),
       icon];
-    return h("div", { cls: "tile" + (o.cls ? " " + o.cls : "") + (o.dis ? " dis" : ""), attr: { "data-tile": path }, css: tileVars(path, v) },
+    return h("div", { cls: "tile" + (o.cls ? " " + o.cls : "") + (o.dis ? " dis" : ""), attr: { "data-tile": path }, css: tileVars(path, tileVal(path)) },
       path === "card.pad" ? [h("span", { cls: "tile-guide", attr: { "aria-hidden": "true" } }), inner] : inner);
   }
   /* RADIUS enseña su esquina y PADDING su guía, según el valor (con un tope) */
@@ -193,11 +195,6 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       const avail = b.clientWidth - k.offsetWidth - kp - tp - 5;          // menos la bola, sus márgenes y un respiro
       b.querySelectorAll<HTMLElement>(".tgl-w").forEach(w => fitEl(w, avail, b));
     });
-    pb.querySelectorAll<HTMLElement>(".fxb-w, .picto-w").forEach(w => {
-      const b = w.parentElement!; if (!b.offsetWidth) return;
-      const other = [...b.children].filter(x => x !== w).reduce((n, x) => n + (x as HTMLElement).offsetWidth, 0);
-      fitEl(w, b.clientWidth - other - 16, b);
-    });
     pb.querySelectorAll<HTMLElement>(".tile:not(.t-wide) > .tile-l").forEach(l => {
       const tl = l.parentElement!; if (!tl.offsetWidth) return;
       fitEl(l, tl.clientWidth - 10, tl);
@@ -222,7 +219,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   function syncTiles() {
     pb.querySelectorAll<HTMLElement>("[data-tile]").forEach(tl => {
       const p = tl.dataset.tile!, v = tileVal(p), inp = tl.querySelector<HTMLInputElement>("input.num");
-      if (inp && document.activeElement !== inp) inp.value = numTxt(inp, v);
+      if (inp && document.activeElement !== inp) inp.value = numTxt(inp, shownOf(inp, v));
       const tv = tileVars(p, v); if (tv) setVars(tl, tv);
     });
   }
@@ -253,23 +250,129 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   const firstImg = (p: string | null) => p ? ents().map(r => src.imageUrl(r, p)).find(Boolean) || null : null;
   /* la imagen de muestra (la primera de la vista), para la mini tarjeta y las miniaturas de los efectos */
   function imgVar(sp: string | null) { const url = firstImg(sp); return url ? 'url("' + url.replace(/"/g, "%22") + '")' : "none"; }
-  function fxFilter(s: Model, f: string): string {
-    const a = ((s.img.amt && s.img.amt[f]) ?? 100) / 100;
-    const base = f === "bn" ? "grayscale(" + a + ")" : f === "inv" ? "invert(" + a + ")" : f === "blur" ? "blur(" + (a * 2.5).toFixed(1) + "px)"
-      : f === "duo" ? (s.img.fx === "duo" ? "url(#cbduo-" + view.cbUid + ")" : "grayscale(1)") : "none";
-    return base;
+  function fxFilter(s: Model, f: string): string { return fxAt(f, (s.img.amt && s.img.amt[f]) ?? 100); }
+  /* el efecto a una intensidad dada (0…100) */
+  function fxAt(f: string, pct: number): string {
+    const a = pct / 100;
+    return f === "bn" ? "grayscale(" + a + ")" : f === "inv" ? "invert(" + a + ")" : f === "blur" ? "blur(" + (a * 2.5).toFixed(1) + "px)"
+      : f === "duo" ? (S().img.fx === "duo" ? "url(#cbduo-" + view.cbUid + ")" : "grayscale(1)") : "none";
   }
+  /* las dos muestras de IMAGE, como en el boceto: una mini tarjeta (TITLE, SUBTITLE, raya y TAGS, con tus colores y tu fuente)
+     con la imagen; las flechas, sobre la imagen, pasan por las opciones y el nombre de la elegida va debajo */
+  function pvText() {
+    return h("span", "pv-txt", h("span", "mc-t", t("mc.title")), h("span", "mc-s", t("mc.sub")), h("span", "mc-line"),
+      h("span", "mc-tags", h("i", "on", t("mc.tags")), h("i", null, t("mc.tags")), h("i", null, t("mc.tags"))));
+  }
+  function pvArrows(step: string, label: string, dis: boolean) {
+    return [-1, 1].map(d => {
+      const b = h("button", { cls: "pv-arr " + (d < 0 ? "a-l" : "a-r"), attr: { type: "button", [step]: String(d), "aria-label": label + (d < 0 ? " ‹" : " ›"), title: label, disabled: D(dis) } });
+      setIcon(b, d < 0 ? "chevron-left" : "chevron-right");
+      return b;
+    });
+  }
+  function pvVars(s: Model, filter: string, img: string): Record<string, string> {
+    const col = s.col;
+    return { "--mc-bg": col.grad ? "linear-gradient(" + col.angle + "deg," + col.bg + "," + col.bg2 + ")" : col.bg, "--mc-bgc": col.bg, "--mc-text": col.text, "--mc-det": col.det,
+      "--mc-ff": fontStack(s.font.family), "--pv-img": img, "--pv-filter": filter, "--pv-frame": (s.img.frame * 0.9).toFixed(1) + "px", "--pv-shade": s.img.shadeC };
+  }
+  const pvLabel = (val: string) => h("span", { cls: "pv-l", attr: { "aria-live": "polite" } }, val);
+  /* con imagen: el ajuste elegido, con tu imagen (al pulsarla se elige de dónde sale) */
   function imgCard(s: Model, sp: string | null, noImg: boolean) {
-    const im = s.img, col = s.col;
-    const pic = h("button", { cls: "ic-img", attr: { type: "button", "data-src": "1", "aria-haspopup": "menu", "aria-expanded": "false", id: "cbp-imgsrc",
-      "aria-label": t("c.source") + ": " + (sp ? pname(sp) : t("img.none")), title: sp ? pname(sp) : t("img.none") } }, noImg ? h("span", "ic-plus", "+") : null);
-    const edges = ["top", "right", "bottom", "left"].map(p => h("button", { cls: "ic-edge e-" + p, attr: { type: "button", "data-pos": p, "aria-pressed": String(im.pos === p),
-      "aria-label": t("c.position") + ": " + t("pos." + p), title: t("pos." + p), disabled: D(noImg || im.fit === "fondo") } }));
-    return h("div", { cls: "imgcard p-" + im.pos + " f-" + im.fit + (noImg ? " no-img" : "") + (im.grain ? " grain" : "") + (im.fit === "fondo" && im.shade ? " shade" : ""),
-      css: { "--ic-bg": col.bg, "--ic-text": col.text, "--ic-det": col.det,
-        "--ic-filter": (im.fx === "color" ? "" : fxFilter(s, im.fx) + " ") + "brightness(" + im.bright / 100 + ")", "--ic-frame": (im.frame * 0.9).toFixed(1) + "px", "--ic-shade": im.shadeC } },
-      h("div", "ic-in", pic, h("span", "ic-txt", h("i", "l1"), h("i", "l2"), h("i", "l3"))), edges);
+    const im = s.img, fondo = im.fit === "fondo";
+    const pic = h("button", { cls: "pv-pic", attr: { type: "button", "data-src": "1", "aria-haspopup": "menu", "aria-expanded": "false", id: "cbp-imgsrc",
+      "aria-label": t("c.source") + ": " + (sp ? pname(sp) : t("img.none")), title: t("c.source") + ": " + (sp ? pname(sp) : t("img.none")) } }, noImg ? h("span", "pv-plus", "+") : null);
+    const filter = (im.fx === "color" ? "" : fxFilter(s, im.fx) + " ") + "brightness(" + im.bright / 100 + ")";
+    return h("figure", "pv pv-main",
+      h("div", { cls: "pvc p-" + (fondo ? "top" : im.pos) + " f-" + im.fit + (noImg ? " no-img" : "") + (im.grain ? " grain" : "") + (fondo && im.shade ? " shade" : ""),
+        css: pvVars(s, filter, "var(--ic-img)") },
+        h("div", "pv-in", h("div", "pv-media", pic), pvText()), noImg ? null : pvArrows("data-fitstep", t("c.fit"), false)),
+      pvLabel(noImg ? t("img.none") : t("fit." + im.fit)));
   }
+  /* ---------- IMAGE (boceto de Patt): chips pequeños, filas de etiqueta y deslizador, una fila ancha para el FIT ---------- */
+  /* chip de opción (efectos, sin imagen, colores y forma de la portada); «extra» va dentro, delante (los puntos del duotono) */
+  function chip(path: string, v: string, label: Kid, o?: { aria?: string; icon?: Kid; dis?: boolean; cls?: string }) {
+    o = o || {};
+    return h("button", { cls: "ichip" + (o.cls ? " " + o.cls : ""), attr: { type: "button", role: "radio", id: fid(path + "=" + v), "data-p": path, "data-k": "seg", "data-v": v, "data-vt": "string",
+      "aria-checked": String(getP(path) === v), "aria-label": o.aria || null, title: o.aria || null, disabled: D(o.dis) } }, o.icon, label);
+  }
+  /* un chip con dos colores dentro (DUOTONE, colores propios de la portada): los puntos eligen los colores, la palabra la opción */
+  function dotChip(path: string, v: string, label: string, c1: string, c2: string, dis: boolean) {
+    return h("span", { cls: "ichip dots" + (getP(path) === v ? " on" : "") }, h("span", "ich-dots", swatch(c1, dis), swatch(c2, dis)),
+      h("button", { attr: { type: "button", role: "radio", id: fid(path + "=" + v), "data-p": path, "data-k": "seg", "data-v": v, "data-vt": "string",
+        "aria-checked": String(getP(path) === v), disabled: D(dis) } }, label));
+  }
+  /* segmentado: partes iguales que llenan el ancho (palabras o iconos) */
+  function segs(path: string, label: string, opts: [string, Kid, string?][]) {
+    const v = getP(path);
+    return h("span", { cls: "iseg", attr: { role: "radiogroup", "aria-label": label } }, opts.map(([val, kid, aria]) =>
+      h("button", { attr: { type: "button", role: "radio", id: fid(path + "=" + val), "data-p": path, "data-k": "seg", "data-v": val, "data-vt": "string",
+        "aria-checked": String(v === val), "aria-label": aria || null, title: aria || null } }, kid)));
+  }
+  /* fila: la etiqueta en su cajita y, al lado, el control */
+  function lrow(label: string, forId: string | null, ctl: Kid, dis?: boolean) {
+    return h("div", "lrow" + (dis ? " dis" : ""), h(forId ? "label" : "span", { cls: "lrow-l", attr: { for: forId } }, label), h("div", "lrow-c", ctl));
+  }
+  function range(path: string, min: number, max: number, step: number, label: string, v: number, dis?: boolean) {
+    return h("input", { cls: "irange", attr: { type: "range", id: fid(path), "data-p": path, "data-k": "num", min, max, step, value: v, "aria-label": label, disabled: D(dis) } });
+  }
+  /* la fila ancha del FIT: (muestra) · ETIQUETA GRANDE · control */
+  function fitRow(label: string, ctl: Kid, lead?: Kid, cls?: string) {
+    return h("div", "tile t-wide fitrow" + (cls ? " " + cls : ""), lead || null, h("span", "tile-l", label), h("span", "fitrow-c", ctl));
+  }
+  const POSS: [string, string][] = [["top", "panel-top"], ["bottom", "panel-bottom"], ["left", "panel-left"], ["right", "panel-right"]];
+  function fitCtl(s: Model) {
+    const im = s.img;
+    if (im.fit === "fondo") {
+      const sw = swatch("img.shadeC"); sw.addClass("grad-sw");
+      return [fitRow(t("c.shade"), toggle("img.shade", t("o.yes"), t("o.no"), t("c.shade"), "tg-big"), sw)];
+    }
+    const pos = fitRow(t("c.position"), h("span", { cls: "posp", attr: { role: "radiogroup", "aria-label": t("c.position") } }, POSS.map(([v, ic]) => {
+      const b = h("button", { attr: { type: "button", role: "radio", id: fid("img.pos=" + v), "data-p": "img.pos", "data-k": "seg", "data-v": v, "data-vt": "string",
+        "aria-checked": String(im.pos === v), "aria-label": t("pos." + v), title: t("pos." + v) } });
+      setIcon(b, ic);
+      return b;
+    })));
+    if (im.fit !== "enmarcada") return [pos];
+    /* ENMARCADA: posición y margen en la misma franja, separadas por un trazo; el margen se arrastra solo en su mitad */
+    const kids = [...pos.childNodes];
+    return [h("div", "tile t-wide fitrow pair", kids, h("span", { cls: "fr-div", attr: { "aria-hidden": "true" } }),
+      h("span", "tile fr-part", h("label", { cls: "tile-l", attr: { for: fid("img.frame") } }, t("c.margin")),
+        h("input", { cls: "num big", attr: { type: "text", id: fid("img.frame"), "data-p": "img.frame", "data-k": "scrub", "data-min": 0, "data-max": 14, "data-step": 0.5, "data-rate": 0.1, "data-axis": "x",
+          "data-unit": "%", "data-tight": "1", value: fmt(im.frame) + "%", spellcheck: "false", inputmode: "decimal" } })))];
+  }
+  /* SIN IMAGEN: la portada (o lo que se pinte) a la izquierda y, al lado, sus opciones en el mismo formato que los efectos */
+  const EMPTIES = ["nada", "iniciales", "hueco", "portada"];
+  const SHAPES = ["auto", "0", "1", "2", "3", "4", "none"];
+  const shapeName = (v: string) => v === "auto" ? t("cv.shapeAuto") : v === "none" ? t("cv.shapeNone") : t("c.shape") + " " + (+v + 1);
+  function shapeIcon(k: number) {
+    const st = { fill: "none", stroke: "currentColor", "stroke-width": 2 }, fl = { fill: "currentColor" };
+    const kids = [svg("circle", { cx: 10, cy: 10, r: 6, ...st }), svg("rect", { x: 3.5, y: 6, width: 13, height: 8, ...fl }), svg("path", { d: "M4 15.5 10 4.5 16 15.5Z", ...st }),
+      svg("g", fl, ...[[5, 13], [8.5, 9.5], [12, 13], [15.5, 6.5]].map(([y, w]) => svg("rect", { x: 3.5, y, width: w, height: 1.8 }))), svg("path", { d: "M4 13.5A6 6 0 0 1 16 13.5Z", ...fl })][k];
+    return svg("svg", { viewBox: "0 0 20 20", "aria-hidden": "true" }, kids);
+  }
+  /* SIN IMAGEN: una fila con las cuatro opciones; con la portada, debajo, el visor y, al lado, cuatro filas que suman su alto
+     (los colores propios se eligen con los dos puntos del propio visor) */
+  function coverRows(s: Model) {
+    const im = s.img, tp = coverTextProps(), cur = im.cvText; if (cur && !tp.includes(cur)) tp.unshift(cur);
+    const ic = (n: string) => { const x = h("span", "seg-i"); setIcon(x, n); return x; };
+    const view = h("div", { cls: "cv-view", attr: { role: "img", "aria-label": t("c.noImageAria") + ": " + t("empty.portada") },
+      css: { "--cv-img": 'url("' + coverSrc(coverData(s, t("mc.title"), cur ? pname(cur) : ""), 1.22) + '")' } });
+    /* COLORS: elegidos los propios, su parte del segmentado pasa a ser sus dos colores */
+    const cols = segs("img.cvColors", t("b.colors"), [["auto", t("cv.autoS")], ["card", t("cv.cardS")], ["own", t("cv.ownS")]]);
+    if (im.cvColors === "own") cols.lastElementChild!.replaceWith(h("span", { cls: "seg-own", attr: { role: "radio", "aria-checked": "true", "aria-label": t("cv.ownS") } },
+      swatch("img.cvBg"), swatch("img.cvFg")));
+    return h("div", "cv-row", view, h("div", "lrows cv-rows",
+      lrow(t("c.textS"), fid("img.cvText"), sel("img.cvText", [["", t("o.none")], ...tp.map((p): Opt => [p, pname(p)])], false, cur || "")),
+      lrow(t("c.font"), fid("img.cvFont"), fontBtn("img.cvFont")),
+      lrow(t("b.colors"), null, cols),
+      lrow(t("c.shape"), null, segs("img.cvShape", t("c.shape"), SHAPES.map((v): [string, Kid, string] =>
+        [v, v === "auto" ? ic("shuffle") : v === "none" ? ic("ban") : shapeIcon(+v), shapeName(v)])))));
+  }
+  function emptyCtl(s: Model) {
+    return [h("div", "lrows cv-mode", lrow(t("c.noImage"), null, segs("img.empty", t("c.ifNoImage"), EMPTIES.map((e): [string, Kid] => [e, t("empty." + e)])))),
+      s.img.empty === "portada" ? coverRows(s) : null];
+  }
+
   function openSrcMenu(anchor: HTMLElement) {
     const s = S(), cur = imgSrc(s, facts) || "none", ip = imgProps().slice(); if (cur !== "none" && !ip.includes(cur)) ip.unshift(cur);
     const pick = (v: string) => { closeFp(); commit("img.src", v, true); byId("cbp-imgsrc")?.focus(); };
@@ -280,18 +383,6 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   /* tile ancho: la etiqueta a la izquierda y, en la pastilla, un desplegable o el botón de la fuente */
   function wide(label: string, ctl: Kid, path: string) {
     return h("div", "tile t-wide", h("label", { cls: "tile-l", attr: { for: fid(path) } }, label), h("span", "tile-pill", ctl));
-  }
-  /* opciones como chips (2, 3 o 4 por fila), con su título pequeño encima; con icono, la palabra va de etiqueta accesible */
-  function chips(path: string, label: string, opts: [string, string, string?][], cols: number, dis?: unknown, extra?: Kid) {
-    const v = getP(path);
-    return h("div", "chipg" + (dis ? " dis" : ""), h("span", "chipg-l", label),
-      h("div", { cls: "chipg-b c" + cols, attr: { role: "group", "aria-label": label } },
-        opts.map(([val, l, ic]) => {
-          const b = h("button", { cls: ic ? "ic" : undefined, attr: { type: "button", id: fid(path + "=" + val), "data-p": path, "data-k": "seg", "data-v": val, "data-vt": "string",
-            "aria-pressed": String(v === val), "aria-label": ic ? l : null, title: ic ? l : null, disabled: D(dis) } }, ic ? null : l);
-          if (ic) setIcon(b, ic);
-          return b;
-        }), extra));
   }
   /* tile con iconos en la pastilla (ALIGN) */
   function iconTile(path: string, label: string, opts: [string, string, string][]) {
@@ -323,7 +414,6 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   /* ---------- Tarjeta ---------- */
   function tarjetaNode(s: Model) {
     const c = s.card, col = s.col, im = s.img, sp = imgSrc(s, facts), noImg = !sp;
-    const fondo = im.fit === "fondo";
     const sideOrig = !noImg && im.fit === "original" && (im.pos === "left" || im.pos === "right");
     const fx = im.fx === "color" ? "bn" : im.fx;
     return h("section", "grp", h("div", "grp-h", h("h3", null, t("g.card"))), h("div", "stack",
@@ -351,51 +441,34 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
           crow(t("c.border"), [h("span", "numw bw", h("input", { cls: "num pill-in", attr: { type: "text", id: fid("col.bw"), "data-p": "col.bw", "data-k": "scrub", "data-min": 0, "data-max": 20,
             "data-step": 1, "data-rate": 0.25, "data-unit": "px", "data-tight": "1", value: fmt(col.bw) + "px", spellcheck: "false", inputmode: "decimal", "aria-label": t("c.border") } })),
             swatch("col.bc", col.bw === 0)])))),
-      /* TEXT STYLE: la fuente (ancha) | WEIGHT, SIZE y ALIGN */
+      /* TEXT STYLE: FONT (ancha) | WEIGHT, SIZE (en px, a lo ancho de la tarjeta) y ALIGN */
       block("fuente", t("b.font"), h("div", "mod",
-        wide(t("c.typeface"), fontBtn("font.family"), "font.family"),
+        wide(t("c.font"), fontBtn("font.family"), "font.family"),
         h("div", "mod-3",
           tile("font.weight", t("c.weight"), { min: 300, max: 900, step: 100, rate: 0.05, unit: "", axis: "x" }),
-          tile("font.size", t("c.size"), { min: 2, max: 8, step: 0.1, rate: 0.02, unit: "%", axis: "x" }),
-          iconTile("font.align", t("c.alignShort"), [["left", "align-left", t("al.left")], ["center", "align-center", t("al.center")], ["right", "align-right", t("al.right")]])))),
-      /* IMAGE: origen | posición y ajuste | sin imagen | MARGIN, INTENSITY y BRIGHTNESS | efecto | grano y degradado */
+          tile("font.size", t("c.size"), { min: Math.ceil(c.w * 0.02), max: Math.floor(c.w * 0.1), step: 1, rate: 0.12, unit: "px", axis: "x", x: "cw" }),
+          iconTile("font.align", t("c.alignShort"), [["left", "align-left", t("al.left")], ["center", "align-center", t("al.center")], ["right", "align-right", t("al.right")],
+            ["justify", "align-justify", t("al.justify")]])))),
+      /* IMAGE (boceto de Patt): EFFECT en chips y, debajo, GRAIN, INTENSITY y BRIGHTNESS con deslizador | la muestra (‹ FIT ›)
+         · la fila del FIT · SIN IMAGEN: la portada | sus opciones */
       block("imagen", t("b.image"), h("div", "mod",
-        h("div", { cls: "imgmod", css: { "--ic-img": imgVar(sp) } },
-          h("div", "img-side", h("span", "chipg-l", t("c.ifNoImage")),
-            h("div", { cls: "pictos" + (noImg ? " dis" : ""), attr: { role: "group", "aria-label": t("c.noImageAria") } },
-              (["nada", "iniciales", "hueco", "portada"] as const).map(e => h("button", { cls: "picto", attr: { type: "button", id: fid("img.empty=" + e), "data-p": "img.empty", "data-k": "seg",
-                "data-v": e, "data-vt": "string", "aria-pressed": String(im.empty === e), disabled: D(noImg) } }, h("span", "pic pic-" + e, e === "iniciales" ? "AB" : null), h("span", "picto-w", t("empty." + e)))))),
-          h("div", "img-mid", imgCard(s, sp, noImg),
-            h("div", { cls: "fit-nav" + (noImg ? " dis" : ""), attr: { role: "group", "aria-label": t("c.fit") } },
-              h("button", { cls: "fit-arr", attr: { type: "button", "data-fitstep": "-1", "aria-label": t("c.fit") + " ‹", disabled: D(noImg) } }, h("span", null, "‹")),
-              h("span", { cls: "fit-name", attr: { "aria-live": "polite" } }, t("fit." + im.fit)),
-              h("button", { cls: "fit-arr", attr: { type: "button", "data-fitstep": "1", "aria-label": t("c.fit") + " ›", disabled: D(noImg) } }, h("span", null, "›")))),
-          h("div", "img-side r", h("span", "chipg-l", t("c.effect")),
-            h("div", { cls: "fxs" + (noImg ? " dis" : ""), attr: { role: "group", "aria-label": t("c.effect") } },
-              (["color", "bn", "duo", "blur", "inv"] as const).map(f => h("button", { cls: "fxb", attr: { type: "button", id: fid("img.fx=" + f), "data-p": "img.fx", "data-k": "seg", "data-v": f, "data-vt": "string",
-                "aria-pressed": String(im.fx === f), disabled: D(noImg) } }, h("span", "fxb-w", t("fx." + f)), h("span", { cls: "fxb-t", css: { "--ic-filter": fxFilter(s, f) } })))),
-            im.fx === "duo" && !noImg ? h("div", "duo-row", swatch("img.duo1"), swatch("img.duo2")) : null)),
-        im.empty === "portada" && !noImg ? coverCtl(s) : null,
-        h("div", "mod-3",
-          tile("img.frame", t("c.margin"), { min: 0, max: 14, step: 0.5, rate: 0.1, unit: "%", axis: "x", dis: noImg || im.fit !== "enmarcada" }),
-          tile("img.amt." + fx, t("c.intensity"), { min: 0, max: 100, step: 1, rate: 0.5, unit: "%", axis: "x", dis: noImg || im.fx === "color" }),
-          tile("img.bright", t("c.brightness"), { min: 20, max: 140, step: 1, rate: 0.5, unit: "%", axis: "x", dis: noImg })),
-        h("div", "mod-2",
-          toggle("img.grain", t("c.grain"), t("c.noGrain"), t("c.grain"), "tg-row", noImg),
-          h("div", "tg-sw", toggle("img.shade", t("c.shade"), t("c.noShade"), t("c.shade"), "tg-row", noImg || !fondo), swatch("img.shadeC", noImg || !fondo || !im.shade))))),
+        h("div", { cls: "imgmod" + (noImg ? " no-src" : ""), css: { "--ic-img": imgVar(sp) } },
+          h("div", "img-fx",
+            h("div", { cls: "ichips", attr: { role: "radiogroup", "aria-label": t("c.effect") } },
+              chip("img.fx", "color", t("fx.color"), { icon: h("span", "fxb-i fx-color"), dis: noImg }), chip("img.fx", "bn", t("fx.bn"), { icon: h("span", "fxb-i fx-bn"), dis: noImg }),
+              dotChip("img.fx", "duo", t("fx.duo"), "img.duo1", "img.duo2", noImg),
+              chip("img.fx", "blur", t("fx.blur"), { icon: h("span", "fxb-i fx-blur"), dis: noImg }), chip("img.fx", "inv", t("fx.inv"), { icon: h("span", "fxb-i fx-inv"), dis: noImg })),
+            noImg ? null : h("div", "lrows",
+              lrow(t("c.grain"), fid("img.grainAmt"), range("img.grainAmt", 0, 100, 1, t("c.grain"), im.grain ? im.grainAmt : 0)),
+              lrow(t("c.intensity"), fid("img.amt." + fx), range("img.amt." + fx, 0, 100, 1, t("c.intensity"), im.amt[fx] ?? 100, im.fx === "color"), im.fx === "color"))),
+          imgCard(s, sp, noImg),
+          noImg ? null : h("div", "img-fit", fitCtl(s)),
+          noImg ? null : h("div", "img-empty", emptyCtl(s))))),
     ));
   }
 
-  /* «Sin imagen: Portada» */
+  /* «Sin imagen: Portada»: los textos que puede llevar abajo */
   const coverTextProps = () => propsOf().filter(p => !p.startsWith("rel:") && p !== "file.name" && !facts.isImage(p) && !facts.isUrlProp(p));
-  function coverCtl(s: Model) {
-    const tp = coverTextProps(), cur = s.img.cvText; if (cur && !tp.includes(cur)) tp.unshift(cur);
-    return h("div", "mod sub",
-      wide(t("c.bottomText"), sel("img.cvText", [["", t("o.none")], ...tp.map((p): Opt => [p, pname(p)])], false, cur || ""), "img.cvText"),
-      wide(t("c.typeface"), fontBtn("img.cvFont"), "img.cvFont"),
-      chips("img.cvColors", t("b.colors"), [["auto", t("cv.auto")], ["card", t("cv.card")]], 2),
-      chips("img.cvShape", t("c.shape"), [["auto", t("cv.shapeAuto")], ["none", t("cv.shapeNone")]], 2));
-  }
 
   /* ---------- Datos ---------- */
   function visibleItems(s: Model) {
@@ -722,6 +795,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     const ms = /^states\.list\.#([^.]+)\.prop$/.exec(path);
     if (ms) { const st = stateOf(s, ms[1]), up = (x: string | null | undefined) =>
  String(x || "").replace(/^(note|formula)\./, "").toUpperCase(); if (st && old != null && st.yes === up(old as string)) st.yes = up(st.prop); }
+    if (path === "img.grainAmt") s.img.grain = s.img.grainAmt > 0;          // GRAIN: a 0, sin grano
     if (path === "lines.n") syncStruct(s);
     if (path === "lines.on" && s.lines.on) ui.open.add("lineas");
     const m = /^items\.#([^.]+)\.(sup|t\.src|type)$/.exec(path);
@@ -759,15 +833,15 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
     if (k === "scrub") {
       delete el.dataset.dirty;
       const raw = el.value.replace(",", ".").trim(), n = parseFloat(raw);
-      commit(p, raw === "" || !isFinite(n) ? null : clamp(n, +el.dataset.min!, +el.dataset.max!), true);
+      commit(p, raw === "" || !isFinite(n) ? null : unscale(el, clamp(n, +el.dataset.min!, +el.dataset.max!)), true);
     }
   });
   pb.addEventListener("keydown", ev => {
     const el = (ev.target as HTMLElement);
     if (el.dataset && el.dataset.k === "scrub" && (ev.key === "ArrowUp" || ev.key === "ArrowDown")) {
       ev.preventDefault(); const s = S(), st = +el.dataset.step! * (ev.shiftKey ? 10 : 1);
-      const v = (getP(el.dataset.p!) as number | null) ?? s.font.size; const n = clamp(+(v + (ev.key === "ArrowUp" ? st : -st)).toFixed(2), +el.dataset.min!, +el.dataset.max!);
-      commit(el.dataset.p!, n); (el as HTMLInputElement).value = numTxt(el as HTMLInputElement, n);
+      const v = shownOf(el, (getP(el.dataset.p!) as number | null) ?? s.font.size); const n = clamp(+(v + (ev.key === "ArrowUp" ? st : -st)).toFixed(2), +el.dataset.min!, +el.dataset.max!);
+      commit(el.dataset.p!, unscale(el, n)); (el as HTMLInputElement).value = numTxt(el as HTMLInputElement, n);
     }
     if (el.dataset && el.dataset.gap) {
       const by = ev.key === "ArrowRight" || ev.key === "ArrowUp" ? 1 : ev.key === "ArrowLeft" || ev.key === "ArrowDown" ? -1 : 0;
@@ -783,7 +857,6 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       const i = FITS.indexOf(S().img.fit), n = FITS[(i + +b.dataset.fitstep + FITS.length) % FITS.length];
       commit("img.fit", n, true); pb.querySelector<HTMLElement>('[data-fitstep="' + b.dataset.fitstep + '"]')?.focus(); return;
     }
-    if (b.dataset.pos) { commit("img.pos", b.dataset.pos, true); pb.querySelector<HTMLElement>('[data-pos="' + b.dataset.pos + '"]')?.focus(); return; }
     if (b.dataset.src) { if (ui.fp && ui.fp.anchorId === b.id) closeFp(); else openSrcMenu(b); return; }
     if (b.dataset.toggle) {
       const k = b.dataset.toggle, open = !ui.open.has(k);
@@ -835,13 +908,17 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
   let scrubMoved = false;
   /* (también los tiles de SIZE, enteros: en horizontal o en vertical, con su ritmo; y el GAP) */
   const numTxt = (el: HTMLInputElement, n: number) => fmt(n) + (el.dataset.tight ? "" : " ") + el.dataset.unit;
+  /* un número que se enseña en otra escala (SIZE: el % del ancho de la tarjeta, en px) */
+  function xOf(x: string | undefined) { return x === "cw" ? S().card.w / 100 : 1; }
+  function shownOf(el: HTMLElement, v: number) { const x = xOf(el.dataset.x); return x === 1 ? v : Math.round(v * x / +el.dataset.step!) * +el.dataset.step!; }
+  function unscale(el: HTMLElement, n: number) { const x = xOf(el.dataset.x); return x === 1 ? n : +(n / x).toFixed(3); }
   pb.addEventListener("pointerdown", ev => {
     const tg = ev.target as HTMLElement;
     if (tg.closest(".gapc")) { gapDrag(ev); return; }
     const el = (tg.closest("input.num") || tg.closest(".tile")?.querySelector("input.num")) as HTMLInputElement | null;
     if (!el || el.disabled || document.activeElement === el) return;
     const sx = ev.clientX, sy = ev.clientY, p = el.dataset.p!, s = S(), y = el.dataset.axis === "y";
-    const start = (getP(p) as number | null) ?? s.font.size, step = +el.dataset.step!, rate = +(el.dataset.rate || 0) || step / 3;
+    const start = shownOf(el, (getP(p) as number | null) ?? s.font.size), step = +el.dataset.step!, rate = +(el.dataset.rate || 0) || step / 3;
     let moved = false; scrubMoved = false;
     const mv = (e: PointerEvent) => {
       const d = y ? e.clientY - sy : e.clientX - sx;
@@ -849,7 +926,7 @@ export function createPanel(view: CoolBasesView, host: HTMLElement): Panel {
       if (!moved) { moved = true; scrubMoved = true; document.body.addClass(y ? "cb-scrubbing-y" : "cb-scrubbing"); }
       e.preventDefault();
       const n = clamp(+(start + Math.round(d * rate / step) * step).toFixed(2), +el.dataset.min!, +el.dataset.max!);
-      commitLive(p, n); el.value = numTxt(el, n);
+      commitLive(p, unscale(el, n)); el.value = numTxt(el, n);
     };
     const up = () => { document.removeEventListener("pointermove", mv); document.removeEventListener("pointerup", up); document.body.removeClass("cb-scrubbing", "cb-scrubbing-y"); if (moved) { preview(); renderPanel(); } };
     document.addEventListener("pointermove", mv); document.addEventListener("pointerup", up);

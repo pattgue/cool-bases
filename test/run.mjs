@@ -345,6 +345,38 @@ const BAR_BTN = '.cool-tool[data-tool="cool-bases"]';
   await p.fill(".cb-fp #fpSearch", "My Rare Font");
   await p.press(".cb-fp #fpSearch", "Enter");
   ok("type any font name", (await model()).font.family === "My Rare Font");
+  /* SIZE se enseña en px (el % del ancho de la tarjeta) y se guarda en % */
+  const sz = '.cb-panel input[data-p="font.size"]';
+  const m0 = await model(), px0 = Math.round(m0.font.size * m0.card.w / 100);
+  ok("SIZE shown in px", (await p.inputValue(sz)) === px0 + "px", await p.inputValue(sz));
+  await p.focus(sz); await p.keyboard.press("ArrowUp");
+  const m1 = await model();
+  ok("…ArrowUp adds 1 px, saved as % of the width", Math.abs(m1.font.size * m1.card.w / 100 - (px0 + 1)) < 0.01, m1.font.size + " %");
+  await p.click('.cb-panel button[data-p="font.align"][data-v="justify"]');
+  ok("ALIGN justify", (await model()).font.align === "justify");
+  /* IMAGE: las flechas de cada muestra pasan por el ajuste y por lo que se pinta sin imagen */
+  await p.click('.cb-panel [data-toggle="imagen"]');
+  const f0 = (await model()).img.fit;
+  await p.click('.cb-panel [data-fitstep="1"]');
+  ok("IMAGE: the arrows change the fit", (await model()).img.fit !== f0 && await p.evaluate(() => document.activeElement.dataset.fitstep === "1"));
+  /* sin imagen: la portada y, al lado, sus opciones (chips y filas como los efectos) */
+  await p.click('.cb-panel #cbp-img-empty-portada');
+  ok("IMAGE: cover viewer with its options", await p.isVisible(".cb-panel .cv-row .cv-view") && await p.isVisible('.cb-panel .cv-rows select[data-p="img.cvText"]'));
+  await p.click('.cb-panel #cbp-img-cvShape-2');
+  await p.click('.cb-panel #cbp-img-cvColors-own');
+  await p.waitForTimeout(100);
+  const cv = await p.evaluate(() => JSON.parse(document.querySelector('.cb-card[data-path="Books/Don Quixote.md"] img.cb-ph').dataset.cv));
+  const mc = await model();
+  ok("IMAGE: a fixed shape and own colors reach the cards", cv.shape === 2 && cv.bg === mc.img.cvBg && cv.fg === mc.img.cvFg, JSON.stringify([cv.shape, cv.bg, cv.fg]));
+  ok("IMAGE: own colors show their two colors in the segment", await p.isVisible('.cb-panel .seg-own #cbp-img-cvBg-sw'));
+  await p.click('.cb-panel #cbp-img-empty-nada');
+  ok("IMAGE: without the cover, its viewer and options go away", !(await p.isVisible(".cb-panel .cv-view")) && !(await p.isVisible('.cb-panel select[data-p="img.cvText"]')));
+  /* GRAIN es un deslizador: a 0, sin grano */
+  await setRange("img.grainAmt", 60);
+  const g1 = (await model()).img;
+  await setRange("img.grainAmt", 0);
+  ok("IMAGE: the grain slider sets the amount (0 = no grain)", g1.grain && g1.grainAmt === 60 && !(await model()).img.grain);
+  ok("IMAGE: intensity is off with COLOR", (await model()).img.fx !== "color" || await p.isDisabled('.cb-panel input[data-p^="img.amt."]'));
 
   await p.click("#addBtn");
   await p.selectOption(".cb-panel #popProp", "note.rating");
