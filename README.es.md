@@ -45,12 +45,20 @@ Convierte tus [Bases](https://help.obsidian.md/bases) en tarjetas diseñadas por
 3. En el menú de vistas, arriba a la izquierda de la base, añade una vista (o edita la actual) y elige **Cool Bases** como diseño.
 
    ![Elegir Cool Bases como tipo de vista](docs/view-type.png)
-4. Pulsa **✎ Editar tarjeta** (arriba a la derecha de la vista). El panel se abre a la derecha.
+4. Pulsa **COOL BASES** en la **Cool Bar**, arriba de la pestaña (o usa el comando **Cool Bases: Editar tarjeta**). El panel se abre debajo. En el móvil, pulsa **✎ Editar tarjeta**, arriba a la derecha de la vista.
 5. Cambia lo que quieras y pulsa **Listo**.
 
 Las tarjetas empiezan con las propiedades marcadas en el menú **Propiedades** de la base. Un clic en una tarjeta abre su nota.
 
 ¿Quieres probarlo antes con datos de verdad? La carpeta [`demo-vault`](demo-vault) es un vault pequeño con libros y películas, ya diseñado.
+
+## La Cool Bar
+
+Una barra fina arriba de cada pestaña, común a todos los plugins Cool (como [Cool Trip](https://github.com/pattgue/cool-trip)): una sola barra, con un botón por cada plugin que tengas. **COOL BASES** abre el panel de la vista que estás viendo; en otras pestañas se queda en gris.
+
+Se ajusta en **Ajustes → Cool Bases → Cool Bar**: ubicación (arriba, abajo o flotante), alineación, modo (fija, contextual o escondida), plegada, y qué botones se ven y en qué orden. Lo que cambies se guarda en todos los plugins Cool. El comando **Mostrar u ocultar la Cool Bar** enseña la barra escondida.
+
+En el móvil, de momento la barra no sale (viene un diseño más sutil): ahí, usa **✎ Editar tarjeta** en la vista.
 
 ## El panel
 
@@ -66,7 +74,7 @@ Arriba: **Deshacer** (o Ctrl/Cmd+Z), **Cancelar** (o Escape: deja la vista como 
 ### Tarjeta
 - **Tamaño**: ancho, alto o un formato fijo (1:1, 4:5, 3:4, 2:3, 16:9), llenar el ancho, margen interior, redondeo de las esquinas y separación entre tarjetas.
 - **Colores**: fondo (con degradado si quieres), texto, detalles (el color de acento) y borde.
-- **Fuente**: tipografía, peso, tamaño y alineación. Puedes elegir cualquier fuente instalada en tu ordenador o escribir su nombre.
+- **Estilo de texto**: tipografía, peso, tamaño y alineación. Puedes elegir cualquier fuente instalada en tu ordenador o escribir su nombre.
 - **Imagen**: qué propiedad tiene la imagen, su posición y su ajuste (**Encajar**, **Original**, **Enmarcada**, **Fondo**), efectos (B/N, duotono, desenfoque, invertir), grano, brillo y un degradado oscuro. **Sin imagen** decide qué enseñan las notas sin imagen: nada, sus iniciales, un hueco o una **Portada** generada.
 
 ### Datos
