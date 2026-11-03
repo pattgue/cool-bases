@@ -74,7 +74,7 @@ Arriba: **Deshacer** (o Ctrl/Cmd+Z), **Cancelar** (o Escape: deja la vista como 
 ### Tarjeta
 - **Tamaño**: ancho, alto o un formato fijo (1:1, 4:5, 3:4, 2:3, 16:9), llenar el ancho, margen interior, redondeo de las esquinas y separación entre tarjetas.
 - **Colores**: fondo (con degradado si quieres), texto, detalles (el color de acento) y borde.
-- **Estilo de texto**: tipografía, peso, tamaño y alineación. Puedes elegir cualquier fuente instalada en tu ordenador o escribir su nombre.
+- **Fuente**: tipografía, peso, tamaño y alineación. Puedes elegir cualquier fuente instalada en tu ordenador o escribir su nombre.
 - **Imagen**: qué propiedad tiene la imagen, su posición y su ajuste (**Encajar**, **Original**, **Enmarcada**, **Fondo**), efectos (B/N, duotono, desenfoque, invertir), grano, brillo y un degradado oscuro. **Sin imagen** decide qué enseñan las notas sin imagen: nada, sus iniciales, un hueco o una **Portada** generada.
 
 ### Datos

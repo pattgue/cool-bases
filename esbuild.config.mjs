@@ -4,7 +4,7 @@ import esbuild from "esbuild";
 import { readFileSync, writeFileSync } from "node:fs";
 
 const prod = process.argv[2] === "production";
-const CSS = ["css/font.css", "css/cool-kit.css", "css/boceto.css", "css/cool-bases.css", "css/panel.css", "css/variables.css"];
+const CSS = ["css/font.css", "css/cool-kit.css", "css/boceto.css", "css/cool-bases.css", "css/variables.css"];
 /* Inter Tight (la fuente de la interfaz), incrustada: Obsidian solo descarga main.js, manifest.json y styles.css.
    fonts/InterTight-latin.woff2 es la variable de Google Fonts (licencia OFL, fonts/OFL.txt), con el peso de 400 a 900 y solo
    latín básico + Latin-1 + algo de puntuación. Se hizo así (fontTools):
