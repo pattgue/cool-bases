@@ -45,12 +45,20 @@ Turn your [Bases](https://help.obsidian.md/bases) into cards you design yourself
 3. In the views menu at the top left of the base, add a view (or edit the current one) and choose **Cool Bases** as its layout.
 
    ![Choosing Cool Bases as the view type](docs/view-type.png)
-4. Press **✎ Edit card** (top right of the view). The panel opens on the right.
+4. Press **COOL BASES** in the **Cool Bar**, at the top of the tab (or use the command **Cool Bases: Edit card**). The panel opens below it. On a phone, press **✎ Edit card** at the top right of the view.
 5. Change whatever you like and press **Done**.
 
 The cards start with the properties you ticked in the base's **Properties** menu. Click a card to open its note.
 
 Want to try it with real data first? The [`demo-vault`](demo-vault) folder has a small vault with books and films, already designed.
+
+## The Cool Bar
+
+A thin bar at the top of each tab, shared by all the Cool plugins (like [Cool Trip](https://github.com/pattgue/cool-trip)): one bar, with a button for each plugin you have. **COOL BASES** opens the edit panel of the view you're looking at; elsewhere it stays greyed out.
+
+Set it up in **Settings → Cool Bases → Cool Bar**: location (top, bottom or floating), alignment, mode (always visible, only where a Cool plugin applies, or hidden), collapsed, and which buttons show and in what order. Whatever you change is saved in every Cool plugin. The command **Show or hide the Cool Bar** brings a hidden bar back.
+
+On phones the bar is hidden for now (a lighter design is on its way): there, use **✎ Edit card** in the view.
 
 ## The edit panel
 
@@ -108,7 +116,11 @@ For anything else. It only applies to this view. Useful classes: `.cb-card`, `.c
 → (Fixed) A field joined to an empty one no longer jumps onto the line above.
 
 **Update 1.1.2**:
-→ Formulas that return an Obsidian icon (icon("…")) now show the icon on the card. 
+→ Formulas that return an Obsidian icon (icon("…")) now show the icon on the card.
+
+**Update 1.2.0**:
+→ The **Cool Bar**: the bar shared by the Cool plugins. Its **COOL BASES** button opens the edit panel, which now hangs from it. Its settings are in Settings → Cool Bases.
+→ On phones, the bar is hidden for now and **✎ Edit card** stays in the view.
 
 ## FAQ
 

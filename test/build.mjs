@@ -2,7 +2,7 @@
 // y las bases y notas de ../demo-vault. Uso: npm run build (en la raíz) y luego node test/build.mjs
 // node test/build.mjs --data datos.json --extra extra.js --main otro/main.js --css otro/styles.css --out nombre.html  (para otras bases)
 import { readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from "node:fs";
-import { join, dirname, relative } from "node:path";
+import { join, dirname, relative, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import yaml from "js-yaml";
 
@@ -14,10 +14,10 @@ const arg = k => { const i = process.argv.indexOf(k); return i > 0 ? process.arg
 function walk(dir) { return readdirSync(dir).flatMap(f => { const p = join(dir, f); return statSync(p).isDirectory() ? walk(p) : [p]; }); }
 function vault(dir) {
   const files = walk(dir);
-  const bases = files.filter(f => f.endsWith(".base")).sort().map(f => { const text = read(f); return { path: relative(dir, f), text, yaml: yaml.load(text) }; });
+  const bases = files.filter(f => f.endsWith(".base")).sort().map(f => { const text = read(f); return { path: relative(dir, f).split(sep).join("/"), text, yaml: yaml.load(text) }; });
   const notes = files.filter(f => f.endsWith(".md") && !/CAPTURAS|README/.test(f)).sort().map(f => {
-    const m = /^---\n([\s\S]*?)\n---/.exec(read(f));
-    return { path: relative(dir, f), fm: m ? yaml.load(m[1], { schema: yaml.JSON_SCHEMA }) || {} : {} };
+    const m = /^---\r?\n([\s\S]*?)\r?\n---/.exec(read(f));   // \r: en Windows git puede dejar saltos CRLF
+    return { path: relative(dir, f).split(sep).join("/"), fm: m ? yaml.load(m[1], { schema: yaml.JSON_SCHEMA }) || {} : {} };
   });
   return { bases, notes };
 }
@@ -59,12 +59,13 @@ const main = read(arg("--main") || join(root, "main.js")), css = read(arg("--css
 const html = "<!doctype html><meta charset=\"utf-8\"><title>Cool Bases harness</title>\n" +
   "<style>\n" + theme + "</style>\n<style>\n" + css + "</style>\n" +
   "<body><div id=\"out\"></div>\n" +
-  script("window.__lang = /(^|[|#])es(\\||$)/.test(decodeURIComponent(location.hash)) ? 'es' : 'en';\nif (location.hash.indexOf('#panel=') === 0) document.documentElement.classList.add('panel-page');") +
+  script("window.__lang = /(^|[|#])es(\\||$)/.test(decodeURIComponent(location.hash)) ? 'es' : 'en';\nwindow.__phone = /(^|[|#])phone(\\||$)/.test(decodeURIComponent(location.hash));\nif (location.hash.indexOf('#panel=') === 0) document.documentElement.classList.add('panel-page');") +
   script(read(join(here, "node_modules", "js-yaml", "dist", "js-yaml.min.js"))) +
   script(read(join(here, "obsidian-mock.js"))) +
   script("window.DATOS = " + JSON.stringify(datos) + ";") +
   (arg("--extra") ? script(read(arg("--extra"))) : "") +
   script("(function(){ var module = { exports: {} }, exports = module.exports;\n" + main + "\nwindow.__pluginModule = module.exports; })();") +
+  script("window.__mainSrc = " + JSON.stringify(main) + ";") +   // para cargar una segunda copia (otro plugin Cool)
   script(read(join(here, "harness.js")));
 mkdirSync(join(here, "out"), { recursive: true });
 const name = arg("--out") || "harness.html";
