@@ -97,8 +97,8 @@
     if (v.groupBy && v.groupBy.property) {
       const map = new Map();
       for (const e of entries) { const k = toArr(e.file.fm[v.groupBy.property]).join(", "); if (!map.has(k)) map.set(k, []); map.get(k).push(e); }
-      for (const [k, es] of [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))) groups.push({ key: k ? new StringValue(k) : new NullValue(), hasKey: () => !!k, entries: es });
-    } else groups.push({ key: new NullValue(), hasKey: () => false, entries });
+      for (const [k, es] of [...map.entries()].sort((a, b) => a[0].localeCompare(b[0]))) groups.push({ key: k ? new StringValue(k) : new NullValue(), entries: es });
+    } else groups.push({ key: undefined, entries });
     const props = new Set(["file.name"]);
     for (const e of entries) for (const k of Object.keys(e.file.fm)) props.add("note." + k);
     const config = {

@@ -467,13 +467,13 @@ export function duoSVG(s: Model, uid: string) {
 }
 
 /* pinta los grupos en `root`; renderKey(el, group) pinta la cabecera de un grupo. El CSS libre lo aplica la vista. */
-export interface Group { hasKey: boolean; key?: Value; recs: Rec[] }
+export interface Group { key?: Value; recs: Rec[] }
 export function renderModel(root: HTMLElement, s: Model, groups: Group[], src: Source, facts: Facts, uid: string, renderKey?: (el: HTMLElement, g: Group) => void) {
   curRatio = +root.dataset.cbRatio! || 1.5;
   root.empty();
   if (s.img.fx === "duo") root.appendChild(duoSVG(s, uid));
   for (const g of groups) {
-    if (g.hasKey) { const hd = root.createDiv({ cls: "cb-group" }); renderKey && renderKey(hd, g); }
+    if (g.key !== undefined && g.key !== null) { const hd = root.createDiv({ cls: "cb-group" }); renderKey && renderKey(hd, g); }
     const grid = root.createDiv();
     gridSetup(grid, s, uid);
     grid.append(...g.recs.map(rec => cardNode(s, rec, src, facts)));
