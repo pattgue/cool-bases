@@ -140,7 +140,7 @@ export class CoolBasesView extends BasesView {
   renderCool(model: Model) {
     const el = this.containerEl;
     const src = this.source(), facts = this.factsFor(src);
-    const groups = this.data.groupedData.map(g => ({ hasKey: g.hasKey(), key: g.key, recs: g.entries.map(e => this.rec(e)) }));
+    const groups = this.data.groupedData.map(g => ({ key: g.key, recs: g.entries.map(e => this.rec(e)) }));
     renderModel(el, model, groups, src, facts, this.cbUid, (hd, g) => g.key!.renderTo(hd, this.app.renderContext));
     this.setCss(model.css && model.css.trim() ? ".cb-view." + this.cbUid + " {\n" + model.css + "\n}" : "");
     el.querySelectorAll("img").forEach(im => { if (!im.complete) im.addEventListener("load", () => this.schedulePost(), { once: true }); });

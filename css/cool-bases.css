@@ -4,6 +4,7 @@
 .cb-fp, .cb-fp *, .cb-fp *::before, .cb-fp *::after { box-sizing: border-box; }
 /* ===== Cool Bases: lo propio del plugin (vista nueva y montaje del panel) ===== */
 .cb-view { padding: var(--size-4-3); }
+.cb-view .cb-grid + .cb-grid { margin-top: var(--cb-gap); }
 .cb-view .cb-group {
   display: inline-block; font-weight: 600; color: var(--text-muted); background: var(--background-modifier-hover);
   border-radius: 6px; padding: 2px 10px; font-size: var(--font-ui-small); margin: var(--size-4-4) 0 var(--size-4-2);
